@@ -1,11 +1,9 @@
 import logging
 
-from fastapi import FastAPI
-from fastapi import HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from app.api import api_router
 from app.core.config import settings
 
 
@@ -20,27 +18,23 @@ def _configure_logging() -> None:
 def create_app() -> FastAPI:
     _configure_logging()
     logger = logging.getLogger(__name__)
+
     app = FastAPI(title=settings.app_name, version=settings.version)
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-    @app.options("/{rest_of_path:path}")
-    async def preflight_handler(rest_of_path: str):
-        return Response(status_code=200)
+    # Custom CORS middleware
 
     @app.middleware("http")
-    async def log_requests(request: Request, call_next):
-        print("➡️", request.method, request.url)
+    async def cors_fix(request: Request, call_next):
         response = await call_next(request)
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "*"
+        response.headers["Access-Control-Allow-Headers"] = "*"
         return response
 
-    from app.api import api_router
+    @app.options("/{path:path}")
+    async def options_handler(path: str):
+        return JSONResponse(status_code=200, content={})
+
     app.include_router(api_router)
 
     @app.exception_handler(HTTPException)
