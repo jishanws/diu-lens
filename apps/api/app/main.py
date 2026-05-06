@@ -1,10 +1,12 @@
 import logging
+import traceback
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
 from app.api import api_router
 from app.core.config import settings
+from app.db.bootstrap import initialize_database
 
 
 def _configure_logging() -> None:
@@ -20,6 +22,29 @@ def create_app() -> FastAPI:
     logger = logging.getLogger(__name__)
 
     app = FastAPI(title=settings.app_name, version=settings.version)
+    logger.info("FastAPI app instance created id=%s", id(app))
+
+    @app.on_event("startup")
+    def create_tables() -> None:
+        print("BOOTSTRAP STARTED", flush=True)
+        logger.info(
+            "Startup create_tables hook executing app_id=%s startup_handlers=%s",
+            id(app),
+            [getattr(handler, "__name__", repr(handler)) for handler in app.router.on_startup],
+        )
+        try:
+            print("INITIALIZE_DATABASE CALLED", flush=True)
+            initialize_database()
+        except Exception as exc:
+            logger.exception("Failed to create tables")
+            traceback.print_exception(type(exc), exc, exc.__traceback__)
+            raise
+
+    logger.info(
+        "Registered startup handlers app_id=%s handlers=%s",
+        id(app),
+        [getattr(handler, "__name__", repr(handler)) for handler in app.router.on_startup],
+    )
 
     def _apply_cors_headers(response: Response) -> Response:
         response.headers["Access-Control-Allow-Origin"] = "*"
@@ -82,3 +107,8 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+logging.getLogger(__name__).info(
+    "Module app.main:app ready app_id=%s startup_handlers=%s",
+    id(app),
+    [getattr(handler, "__name__", repr(handler)) for handler in app.router.on_startup],
+)
