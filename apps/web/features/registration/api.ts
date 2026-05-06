@@ -4,6 +4,7 @@ import type {
   VerificationFrameMetadataByAngle,
 } from '@/features/registration/verification/types';
 import {
+  guidedAngles,
   captureAngles,
   getRequiredFramesForAngle,
 } from '@/features/registration/capture/constants';
@@ -15,9 +16,7 @@ const GENERIC_REGISTRATION_COMPLETION_ERROR =
   'Unable to complete registration right now. Please try again.';
 const MIN_CAPTURE_FILE_SIZE_BYTES = 10 * 1024;
 const ALLOWED_CAPTURE_CONTENT_TYPES = new Set(['image/jpeg', 'image/png']);
-const REQUIRED_VERIFICATION_ANGLES: VerificationAngle[] = [
-  ...captureAngles,
-];
+const REQUIRED_VERIFICATION_ANGLES: VerificationAngle[] = [...guidedAngles];
 const MAX_CAPTURES_PER_ANGLE = 5;
 
 export type EnrollmentPayload = {
@@ -95,6 +94,27 @@ function toMessageFromUnknown(value: unknown): string | null {
 function toValidationReasonMessage(value: unknown): string | null {
   if (!value || typeof value !== 'object') {
     return null;
+  }
+
+  function dataUrlToBlob(dataUrl: string): Blob | null {
+    const commaIndex = dataUrl.indexOf(',');
+    if (commaIndex < 0) return null;
+
+    const header = dataUrl.slice(0, commaIndex);
+    const content = dataUrl.slice(commaIndex + 1);
+    const mimeMatch = header.match(/^data:(.*?);base64$/);
+    if (!mimeMatch) return null;
+
+    try {
+      const bytes = atob(content);
+      const array = new Uint8Array(bytes.length);
+      for (let index = 0; index < bytes.length; index += 1) {
+        array[index] = bytes.charCodeAt(index);
+      }
+      return new Blob([array], { type: mimeMatch[1] || 'image/jpeg' });
+    } catch {
+      return null;
+    }
   }
 
   const record = value as Record<string, unknown>;
@@ -271,7 +291,10 @@ async function submitEnrollmentCompletionRequest(
 ) {
   try {
     const requestStartMs = performance.now();
-    const logTiming = (stage: string, details: Record<string, unknown> = {}) => {
+    const logTiming = (
+      stage: string,
+      details: Record<string, unknown> = {}
+    ) => {
       const nowMs = performance.now();
       console.log('[verification-timing]', stage, {
         nowMs: Number(nowMs.toFixed(2)),
@@ -280,14 +303,29 @@ async function submitEnrollmentCompletionRequest(
       });
     };
 
+    const anglesSummary = REQUIRED_VERIFICATION_ANGLES.map((angle) => ({
+      angle,
+      accepted_shots: capturesByAngle[angle]?.length ?? 0,
+      required_shots: getRequiredFramesForAngle(angle),
+    }));
+    const totalRequiredShots = anglesSummary.reduce(
+      (total, entry) => total + entry.required_shots,
+      0
+    );
+    const totalAcceptedShots = anglesSummary.reduce(
+      (total, entry) => total + entry.accepted_shots,
+      0
+    );
     console.log('[verification] request start', {
       student_id: payload.student_id,
-      total_required_shots: payload.total_required_shots,
-      total_accepted_shots: payload.total_accepted_shots,
+      total_required_shots: totalRequiredShots,
+      total_accepted_shots: totalAcceptedShots,
     });
-
     const metadataWithFrames: EnrollmentCompletionPayload = {
       ...payload,
+      total_required_shots: totalRequiredShots,
+      total_accepted_shots: totalAcceptedShots,
+      angles: anglesSummary,
       frame_metadata_by_angle: REQUIRED_VERIFICATION_ANGLES.map((angle) => ({
         angle,
         frames: (frameMetadataByAngle[angle] ?? []).map((frame) => ({
@@ -299,6 +337,11 @@ async function submitEnrollmentCompletionRequest(
     logTiming('FormData creation started');
     const formData = new FormData();
     formData.append('metadata', JSON.stringify(metadataWithFrames));
+    formData.append('student_id', payload.student_id);
+    console.log('[verification] form data seed', {
+      student_id: payload.student_id,
+      metadata_keys: Object.keys(metadataWithFrames),
+    });
 
     let appendedFiles = 0;
     let totalUploadBytes = 0;
@@ -326,13 +369,33 @@ async function submitEnrollmentCompletionRequest(
         };
       }
 
-      for (const [index, capture] of captures.entries()) {
+      for (const [index, captureInput] of captures.entries()) {
+        let capture = captureInput;
+        if (typeof capture === 'string') {
+          const converted = dataUrlToBlob(capture);
+          if (!converted) {
+            return {
+              success: false,
+              message: `Captured image data is invalid for angle: ${angle}. Please retake this shot.`,
+            };
+          }
+          capture = converted;
+        }
+
         if (!(capture instanceof Blob)) {
           return {
             success: false,
             message: `Captured file is invalid for angle: ${angle}. Please retake this shot.`,
           };
         }
+
+        console.log('[verification] capture input', {
+          angle,
+          index,
+          isFile: capture instanceof File,
+          size: capture.size,
+          type: capture.type,
+        });
 
         if (capture.size <= 0) {
           return {
@@ -348,7 +411,7 @@ async function submitEnrollmentCompletionRequest(
           };
         }
 
-        const normalizedType = capture.type.toLowerCase();
+        const normalizedType = (capture.type || 'image/jpeg').toLowerCase();
         if (!ALLOWED_CAPTURE_CONTENT_TYPES.has(normalizedType)) {
           return {
             success: false,
@@ -366,7 +429,19 @@ async function submitEnrollmentCompletionRequest(
           type: capture.type,
         });
         const extension = normalizedType === 'image/png' ? 'png' : 'jpg';
-        formData.append(angle, capture, `${angle}_${index + 1}.${extension}`);
+        const fileName = `${angle}_${index + 1}.${extension}`;
+        const fileToAppend =
+          capture instanceof File
+            ? capture
+            : new File([capture], fileName, { type: normalizedType });
+        formData.append(angle, fileToAppend, fileName);
+        console.log('[verification] appended file', {
+          angle,
+          index,
+          fileName,
+          size: fileToAppend.size,
+          type: fileToAppend.type,
+        });
         appendedFiles += 1;
         totalUploadBytes += capture.size;
         logTiming('each file appended', {
@@ -386,6 +461,23 @@ async function submitEnrollmentCompletionRequest(
           'No captured verification images found. Please retake the guided shots.',
       };
     }
+    const formEntries = Array.from(formData.entries());
+    const fileEntries = formEntries.filter(
+      ([, value]) => value instanceof Blob
+    );
+    const fileCountsByKey = fileEntries.reduce<Record<string, number>>(
+      (acc, [key]) => {
+        acc[key] = (acc[key] ?? 0) + 1;
+        return acc;
+      },
+      {}
+    );
+    console.log('[verification] form data summary', {
+      total_keys: formEntries.length,
+      file_entries: fileEntries.length,
+      file_counts_by_key: fileCountsByKey,
+      all_keys: formEntries.map(([key]) => key),
+    });
     console.log('[verification] files attached', { appendedFiles });
     const totalKb = Math.round(totalUploadBytes / 1024);
     const totalMb = Number((totalUploadBytes / (1024 * 1024)).toFixed(2));
@@ -434,6 +526,24 @@ async function parseEnrollmentResponse(
     body: rawText,
   });
 
+  const statusLabel = response.status
+    ? `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`
+    : 'unknown';
+  const logResponseIssue = (body: unknown) => {
+    const logPayload = {
+      status: response.status,
+      statusText: response.statusText,
+      body,
+    };
+
+    if (response.status >= 500) {
+      console.error(`[${logPrefix}] non-OK response`, logPayload);
+      return;
+    }
+
+    console.warn(`[${logPrefix}] non-OK response`, logPayload);
+  };
+
   let parsedData: unknown = null;
   if (rawText.trim()) {
     try {
@@ -445,10 +555,7 @@ async function parseEnrollmentResponse(
 
   if (isEnrollmentResponse(parsedData)) {
     if (!response.ok) {
-      console.error(`[${logPrefix}] non-OK response`, {
-        status: response.status,
-        body: parsedData,
-      });
+      logResponseIssue(parsedData);
     }
     if (response.status >= 500) {
       throw new Error(parsedData.message || errorMessage);
@@ -460,17 +567,14 @@ async function parseEnrollmentResponse(
     toValidationReasonMessage(parsedData) ||
     toFastApiValidationMessage(parsedData) ||
     toMessageFromUnknown(parsedData) ||
-    (response.ok ? 'Request completed.' : errorMessage);
+    (response.ok ? 'Request completed.' : `Request failed (${statusLabel}).`);
 
   if (response.status >= 500) {
     throw new Error(derivedMessage);
   }
 
   if (!response.ok) {
-    console.error(`[${logPrefix}] non-OK response`, {
-      status: response.status,
-      body: parsedData,
-    });
+    logResponseIssue(parsedData);
     return {
       success: false,
       message: derivedMessage,

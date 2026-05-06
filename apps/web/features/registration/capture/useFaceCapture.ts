@@ -43,7 +43,10 @@ type DetectionResult = {
 };
 
 type FaceLandmarker = {
-  detectForVideo: (video: HTMLVideoElement, timestampMs: number) => DetectionResult;
+  detectForVideo: (
+    video: HTMLVideoElement,
+    timestampMs: number
+  ) => DetectionResult;
   close: () => void;
 };
 
@@ -58,7 +61,14 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function emptyCapturedShots(): CapturedShotsByAngle {
-  return { front: [], left: [], right: [], up: [], down: [], natural_front: [] };
+  return {
+    front: [],
+    left: [],
+    right: [],
+    up: [],
+    down: [],
+    natural_front: [],
+  };
 }
 
 function isAngleComplete(
@@ -72,14 +82,19 @@ function allAnglesComplete(capturedShots: CapturedShotsByAngle) {
   return captureAngles.every((angle) => isAngleComplete(capturedShots, angle));
 }
 
-function findFirstMissingAngle(capturedShots: CapturedShotsByAngle): VerificationAngle | null {
+function findFirstMissingAngle(
+  capturedShots: CapturedShotsByAngle
+): VerificationAngle | null {
   return (
     captureAngles.find((angle) => !isAngleComplete(capturedShots, angle)) ??
     null
   );
 }
 
-function getStoragePayload(activeAngle: VerificationAngle, capturedShots: CapturedShotsByAngle): CapturePersistencePayload {
+function getStoragePayload(
+  activeAngle: VerificationAngle,
+  capturedShots: CapturedShotsByAngle
+): CapturePersistencePayload {
   return {
     version: captureStorageVersion,
     activeAngle,
@@ -132,7 +147,10 @@ function toBlobUrl(blob: Blob) {
   return URL.createObjectURL(blob);
 }
 
-function getLandmark(landmarks: LandmarkPoint[], index: number): LandmarkPoint | null {
+function getLandmark(
+  landmarks: LandmarkPoint[],
+  index: number
+): LandmarkPoint | null {
   const point = landmarks[index];
   if (!point) return null;
   if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
@@ -160,7 +178,10 @@ function computeFaceBox(landmarks: LandmarkPoint[]) {
   };
 }
 
-function estimateYawPitch(landmarks: LandmarkPoint[]): { yaw: number; pitch: number } {
+function estimateYawPitch(landmarks: LandmarkPoint[]): {
+  yaw: number;
+  pitch: number;
+} {
   const leftEye = getLandmark(landmarks, 33);
   const rightEye = getLandmark(landmarks, 263);
   const noseTip = getLandmark(landmarks, 1);
@@ -186,7 +207,11 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): { yaw: number; pitch: num
   };
 }
 
-function isRoughAngleMatch(angle: VerificationAngle, yaw: number, pitch: number) {
+function isRoughAngleMatch(
+  angle: VerificationAngle,
+  yaw: number,
+  pitch: number
+) {
   if (angle === naturalFrontAngle) return true;
   const yawMargin = 8;
   const pitchMargin = 8;
@@ -198,15 +223,27 @@ function isRoughAngleMatch(angle: VerificationAngle, yaw: number, pitch: number)
     );
   }
   if (angle === 'left') {
-    return yaw >= ANGLE_THRESHOLDS.leftYaw - yawMargin && Math.abs(pitch) <= ANGLE_THRESHOLDS.sidePitchAbs + pitchMargin;
+    return (
+      yaw >= ANGLE_THRESHOLDS.leftYaw - yawMargin &&
+      Math.abs(pitch) <= ANGLE_THRESHOLDS.sidePitchAbs + pitchMargin
+    );
   }
   if (angle === 'right') {
-    return yaw <= ANGLE_THRESHOLDS.rightYaw + yawMargin && Math.abs(pitch) <= ANGLE_THRESHOLDS.sidePitchAbs + pitchMargin;
+    return (
+      yaw <= ANGLE_THRESHOLDS.rightYaw + yawMargin &&
+      Math.abs(pitch) <= ANGLE_THRESHOLDS.sidePitchAbs + pitchMargin
+    );
   }
   if (angle === 'up') {
-    return pitch <= ANGLE_THRESHOLDS.upPitch + pitchMargin && Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin;
+    return (
+      pitch <= ANGLE_THRESHOLDS.upPitch + pitchMargin &&
+      Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin
+    );
   }
-  return pitch >= ANGLE_THRESHOLDS.downPitch - pitchMargin && Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin;
+  return (
+    pitch >= ANGLE_THRESHOLDS.downPitch - pitchMargin &&
+    Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin
+  );
 }
 
 function getAngleGuidance(angle: VerificationAngle) {
@@ -275,9 +312,12 @@ export function useFaceCapture({
   const persistenceEnabledRef = useRef(true);
 
   const [modelReady, setModelReady] = useState(false);
-  const [modelErrorMessage, setModelErrorMessage] = useState<string | null>(null);
+  const [modelErrorMessage, setModelErrorMessage] = useState<string | null>(
+    null
+  );
   const [activeAngle, setActiveAngle] = useState<VerificationAngle>('front');
-  const [capturedShots, setCapturedShots] = useState<CapturedShotsByAngle>(emptyCapturedShots());
+  const [capturedShots, setCapturedShots] =
+    useState<CapturedShotsByAngle>(emptyCapturedShots());
   const [isAutoCapturing, setIsAutoCapturing] = useState(false);
   const [feedback, setFeedback] = useState<FaceCaptureState['feedback']>({
     guidanceState: 'no_face',
@@ -295,8 +335,13 @@ export function useFaceCapture({
     },
   });
 
-  const { capturedCount, canSubmit, currentAngle, currentAngleIndex, firstMissingAngle } =
-    useAngleProgress(capturedShots, activeAngle);
+  const {
+    capturedCount,
+    canSubmit,
+    currentAngle,
+    currentAngleIndex,
+    firstMissingAngle,
+  } = useAngleProgress(capturedShots, activeAngle);
 
   useEffect(() => {
     latestShotsRef.current = capturedShots;
@@ -325,7 +370,11 @@ export function useFaceCapture({
 
     try {
       const parsed = JSON.parse(raw) as CapturePersistencePayload;
-      if (parsed.version !== captureStorageVersion || !Array.isArray(parsed.shots)) return;
+      if (
+        parsed.version !== captureStorageVersion ||
+        !Array.isArray(parsed.shots)
+      )
+        return;
 
       const restored = emptyCapturedShots();
       for (const shot of parsed.shots) {
@@ -364,7 +413,10 @@ export function useFaceCapture({
     if (!persistenceEnabledRef.current) return;
 
     try {
-      window.sessionStorage.setItem(storageKey, JSON.stringify(getStoragePayload(activeAngle, capturedShots)));
+      window.sessionStorage.setItem(
+        storageKey,
+        JSON.stringify(getStoragePayload(activeAngle, capturedShots))
+      );
     } catch {
       persistenceEnabledRef.current = false;
     }
@@ -383,7 +435,9 @@ export function useFaceCapture({
       } catch {
         if (cancelled) return;
         setModelReady(false);
-        setModelErrorMessage('Face guidance is temporarily unavailable. Please refresh and try again.');
+        setModelErrorMessage(
+          'Face guidance is temporarily unavailable. Please refresh and try again.'
+        );
       }
     })();
 
@@ -415,16 +469,22 @@ export function useFaceCapture({
     };
   }, [videoElement]);
 
-  const safeDetect = useCallback((targetVideoElement: HTMLVideoElement | null) => {
-    if (!landmarkerRef.current) return null;
-    if (!targetVideoElement || targetVideoElement.readyState < 2) return null;
+  const safeDetect = useCallback(
+    (targetVideoElement: HTMLVideoElement | null) => {
+      if (!landmarkerRef.current) return null;
+      if (!targetVideoElement || targetVideoElement.readyState < 2) return null;
 
-    try {
-      return landmarkerRef.current.detectForVideo(targetVideoElement, performance.now());
-    } catch {
-      return null;
-    }
-  }, []);
+      try {
+        return landmarkerRef.current.detectForVideo(
+          targetVideoElement,
+          performance.now()
+        );
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
 
   const captureAngle = useCallback(
     async (targetAngle: VerificationAngle, force: boolean) => {
@@ -450,7 +510,10 @@ export function useFaceCapture({
           if (faces.length === 1) {
             const landmarks = faces[0];
             const box = computeFaceBox(landmarks);
-            faceAreaRatio = Math.max(0, (box.maxX - box.minX) * (box.maxY - box.minY));
+            faceAreaRatio = Math.max(
+              0,
+              (box.maxX - box.minX) * (box.maxY - box.minY)
+            );
             const pose = estimateYawPitch(landmarks);
             yaw = pose.yaw;
             pitch = pose.pitch;
@@ -466,6 +529,13 @@ export function useFaceCapture({
               : faceAreaRatio >= MIN_FACE_AREA_RATIO;
 
           const snapshot = await captureSnapshot();
+          if (snapshot) {
+            console.log('[capture] snapshot captured', {
+              angle: targetAngle,
+              size: snapshot.size,
+              type: snapshot.type,
+            });
+          }
           if (snapshot && snapshot.size >= MIN_CAPTURE_FILE_SIZE_BYTES) {
             const dataUrl = await blobToDataUrl(snapshot);
             const warnings: string[] = [];
@@ -485,7 +555,8 @@ export function useFaceCapture({
                 centerOffset: 0,
                 blurVariance: 0,
                 brightness: 0,
-                captureConfidence: !force && angleOk && sizeOk ? 'ideal' : 'near_ready',
+                captureConfidence:
+                  !force && angleOk && sizeOk ? 'ideal' : 'near_ready',
                 warnings,
               },
             });
@@ -551,14 +622,22 @@ export function useFaceCapture({
         stopVideoStream(videoElement);
         return;
       }
-      if (!videoElement || videoElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+      if (
+        !videoElement ||
+        videoElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+      ) {
         scheduleNext();
         return;
       }
 
       const now = performance.now();
       if (now < cooldownUntilRef.current) {
-        setFeedback((prev) => ({ ...prev, guidanceState: 'cooldown', liveMessage: 'Captured', holdProgress: 0 }));
+        setFeedback((prev) => ({
+          ...prev,
+          guidanceState: 'cooldown',
+          liveMessage: 'Captured',
+          holdProgress: 0,
+        }));
         scheduleNext();
         return;
       }
@@ -621,7 +700,10 @@ export function useFaceCapture({
 
       const landmarks = faces[0];
       const box = computeFaceBox(landmarks);
-      const faceAreaRatio = Math.max(0, (box.maxX - box.minX) * (box.maxY - box.minY));
+      const faceAreaRatio = Math.max(
+        0,
+        (box.maxX - box.minX) * (box.maxY - box.minY)
+      );
       const pose = estimateYawPitch(landmarks);
       const nearAngle = isRoughAngleMatch(angle, pose.yaw, pose.pitch);
 
@@ -648,7 +730,9 @@ export function useFaceCapture({
       setFeedback({
         guidanceState: nearAngle ? 'ready' : 'wrong_angle',
         instruction: getAngleGuidance(angle),
-        liveMessage: nearAngle ? `Capturing ${angle === naturalFrontAngle ? 'natural front' : angle}...` : getAngleGuidance(angle),
+        liveMessage: nearAngle
+          ? `Capturing ${angle === naturalFrontAngle ? 'natural front' : angle}...`
+          : getAngleGuidance(angle),
         holdProgress: nearAngle ? 1 : 0,
         readiness: {
           faceDetected: true,
@@ -690,7 +774,14 @@ export function useFaceCapture({
       detectionTimerRef.current = null;
       autoCaptureLockRef.current = false;
     };
-  }, [canSubmit, captureAngle, modelReady, safeDetect, streamActive, videoElement]);
+  }, [
+    canSubmit,
+    captureAngle,
+    modelReady,
+    safeDetect,
+    streamActive,
+    videoElement,
+  ]);
 
   const retakeAngle = useCallback((angle: VerificationAngle) => {
     setCapturedShots((current) => {
@@ -703,7 +794,12 @@ export function useFaceCapture({
     });
     cooldownUntilRef.current = 0;
     setActiveAngle(angle);
-    setFeedback((prev) => ({ ...prev, instruction: getAngleGuidance(angle), liveMessage: getAngleGuidance(angle), holdProgress: 0 }));
+    setFeedback((prev) => ({
+      ...prev,
+      instruction: getAngleGuidance(angle),
+      liveMessage: getAngleGuidance(angle),
+      holdProgress: 0,
+    }));
   }, []);
 
   const focusAngle = useCallback((angle: VerificationAngle) => {
@@ -711,10 +807,14 @@ export function useFaceCapture({
   }, []);
 
   const captureAnyway = useCallback(async () => {
-    if (!streamActive || !videoElement || isAutoCapturing || canSubmit) return false;
+    if (!streamActive || !videoElement || isAutoCapturing || canSubmit)
+      return false;
     const ok = await captureAngle(currentAngleRef.current, true);
     if (!ok) {
-      setFeedback((prev) => ({ ...prev, liveMessage: 'Capture failed. Try again.' }));
+      setFeedback((prev) => ({
+        ...prev,
+        liveMessage: 'Capture failed. Try again.',
+      }));
     }
     return ok;
   }, [canSubmit, captureAngle, isAutoCapturing, streamActive, videoElement]);
@@ -735,7 +835,14 @@ export function useFaceCapture({
         accumulator[angle] = capturedShots[angle].map((shot) => shot.blob);
         return accumulator;
       },
-      { front: [], left: [], right: [], up: [], down: [], natural_front: [] } as VerificationCapturesByAngle
+      {
+        front: [],
+        left: [],
+        right: [],
+        up: [],
+        down: [],
+        natural_front: [],
+      } as VerificationCapturesByAngle
     );
   }, [capturedShots]);
 
@@ -747,7 +854,14 @@ export function useFaceCapture({
         }));
         return accumulator;
       },
-      { front: [], left: [], right: [], up: [], down: [], natural_front: [] } as VerificationFrameMetadataByAngle
+      {
+        front: [],
+        left: [],
+        right: [],
+        up: [],
+        down: [],
+        natural_front: [],
+      } as VerificationFrameMetadataByAngle
     );
   }, [capturedShots]);
 

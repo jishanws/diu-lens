@@ -41,11 +41,31 @@ const angleMarkerConfig: Array<{
   label: string;
   className: string;
 }> = [
-  { angle: 'up', label: 'UP', className: 'left-1/2 top-1 -translate-x-1/2 -translate-y-1/2' },
-  { angle: 'left', label: 'LEFT', className: 'left-1 top-1/2 -translate-x-1/2 -translate-y-1/2' },
-  { angle: 'front', label: 'FRONT', className: 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2' },
-  { angle: 'right', label: 'RIGHT', className: 'right-1 top-1/2 translate-x-1/2 -translate-y-1/2' },
-  { angle: 'down', label: 'DOWN', className: 'left-1/2 bottom-1 -translate-x-1/2 translate-y-1/2' },
+  {
+    angle: 'up',
+    label: 'UP',
+    className: 'left-1/2 top-1 -translate-x-1/2 -translate-y-1/2',
+  },
+  {
+    angle: 'left',
+    label: 'LEFT',
+    className: 'left-1 top-1/2 -translate-x-1/2 -translate-y-1/2',
+  },
+  {
+    angle: 'front',
+    label: 'FRONT',
+    className: 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
+  },
+  {
+    angle: 'right',
+    label: 'RIGHT',
+    className: 'right-1 top-1/2 translate-x-1/2 -translate-y-1/2',
+  },
+  {
+    angle: 'down',
+    label: 'DOWN',
+    className: 'left-1/2 bottom-1 -translate-x-1/2 translate-y-1/2',
+  },
 ];
 
 export function GuidedEnrollmentCapture({
@@ -54,8 +74,12 @@ export function GuidedEnrollmentCapture({
   isSubmittingCompletion = false,
   completionErrorMessage,
 }: GuidedEnrollmentCaptureProps) {
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
-  const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(null);
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
+    null
+  );
+  const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(
+    null
+  );
   const currentAngleRef = useRef<string>('front');
   const currentBlockerRef = useRef<string>('no_face');
 
@@ -78,17 +102,13 @@ export function GuidedEnrollmentCapture({
     [videoRef]
   );
 
-  const {
-    state,
-    capturesByAngle,
-    frameMetadataByAngle,
-    clearSession,
-  } = useFaceCapture({
-    videoElement,
-    streamActive,
-    captureSnapshot,
-    storageKey: getStorageKey(studentId),
-  });
+  const { state, capturesByAngle, frameMetadataByAngle, clearSession } =
+    useFaceCapture({
+      videoElement,
+      streamActive,
+      captureSnapshot,
+      storageKey: getStorageKey(studentId),
+    });
 
   useEffect(() => {
     currentAngleRef.current = state.currentAngle;
@@ -228,6 +248,22 @@ export function GuidedEnrollmentCapture({
       studentId,
       capturedCount: state.capturedCount,
     });
+    const captureSummary = captureAngles.map((angle) => {
+      const captures = capturesByAngle[angle] ?? [];
+      const sizes = captures.map((capture) => capture.size);
+      const types = captures.map((capture) => capture.type);
+      return {
+        angle,
+        count: captures.length,
+        sizes,
+        types,
+        totalBytes: sizes.reduce((total, size) => total + size, 0),
+      };
+    });
+    console.log('[verification] capture summary', {
+      studentId,
+      captureSummary,
+    });
 
     try {
       const summary: VerificationCompletionSummary = {
@@ -327,7 +363,10 @@ export function GuidedEnrollmentCapture({
               <div className="pointer-events-none absolute inset-0">
                 <CircularProgressGuide
                   totalSteps={captureAngles.length}
-                  currentStepIndex={Math.max(0, captureAngles.indexOf(state.currentAngle))}
+                  currentStepIndex={Math.max(
+                    0,
+                    captureAngles.indexOf(state.currentAngle)
+                  )}
                 />
               </div>
 
