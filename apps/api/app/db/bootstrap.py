@@ -14,27 +14,9 @@ logger = logging.getLogger(__name__)
 
 def initialize_database() -> None:
     """Import models and create required tables if they are missing."""
-    print("INITIALIZE_DATABASE CALLED", flush=True)
-    logger.info("initialize_database() entered")
-
     # Import model modules explicitly so tables register on Base.metadata.
-    from app.db.models.enrollments import Enrollment
-    from app.db.models.students import Student
-
-    registered_tables = tuple(Base.metadata.tables.keys())
-    logger.info(f"Metadata tables: {list(Base.metadata.tables.keys())}")
-    logger.info("Registered metadata tables before create_all: %s", registered_tables)
-    logger.info(
-        "Required tables registered before create_all: students=%s enrollments=%s",
-        "students" in Base.metadata.tables,
-        "enrollments" in Base.metadata.tables,
-    )
-    logger.info(
-        "Model metadata identity before create_all: Base=%s Student=%s Enrollment=%s",
-        id(Base.metadata),
-        id(Student.__table__.metadata),
-        id(Enrollment.__table__.metadata),
-    )
+    import app.db.models.enrollments  # noqa: F401
+    import app.db.models.students  # noqa: F401
 
     required_tables = ("students", "enrollments")
     missing_from_metadata = [name for name in required_tables if name not in Base.metadata.tables]
@@ -50,3 +32,5 @@ def initialize_database() -> None:
     if missing:
         missing_text = ", ".join(missing)
         raise RuntimeError(f"Missing required table(s) after initialization: {missing_text}")
+
+    logger.info("Database initialized successfully")
