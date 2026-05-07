@@ -3,6 +3,9 @@ packages:
   - 'packages/*'
   - 'services/*'
 
+allowBuilds:
+  msw: true
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
