@@ -571,6 +571,17 @@ def persist_enrollment_to_db(payload: EnrollmentRecordInput) -> None:
     session_factory = get_session_factory()
     with session_factory() as db:
         try:
+            logger.info(
+                "[db-enroll] persist start student_id=%s status=%s verification_completed=%s "
+                "total_required_shots=%s total_accepted_shots=%s validation_passed=%s mode=%s",
+                payload.student_id,
+                payload.status,
+                payload.verification_completed,
+                payload.total_required_shots,
+                payload.total_accepted_shots,
+                payload.validation_passed,
+                payload.mode,
+            )
             existing_enrollment = db.scalar(
                 select(Enrollment)
                 .where(Enrollment.student_id == payload.student_id)
@@ -593,6 +604,13 @@ def persist_enrollment_to_db(payload: EnrollmentRecordInput) -> None:
                 student.university_email = payload.university_email
 
             enrollment = _create_enrollment(db, payload)
+            logger.info(
+                "[db-enroll] created student_pk=%s enrollment_id=%s student_id=%s status=%s",
+                student.id,
+                enrollment.id,
+                payload.student_id,
+                payload.status,
+            )
 
             if payload.mode == "final":
                 _replace_enrollment_images(
@@ -631,6 +649,17 @@ def persist_enrollment_verification_to_db(payload: EnrollmentRecordInput) -> Non
     session_factory = get_session_factory()
     with session_factory() as db:
         try:
+            logger.info(
+                "[db-verification] update start student_id=%s status=%s verification_completed=%s "
+                "total_required_shots=%s total_accepted_shots=%s validation_passed=%s mode=%s",
+                payload.student_id,
+                payload.status,
+                payload.verification_completed,
+                payload.total_required_shots,
+                payload.total_accepted_shots,
+                payload.validation_passed,
+                payload.mode,
+            )
             student = db.scalar(
                 select(Student).where(Student.student_id == payload.student_id)
             )
@@ -640,6 +669,13 @@ def persist_enrollment_verification_to_db(payload: EnrollmentRecordInput) -> Non
             enrollment = _latest_enrollment_for_student(db, payload.student_id)
             if enrollment is None:
                 raise EnrollmentNotFoundError("No existing enrollment found for this student")
+
+            logger.info(
+                "[db-verification] lookup student_pk=%s enrollment_id=%s current_status=%s",
+                student.id,
+                enrollment.id,
+                enrollment.status,
+            )
 
             if enrollment.status == "approved":
                 raise EnrollmentInvalidStateError(
@@ -659,6 +695,15 @@ def persist_enrollment_verification_to_db(payload: EnrollmentRecordInput) -> Non
             enrollment.total_accepted_shots = payload.total_accepted_shots
             enrollment.validation_passed = payload.validation_passed
             enrollment.rejection_reason = None
+
+            logger.info(
+                "[db-verification] apply updates student_id=%s enrollment_id=%s new_status=%s "
+                "verification_completed=%s",
+                payload.student_id,
+                enrollment.id,
+                enrollment.status,
+                enrollment.verification_completed,
+            )
 
             if payload.mode == "final":
                 _replace_enrollment_images(

@@ -958,6 +958,7 @@ async def enroll(request: Request) -> JSONResponse:
                 errors=exc.errors(),
             )
 
+
         try:
             if student_exists_in_db(payload.student_id):
                 return _json_result(

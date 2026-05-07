@@ -4,8 +4,6 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from sqlalchemy import func, select
-
 from app.core.auth import bearer_scheme, require_admin, require_super_admin
 from app.core.enrollment_db import (
     assert_enrollment_processable,
@@ -13,6 +11,7 @@ from app.core.enrollment_db import (
     EnrollmentPersistenceError,
     EnrollmentNotFoundError,
     approve_enrollment,
+    get_enrollments_snapshot_from_db,
     record_processing_completed_in_db,
     reject_enrollment,
     reset_enrollment,
@@ -23,9 +22,6 @@ from app.core.embeddings_db import (
 )
 from app.core.face_pipeline import FacePipelineError, process_student_images
 from app.core.storage import get_storage_service
-from app.db.models.enrollment_images import EnrollmentImage
-from app.db.models.enrollments import Enrollment
-from app.db.session import get_session_factory
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -41,30 +37,11 @@ async def list_admin_enrollments(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
     require_admin(credentials)
-    session_factory = get_session_factory()
-    with session_factory() as db:
-        rows = db.execute(
-            select(
-                Enrollment.student_id,
-                Enrollment.status,
-                Enrollment.created_at,
-                func.count(EnrollmentImage.id).label("total_images"),
-            )
-            .outerjoin(EnrollmentImage, EnrollmentImage.enrollment_id == Enrollment.id)
-            .group_by(Enrollment.id)
-            .order_by(Enrollment.created_at.desc())
-        ).all()
-
+    snapshot = get_enrollments_snapshot_from_db()
     return {
-        "enrollments": [
-            {
-                "student_id": str(student_id),
-                "status": str(status),
-                "created_at": created_at.isoformat() if created_at is not None else None,
-                "total_images": int(total_images or 0),
-            }
-            for student_id, status, created_at, total_images in rows
-        ]
+        "total": snapshot.get("total", 0),
+        "latest": snapshot.get("latest"),
+        "enrollments": snapshot.get("enrollments", []),
     }
 
 
