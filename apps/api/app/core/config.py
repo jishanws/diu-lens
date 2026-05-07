@@ -12,6 +12,11 @@ _LOCAL_FRONTEND_ORIGINS = (
     "http://127.0.0.1:3000",
 )
 
+_PRODUCTION_FRONTEND_ORIGINS = (
+    "https://www.diulens.app",
+    "https://diulens.app",
+)
+
 
 def _parse_origins(raw_origins: str) -> list[str]:
     origins = [origin.strip() for origin in raw_origins.split(",")]
@@ -72,6 +77,8 @@ def _get_allowed_origins(environment: str) -> list[str]:
     origins = _parse_origins(os.getenv("ALLOWED_ORIGINS", ""))
     if environment == "development":
         origins = [*origins, *_LOCAL_FRONTEND_ORIGINS]
+    if environment == "production":
+        origins = [*origins, *_PRODUCTION_FRONTEND_ORIGINS]
 
     unique_origins = list(dict.fromkeys(origins))
     if unique_origins:

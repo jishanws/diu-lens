@@ -56,6 +56,32 @@ def test_deployed_frontend_origins_are_read_from_environment(
     assert _get_allowed_origins("production") == [
         "https://app.example.com",
         "https://www.example.com",
+        "https://www.diulens.app",
+        "https://diulens.app",
+    ]
+
+
+def test_diulens_production_origins_are_always_allowed(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://legacy.example.com")
+
+    assert _get_allowed_origins("production") == [
+        "https://legacy.example.com",
+        "https://www.diulens.app",
+        "https://diulens.app",
+    ]
+
+
+def test_development_localhost_origins_are_always_allowed(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("ALLOWED_ORIGINS", "https://www.diulens.app")
+
+    assert _get_allowed_origins("development") == [
+        "https://www.diulens.app",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
     ]
 
 

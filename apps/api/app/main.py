@@ -57,7 +57,12 @@ def create_app() -> FastAPI:
         try:
             _validate_storage_path()
             initialize_database()
-            logger.info("Startup completed")
+            logger.info(
+                "Startup completed environment=%s storage_path=%s allowed_origins=%s",
+                settings.environment,
+                settings.storage_path,
+                ",".join(settings.allowed_origins),
+            )
         except Exception:
             logger.exception("Critical startup failure during database initialization")
             raise
