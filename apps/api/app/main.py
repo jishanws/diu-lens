@@ -1,4 +1,6 @@
 import logging
+import traceback
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +17,25 @@ def _configure_logging() -> None:
         level=level,
         format="%(asctime)s %(levelname)s %(message)s",
     )
+
+
+def _validate_storage_path() -> None:
+    storage_path = Path(settings.storage_path).expanduser().resolve()
+    try:
+        storage_path.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise RuntimeError(
+            f"STORAGE_PATH is not writable or cannot be created: {storage_path}"
+        ) from exc
+
+    test_file = storage_path / ".write_test"
+    try:
+        test_file.write_text("ok", encoding="utf-8")
+        test_file.unlink(missing_ok=True)
+    except OSError as exc:
+        raise RuntimeError(
+            f"STORAGE_PATH is not writable: {storage_path}"
+        ) from exc
 
 
 def create_app() -> FastAPI:
@@ -34,6 +55,7 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def create_tables() -> None:
         try:
+            _validate_storage_path()
             initialize_database()
             logger.info("Startup completed")
         except Exception:
@@ -43,25 +65,43 @@ def create_app() -> FastAPI:
     app.include_router(api_router)
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+        request_info = {"method": request.method, "path": request.url.path}
         if exc.status_code >= 500:
             logger.exception("HTTP exception: %s", exc.detail)
+            detail: dict[str, object] = {
+                "message": "Internal server error",
+                "request": request_info,
+                "error_type": type(exc).__name__,
+            }
+            if settings.environment == "development":
+                detail["error"] = repr(exc)
+                detail["traceback"] = traceback.format_exc()
             return JSONResponse(
                 status_code=exc.status_code,
-                content={"detail": "Internal server error"},
+                content={"detail": detail},
             )
         logger.warning("HTTP exception: status=%s detail=%s", exc.status_code, exc.detail)
         return JSONResponse(
             status_code=exc.status_code,
-            content={"detail": exc.detail},
+            content={"detail": exc.detail, "request": request_info},
         )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(_: Request, exc: Exception) -> JSONResponse:
+    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled exception", exc_info=exc)
+        request_info = {"method": request.method, "path": request.url.path}
+        detail: dict[str, object] = {
+            "message": "Internal server error",
+            "request": request_info,
+            "error_type": type(exc).__name__,
+        }
+        if settings.environment == "development":
+            detail["error"] = repr(exc)
+            detail["traceback"] = traceback.format_exc()
         return JSONResponse(
             status_code=500,
-            content={"detail": "Internal server error"},
+            content={"detail": detail},
         )
 
     @app.get("/", tags=["root"])

@@ -109,7 +109,8 @@ class EnrollmentResponse(BaseModel):
 
 
 router = APIRouter(tags=["enrollment"])
-logger = logging.getLogger(__name__)
+enroll_logger = logging.getLogger("diu_lens.enroll")
+verification_logger = logging.getLogger("diu_lens.verification")
 
 
 def _bad_request(message: str) -> HTTPException:
@@ -172,7 +173,7 @@ def _extract_multipart_files(
         raise _bad_request("Invalid multipart form data.")
 
     form_keys = list(form_data.keys())
-    logger.info("[verification] multipart keys=%s", form_keys)
+    verification_logger.info("[verification] multipart keys=%s", form_keys)
 
     files_by_angle: dict[str, list[UploadFile]] = {
         angle: [] for angle in EXPECTED_REQUIRED_ANGLES
@@ -200,7 +201,7 @@ def _extract_multipart_files(
         files_by_angle[key].extend(angle_files)
 
     if rejected_fields:
-        logger.warning(
+        verification_logger.warning(
             "[verification] rejected multipart fields=%s allowed=%s",
             sorted(rejected_fields),
             EXPECTED_REQUIRED_ANGLES,
@@ -215,7 +216,7 @@ def _extract_multipart_files(
         raise _bad_request("No verification image files were provided.")
 
     parsed_angles = sorted(angle for angle, files in files_by_angle.items() if files)
-    logger.info("[verification] parsed angle fields=%s", parsed_angles)
+    verification_logger.info("[verification] parsed angle fields=%s", parsed_angles)
 
     return files_by_angle
 
@@ -418,7 +419,7 @@ async def _validate_files(
             sample = await upload.read(MAX_UPLOAD_IMAGE_SIZE_BYTES + 1)
             await upload.seek(0)
 
-            logger.info(
+            verification_logger.info(
                 "[verification-upload] angle=%s file=%s size_bytes=%s content_type=%s",
                 angle,
                 upload.filename or "unknown",
@@ -464,7 +465,7 @@ async def _validate_files(
             if not isinstance(non_blocking_reasons, list):
                 non_blocking_reasons = []
             is_blocking = bool(image_report.get("is_blocking_failure", False))
-            logger.info(
+            verification_logger.info(
                 "[guided-sanity] route_review angle=%s file=%s readable=%s dimensions=%s "
                 "face_detected=%s blocking=%s blocking_reasons=%s non_blocking_reasons=%s "
                 "final_decision=%s bytes=%s",
@@ -480,7 +481,7 @@ async def _validate_files(
                 len(sample),
             )
             if is_blocking:
-                logger.warning(
+                verification_logger.warning(
                     "[guided-sanity] route_blocked angle=%s file=%s reason=%s",
                     angle,
                     file_name,
@@ -489,7 +490,7 @@ async def _validate_files(
             image_reports.append(image_report)
 
     summary = build_validation_summary(image_reports)
-    logger.info(
+    verification_logger.info(
         "[guided-sanity] summary total=%s passed=%s failed=%s",
         summary.get("total_images_checked"),
         summary.get("total_images_passed"),
@@ -499,7 +500,7 @@ async def _validate_files(
     summary["quality_by_angle"] = quality_by_angle
     if not summary["validation_passed"]:
         failure_details = _extract_sanity_failure_details(image_reports)
-        logger.warning(
+        verification_logger.warning(
             "[guided-sanity] validation_failed details=%s",
             failure_details,
         )
@@ -800,7 +801,7 @@ async def _handle_multipart_enrollment(
     except HTTPException:
         raise
     except Exception as exc:
-        logger.exception(
+        verification_logger.exception(
             "[verification] failed to parse multipart form data error=%r traceback=%s",
             exc,
             traceback.format_exc(),
@@ -811,11 +812,11 @@ async def _handle_multipart_enrollment(
     files_by_angle = _extract_multipart_files(form_data)
     capture_timestamps_by_angle = _capture_timestamps_by_angle(payload)
     after_file_access_at = perf_counter()
-    logger.info(
+    verification_logger.info(
         "[verification-timing] metadata parsed ms=%s",
         round((after_metadata_parse_at - after_form_parse_at) * 1000, 2),
     )
-    logger.info(
+    verification_logger.info(
         "[verification-timing] form parsing / file access complete ms=%s",
         round((after_file_access_at - multipart_started_at) * 1000, 2),
     )
@@ -832,7 +833,7 @@ async def _handle_multipart_enrollment(
             capture_timestamps_by_angle,
         )
         after_validation_at = perf_counter()
-        logger.info(
+        verification_logger.info(
             "[verification-timing] integrity validation complete ms=%s",
             round((after_validation_at - after_file_access_at) * 1000, 2),
         )
@@ -866,7 +867,7 @@ async def _handle_multipart_enrollment(
             )
         except (OSError, EnrollmentPersistenceError):
             # Validation response should still be returned even if persistence fallback fails.
-            logger.exception(
+            verification_logger.exception(
                 "[verification] failed to persist validation failure student_id=%s",
                 payload.student_id,
             )
@@ -878,14 +879,14 @@ async def _handle_multipart_enrollment(
             files_by_angle,
         )
         after_file_save_at = perf_counter()
-        logger.info(
+        verification_logger.info(
             "[verification-timing] file save complete ms=%s",
             round((after_file_save_at - after_validation_at) * 1000, 2),
         )
     except ValueError as exc:
         raise _bad_request(str(exc)) from exc
     except OSError as exc:
-        logger.exception(
+        verification_logger.exception(
             "[verification] storage write failed student_id=%s",
             payload.student_id,
         )
@@ -932,7 +933,7 @@ async def enroll(request: Request) -> JSONResponse:
                 message="Invalid JSON payload.",
             )
 
-        logger.info("[enrollment] incoming payload=%s", raw_payload)
+        enroll_logger.info("[enrollment] incoming payload=%s", raw_payload)
 
         missing_fields = _missing_required_fields(raw_payload)
         if missing_fields:
@@ -946,7 +947,7 @@ async def enroll(request: Request) -> JSONResponse:
         try:
             payload = EnrollmentRequest.model_validate(raw_payload)
         except ValidationError as exc:
-            logger.warning(
+            enroll_logger.warning(
                 "[enrollment] payload validation failed errors=%s",
                 exc.errors(),
             )
@@ -965,7 +966,7 @@ async def enroll(request: Request) -> JSONResponse:
                     message="You are already registered",
                 )
         except EnrollmentPersistenceError:
-            logger.exception(
+            enroll_logger.exception(
                 "[enrollment] failed while checking existing enrollment student_id=%s",
                 payload.student_id,
             )
@@ -985,7 +986,7 @@ async def enroll(request: Request) -> JSONResponse:
                 event_type=event_type,
                 event_message=event_message,
             )
-            logger.info(
+            enroll_logger.info(
                 "[enrollment] created student_id=%s mode=%s status=%s",
                 payload.student_id,
                 mode,
@@ -998,7 +999,7 @@ async def enroll(request: Request) -> JSONResponse:
                 message="You are already registered",
             )
         except (OSError, EnrollmentPersistenceError) as exc:
-            logger.exception(
+            enroll_logger.exception(
                 "[enrollment] failed to persist metadata student_id=%s",
                 payload.student_id,
             )
@@ -1015,7 +1016,7 @@ async def enroll(request: Request) -> JSONResponse:
             message="Enrollment saved successfully",
         )
     except Exception as exc:
-        logger.exception("[enrollment] unhandled exception in /enroll")
+        enroll_logger.exception("[enrollment] unhandled exception in /enroll")
         return _json_result(
             status_code=500,
             success=False,
@@ -1028,8 +1029,8 @@ async def enroll(request: Request) -> JSONResponse:
 async def enroll_verification(request: Request) -> EnrollmentResponse:
     request_started_at = perf_counter()
     total_uploaded_bytes = 0
-    logger.info("[verification-timing] route entered")
-    logger.info("[verification] request start path=/enroll/verification")
+    verification_logger.info("[verification-timing] route entered")
+    verification_logger.info("[verification] request start path=/enroll/verification")
     try:
         content_type = request.headers.get("content-type", "").lower()
         if "multipart/form-data" not in content_type:
@@ -1050,7 +1051,7 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
             total_uploaded_bytes = _total_uploaded_bytes_from_validation_summary(
                 validation_summary
             )
-            logger.info(
+            verification_logger.info(
                 "[verification] uploaded bytes=%s student_id=%s",
                 total_uploaded_bytes,
                 payload.student_id,
@@ -1058,12 +1059,12 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
             total_uploaded_files = sum(
                 len(uploaded_images.get(angle, [])) for angle in ALLOWED_ANGLES
             )
-            logger.info(
+            verification_logger.info(
                 "[verification] upload received student_id=%s files=%s",
                 payload.student_id,
                 total_uploaded_files,
             )
-            logger.info(
+            verification_logger.info(
                 "[verification-timing] multipart breakdown form_parse_file_access_ms=%s metadata_parse_ms=%s integrity_validation_ms=%s save_files_ms=%s multipart_total_ms=%s",
                 multipart_timing.get("form_parse_file_access_ms", 0.0),
                 multipart_timing.get("metadata_parse_ms", 0.0),
@@ -1076,8 +1077,11 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
             total_uploaded_bytes = _total_uploaded_bytes_from_validation_summary(
                 failed_validation
             )
-            logger.info("[verification] uploaded bytes=%s", total_uploaded_bytes)
-            logger.warning(
+            verification_logger.info(
+                "[verification] uploaded bytes=%s",
+                total_uploaded_bytes,
+            )
+            verification_logger.warning(
                 "[verification] request failed detail=%s",
                 exc.detail,
             )
@@ -1102,7 +1106,7 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
                 update_existing=True,
             )
         except EnrollmentNotFoundError:
-            logger.warning(
+            verification_logger.warning(
                 "[verification] no pending enrollment found for student_id=%s",
                 payload.student_id,
             )
@@ -1111,7 +1115,7 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
                 message="No pending enrollment found. Submit basic info first.",
             )
         except EnrollmentInvalidStateError as exc:
-            logger.warning(
+            verification_logger.warning(
                 "[verification] invalid enrollment state student_id=%s status_error=%s",
                 payload.student_id,
                 str(exc),
@@ -1121,7 +1125,7 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
                 detail={"message": str(exc)},
             ) from exc
         except (OSError, EnrollmentPersistenceError) as exc:
-            logger.exception(
+            verification_logger.exception(
                 "[verification] failed to persist enrollment verification for student_id=%s",
                 payload.student_id,
             )
@@ -1129,16 +1133,19 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
                 status_code=500,
                 detail="Failed to save enrollment metadata.",
             ) from exc
-        logger.info("[verification-timing] DB persistence complete")
+        verification_logger.info("[verification-timing] DB persistence complete")
 
-        logger.info("[verification] verification completed for student_id=%s", payload.student_id)
-        logger.info("[verification-timing] response returned")
+        verification_logger.info(
+            "[verification] verification completed for student_id=%s",
+            payload.student_id,
+        )
+        verification_logger.info("[verification-timing] response returned")
         return EnrollmentResponse(
             success=True,
             message="Verification images uploaded successfully",
         )
     except Exception as exc:
-        logger.exception(
+        verification_logger.exception(
             "[verification] unhandled exception error=%r traceback=%s",
             exc,
             traceback.format_exc(),
@@ -1156,8 +1163,8 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
         )
     finally:
         elapsed_ms = round((perf_counter() - request_started_at) * 1000, 2)
-        logger.info("[verification-timing] total route ms=%s", elapsed_ms)
-        logger.info(
+        verification_logger.info("[verification-timing] total route ms=%s", elapsed_ms)
+        verification_logger.info(
             "[verification] route elapsed_ms=%s total_uploaded_bytes=%s",
             elapsed_ms,
             total_uploaded_bytes,

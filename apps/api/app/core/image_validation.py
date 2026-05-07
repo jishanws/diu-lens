@@ -26,7 +26,7 @@ _CONFIG = ImageValidationConfig()
 _FACE_CASCADE = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("diu_lens.opencv")
 _STRICT_FACE_DETECTION_ANGLES: set[str] = {"front"}
 
 

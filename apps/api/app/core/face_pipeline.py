@@ -35,7 +35,8 @@ _ANALYZER: Any = None
 _ANALYZER_INIT_ERROR: str | None = None
 _INSIGHTFACE_MODEL_PACK = settings.insightface_model_pack
 _INSIGHTFACE_ROOT = settings.insightface_root
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("diu_lens.face_pipeline")
+opencv_logger = logging.getLogger("diu_lens.opencv")
 _MIN_DET_SCORE = 0.45
 _MIN_FACE_AREA_RATIO = 0.06
 _MIN_BLUR_VARIANCE = 22.0
@@ -773,14 +774,14 @@ def extract_query_face_features(
         np_buffer = np.frombuffer(image_bytes, dtype=np.uint8)
         image = cv2.imdecode(np_buffer, cv2.IMREAD_COLOR)
     except cv2.error as exc:
-        logger.exception("[face-probe] OpenCV decode failed size=%s", len(image_bytes))
+        opencv_logger.exception("[face-probe] OpenCV decode failed size=%s", len(image_bytes))
         raise FacePipelineError("Failed to decode probe image.") from exc
     except Exception as exc:  # noqa: BLE001
-        logger.exception("[face-probe] decode failed size=%s", len(image_bytes))
+        opencv_logger.exception("[face-probe] decode failed size=%s", len(image_bytes))
         raise FacePipelineError("Failed to decode probe image.") from exc
 
     if image is None:
-        logger.warning("[face-probe] decode returned None size=%s", len(image_bytes))
+        opencv_logger.warning("[face-probe] decode returned None size=%s", len(image_bytes))
         raise FacePipelineError("Failed to decode probe image.")
 
     analyzer = _load_analyzer()

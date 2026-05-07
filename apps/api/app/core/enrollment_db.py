@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,9 @@ from app.db.models import (
     Student,
 )
 from app.db.session import get_session_factory
+
+
+logger = logging.getLogger("diu_lens.db")
 
 
 class EnrollmentPersistenceError(Exception):
@@ -607,6 +611,11 @@ def persist_enrollment_to_db(payload: EnrollmentRecordInput) -> None:
                 message=payload.event_message,
             )
             db.commit()
+            logger.info(
+                "[db-commit] enrollment persisted student_id=%s mode=%s",
+                payload.student_id,
+                payload.mode,
+            )
         except StudentAlreadyRegisteredError:
             db.rollback()
             raise
@@ -668,6 +677,11 @@ def persist_enrollment_verification_to_db(payload: EnrollmentRecordInput) -> Non
                 message=payload.event_message,
             )
             db.commit()
+            logger.info(
+                "[db-commit] verification persisted student_id=%s status=%s",
+                payload.student_id,
+                payload.status,
+            )
         except EnrollmentNotFoundError:
             db.rollback()
             raise
@@ -708,6 +722,11 @@ def record_processing_completed_in_db(
                 ),
             )
             db.commit()
+            logger.info(
+                "[db-commit] processing audit student_id=%s passed=%s",
+                student_id,
+                processing_passed,
+            )
         except SQLAlchemyError as exc:
             db.rollback()
             raise EnrollmentPersistenceError(str(exc)) from exc

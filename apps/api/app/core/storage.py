@@ -20,7 +20,7 @@ ALLOWED_IMAGE_CONTENT_TYPES: dict[str, str] = {
 }
 MAX_UPLOAD_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("diu_lens.storage")
 
 _STORAGE_LOCK = Lock()
 _STORAGE_SERVICE = LocalStorageService()
