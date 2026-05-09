@@ -14,7 +14,7 @@ DB_NAME="${DB_NAME:-diu_lens}"
 
 port_listener_line() {
   local port="$1"
-  lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null | sed -n '2p' || true
+  lsof -nP -i:"$port" 2>/dev/null | sed -n '2p' || true
 }
 
 is_port_in_use() {

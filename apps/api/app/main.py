@@ -61,14 +61,20 @@ def create_app() -> FastAPI:
     @app.on_event("startup")
     def create_tables() -> None:
         try:
+            logger.info("Validating storage path: %s", settings.storage_path)
             _validate_storage_path()
+            logger.info("Storage path validated successfully.")
+            
+            logger.info("Testing database connection...")
             initialize_database()
+            
             logger.info(
                 "Startup completed environment=%s storage_path=%s allowed_origins=%s",
                 settings.environment,
                 settings.storage_path,
                 ",".join(settings.allowed_origins),
             )
+            logger.info("API active bind address and port should be inferred from uvicorn logs or your configured reverse proxy.")
         except Exception:
             logger.exception("Critical startup failure during database initialization")
             raise
