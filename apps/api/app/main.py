@@ -5,9 +5,13 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from app.api import api_router
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.db.bootstrap import initialize_database
 
 
@@ -43,6 +47,8 @@ def create_app() -> FastAPI:
     logger = logging.getLogger(__name__)
 
     app = FastAPI(title=settings.app_name, version=settings.version)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
     app.add_middleware(
         CORSMiddleware,

@@ -21,6 +21,7 @@ from app.core.enrollment_db import (
     StudentAlreadyRegisteredError,
 )
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.core.image_validation import (
     build_validation_summary,
     extract_image_quality_metadata,
@@ -918,6 +919,7 @@ async def _handle_multipart_enrollment(
 
 
 @router.post("/enroll")
+@limiter.limit("10/minute")
 async def enroll(request: Request) -> JSONResponse:
     mode = "basic"
     event_type = "basic_info_uploaded"
@@ -1027,6 +1029,7 @@ async def enroll(request: Request) -> JSONResponse:
 
 
 @router.post("/enroll/verification", response_model=EnrollmentResponse)
+@limiter.limit("20/minute")
 async def enroll_verification(request: Request) -> EnrollmentResponse:
     request_started_at = perf_counter()
     total_uploaded_bytes = 0

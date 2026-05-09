@@ -99,15 +99,20 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         setToken(accessToken);
         setAdmin(currentAdmin);
         setStatus('authenticated');
-      } catch {
+      } catch (error) {
         clearSession();
         return {
           success: false,
-          message: 'Login succeeded but profile loading failed. Please try again.',
+          message: error instanceof Error ? error.message : 'Login succeeded but profile loading failed. Please try again.',
         };
       }
 
       return { success: true, message: loginResult.message || 'Login successful.' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'An unexpected error occurred during login. Please try again.',
+      };
     } finally {
       setIsLoggingIn(false);
     }

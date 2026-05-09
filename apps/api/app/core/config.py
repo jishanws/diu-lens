@@ -106,6 +106,9 @@ class Settings:
     insightface_model_pack: str
     insightface_root: str
     storage_path: str
+    bootstrap_admin_email: str | None
+    bootstrap_admin_password: str | None
+    bootstrap_admin_full_name: str | None
 
 
 _environment = _get_env("APP_ENV", "development").lower()
@@ -128,7 +131,6 @@ if _environment == "production":
         raise RuntimeError(
             f"Missing required environment variable(s) for production: {joined}."
         )
-
 
 settings = Settings(
     app_name=_require_env("APP_NAME"),
@@ -159,4 +161,7 @@ settings = Settings(
     insightface_model_pack=_require_env("INSIGHTFACE_MODEL_PACK"),
     insightface_root=_require_env("INSIGHTFACE_ROOT"),
     storage_path=_require_env("STORAGE_PATH"),
+    bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL"),
+    bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD"),
+    bootstrap_admin_full_name=os.getenv("BOOTSTRAP_ADMIN_FULL_NAME"),
 )

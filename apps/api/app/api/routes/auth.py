@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from fastapi.security import HTTPAuthorizationCredentials
@@ -12,6 +12,7 @@ from app.core.auth import (
     create_access_token,
     get_current_admin_user,
 )
+from app.core.limiter import limiter
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -34,7 +35,8 @@ class AdminSummary(BaseModel):
 
 
 @router.post("/admin/login")
-async def admin_login(payload: AdminLoginRequest) -> dict[str, object]:
+@limiter.limit("5/minute")
+async def admin_login(request: Request, payload: AdminLoginRequest) -> dict[str, object]:
     try:
         admin = authenticate_admin_user(payload.email, payload.password)
     except AuthError as exc:

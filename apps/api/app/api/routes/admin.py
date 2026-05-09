@@ -184,7 +184,6 @@ async def approve_enrollment_admin(
     student_id: str,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
-    # TODO(auth): Restrict to admin/super-admin role.
     require_admin(credentials)
     if not student_id.strip():
         return JSONResponse(
@@ -239,7 +238,6 @@ async def reject_enrollment_admin(
     payload: RejectEnrollmentRequest | None = None,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
-    # TODO(auth): Restrict to admin/super-admin role.
     require_admin(credentials)
     if not student_id.strip():
         return JSONResponse(
@@ -266,7 +264,6 @@ async def reset_enrollment_admin(
     student_id: str,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
-    # TODO(auth): Restrict to super-admin role only.
     require_super_admin(credentials)
     if not student_id.strip():
         return JSONResponse(

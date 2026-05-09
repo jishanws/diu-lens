@@ -1,0 +1,52 @@
+services:
+  db:
+    image: ankane/pgvector:v0.5.1
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME:-diu_lens}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-diu_lens}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql+psycopg://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-diu_lens}
+      - JWT_SECRET=${JWT_SECRET}
+      - STORAGE_PATH=/app/storage
+      - APP_ENV=production
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD}
+      - BOOTSTRAP_ADMIN_FULL_NAME=${BOOTSTRAP_ADMIN_FULL_NAME}
+      # Additional settings from .env
+    volumes:
+      - api_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: always
+    environment:
+      - NEXT_PUBLIC_API_URL=https://api.diulens.app
+      - NODE_ENV=production
+    ports:
+      - "127.0.0.1:3000:3000"
+
+volumes:
+  postgres_data:
+  api_storage:
