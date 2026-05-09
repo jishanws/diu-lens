@@ -68,7 +68,7 @@ export default function AdminLoginPage() {
                 id="admin-email"
                 type="email"
                 required
-                placeholder="admin@diu.edu.bd"
+                placeholder="admin@diulens.app"
                 className="h-10 border-border bg-muted/40 text-foreground"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
