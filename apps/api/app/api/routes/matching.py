@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
+from fastapi.concurrency import run_in_threadpool
 
 from app.core.auth import bearer_scheme, require_admin
 from app.core.face_matching import FaceMatchingError, match_face_probe
@@ -48,7 +49,8 @@ async def admin_match_face(
         )
 
     try:
-        result = match_face_probe(
+        result = await run_in_threadpool(
+            match_face_probe,
             probe_bytes,
             threshold=threshold,
             top_k=top_k,

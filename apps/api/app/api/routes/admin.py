@@ -179,6 +179,8 @@ def _run_student_processing(student_id: str) -> dict[str, object]:
         logger.info("[processing] end student_id=%s", student_id)
 
 
+from fastapi.concurrency import run_in_threadpool
+
 @router.post("/enrollments/{student_id}/approve")
 async def approve_enrollment_admin(
     student_id: str,
@@ -214,7 +216,7 @@ async def approve_enrollment_admin(
     if not result.success:
         return payload
 
-    processing = _run_student_processing(student_id)
+    processing = await run_in_threadpool(_run_student_processing, student_id)
     payload["processing_attempted"] = True
     payload["processing_passed"] = bool(processing.get("processing_passed", False))
     payload["processed_images_count"] = int(processing.get("processed_images_count", 0))
@@ -294,7 +296,7 @@ async def process_enrollment_admin(
             content={"success": False, "message": "student_id is required."},
         )
 
-    processing = _run_student_processing(student_id)
+    processing = await run_in_threadpool(_run_student_processing, student_id)
     if not bool(processing.get("ok", False)):
         return JSONResponse(
             status_code=int(processing.get("status_code", 500)),
