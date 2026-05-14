@@ -100,10 +100,7 @@ def _get_env(name: str, default: str) -> str:
 
 def _get_allowed_origins(environment: str) -> list[str]:
     origins = _parse_origins(os.getenv("ALLOWED_ORIGINS", ""))
-    if environment == "development":
-        origins = [*origins, *_LOCAL_FRONTEND_ORIGINS]
-    if environment == "production":
-        origins = [*origins, *_PRODUCTION_FRONTEND_ORIGINS]
+    origins = [*origins, *_LOCAL_FRONTEND_ORIGINS, *_PRODUCTION_FRONTEND_ORIGINS]
 
     unique_origins = list(dict.fromkeys(origins))
     if unique_origins:
