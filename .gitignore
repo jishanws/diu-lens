@@ -16,6 +16,10 @@
 
 # testing
 /coverage
+.cache/
+.eslintcache
+.stylelintcache
+.ipynb_checkpoints/
 
 # next.js
 /.next/
@@ -27,12 +31,15 @@
 
 # production
 /build
+dist/
+/apps/*/dist/
 
 # misc
 .DS_Store
 *.pem
 
 # debug
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -45,6 +52,9 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# turbo
+.turbo/
 
 # typescript
 *.tsbuildinfo

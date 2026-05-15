@@ -9,6 +9,8 @@ celery_app = Celery(
     include=["app.tasks.biometric_tasks"],
 )
 
+from celery.schedules import crontab
+
 celery_app.conf.update(
     task_serializer="json",
     accept_content=["json"],
@@ -21,3 +23,10 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1, # Don't grab many tasks at once if long running
     task_acks_late=True, # Requeue if worker dies before finishing
 )
+
+celery_app.conf.beat_schedule = {
+    "recover-zombie-tasks-every-5-minutes": {
+        "task": "app.tasks.biometric_tasks.recover_zombie_tasks_task",
+        "schedule": crontab(minute="*/5"),
+    },
+}

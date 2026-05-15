@@ -7,6 +7,7 @@ from app.db.models.enrollments import Enrollment
 from app.db.models.face_embeddings import FaceEmbedding
 from app.db.models.selected_crops import SelectedCrop
 from app.db.models.students import Student
+from app.db.models.biometric_tasks import BiometricTask
 
 __all__ = [
     "AdminUser",
@@ -16,4 +17,5 @@ __all__ = [
     "FaceEmbedding",
     "SelectedCrop",
     "Student",
+    "BiometricTask",
 ]

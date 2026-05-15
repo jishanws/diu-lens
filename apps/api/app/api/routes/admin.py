@@ -45,6 +45,60 @@ async def list_admin_enrollments(
     }
 
 
+from sqlalchemy import select, desc, func
+from app.core.task_db import create_biometric_task_record, BiometricTask
+from app.db.session import get_session_factory
+
+@router.get("/biometric-tasks")
+async def list_biometric_tasks(
+    status: str | None = None,
+    student_id: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        query = select(BiometricTask)
+        if status:
+            query = query.where(BiometricTask.status == status)
+        if student_id:
+            query = query.where(BiometricTask.student_id == student_id)
+        
+        query = query.order_by(desc(BiometricTask.created_at))
+        
+        # Get total count
+        total_query = select(func.count()).select_from(query.subquery())
+        total = db.scalar(total_query) or 0
+        
+        # Paginate
+        query = query.limit(limit).offset(offset)
+        tasks = db.scalars(query).all()
+        
+        return {
+            "total": total,
+            "tasks": [
+                {
+                    "id": t.id,
+                    "celery_task_id": t.celery_task_id,
+                    "student_id": t.student_id,
+                    "task_type": t.task_type,
+                    "status": t.status,
+                    "retry_count": t.retry_count,
+                    "started_at": t.started_at.isoformat() if t.started_at else None,
+                    "completed_at": t.completed_at.isoformat() if t.completed_at else None,
+                    "failed_at": t.failed_at.isoformat() if t.failed_at else None,
+                    "error_message": t.error_message,
+                    "worker_hostname": t.worker_hostname,
+                    "processing_duration_ms": t.processing_duration_ms,
+                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                }
+                for t in tasks
+            ]
+        }
+
+
 from app.tasks.biometric_tasks import process_student_enrollment_task
 
 @router.post("/enrollments/{student_id}/approve")
@@ -155,9 +209,60 @@ async def process_enrollment_admin(
             content={"success": False, "message": "student_id is required."},
         )
 
-    process_student_enrollment_task.delay(student_id)
+    task = process_student_enrollment_task.delay(student_id)
+    create_biometric_task_record(task.id, student_id, "enrollment_processing")
 
     return {
         "success": True,
         "message": "Enrollment processing queued successfully.",
     }
+
+
+@router.post("/enrollments/{student_id}/reject")
+async def reject_enrollment_admin(
+    student_id: str,
+    payload: RejectEnrollmentRequest | None = None,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    if not student_id.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "student_id is required."},
+        )
+
+    try:
+        result = reject_enrollment(
+            student_id,
+            reason=payload.reason if payload is not None else None,
+        )
+    except EnrollmentPersistenceError as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": str(exc)},
+        )
+
+    return {"success": result.success, "message": result.message}
+
+
+@router.post("/enrollments/{student_id}/reset")
+async def reset_enrollment_admin(
+    student_id: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_super_admin(credentials)
+    if not student_id.strip():
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "student_id is required."},
+        )
+
+    try:
+        result = reset_enrollment(student_id)
+    except EnrollmentPersistenceError as exc:
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": str(exc)},
+        )
+
+    return {"success": result.success, "message": result.message}
