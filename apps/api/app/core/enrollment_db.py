@@ -260,12 +260,12 @@ def approve_enrollment_by_student_id(db: Session, student_id: str) -> bool:
     if student is None or enrollment is None:
         raise EnrollmentNotFoundError("Enrollment not found for this student_id")
 
-    if enrollment.status == "approved":
+    if enrollment.status in {"approved", "approved_pending_processing", "processing", "processed"}:
         return False
 
-    if enrollment.status not in {"validated", "processed"}:
+    if enrollment.status not in {"validated", "failed_processing"}:
         raise EnrollmentInvalidStateError(
-            "Only validated enrollments can be approved. "
+            "Only validated or failed_processing enrollments can be approved/re-queued. "
             f"Current status: {enrollment.status}"
         )
 
@@ -281,7 +281,7 @@ def approve_enrollment_by_student_id(db: Session, student_id: str) -> bool:
             debug_details=exc.debug_details,
         ) from exc
 
-    enrollment.status = "approved"
+    enrollment.status = "approved_pending_processing"
     enrollment.rejection_reason = None
     _create_audit_log(
         db,
@@ -333,9 +333,9 @@ def reset_enrollment_by_student_id(db: Session, student_id: str) -> None:
     if student is None or enrollment is None:
         raise EnrollmentNotFoundError("Enrollment not found for this student_id")
 
-    if enrollment.status not in {"approved", "processed"}:
+    if enrollment.status not in {"approved", "approved_pending_processing", "processing", "processed", "failed_processing"}:
         raise EnrollmentInvalidStateError(
-            "Only approved enrollments can be reset. "
+            "Only approved/processed enrollments can be reset. "
             f"Current status: {enrollment.status}"
         )
 
@@ -453,7 +453,7 @@ def assert_enrollment_processable(student_id: str) -> None:
             if enrollment is None:
                 raise EnrollmentNotFoundError("Enrollment not found for this student_id")
 
-            if enrollment.status not in {"approved", "processed"}:
+            if enrollment.status not in {"approved_pending_processing", "processing", "processed", "failed_processing"}:
                 raise EnrollmentInvalidStateError(
                     "Only approved enrollments can be processed. "
                     f"Current status: {enrollment.status}"
@@ -463,6 +463,19 @@ def assert_enrollment_processable(student_id: str) -> None:
         except EnrollmentInvalidStateError:
             raise
         except SQLAlchemyError as exc:
+            raise EnrollmentPersistenceError(str(exc)) from exc
+
+
+def mark_enrollment_as_processing(student_id: str) -> None:
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        try:
+            enrollment = _latest_enrollment_for_student(db, student_id)
+            if enrollment is not None and enrollment.status in {"approved_pending_processing", "failed_processing"}:
+                enrollment.status = "processing"
+                db.commit()
+        except SQLAlchemyError as exc:
+            db.rollback()
             raise EnrollmentPersistenceError(str(exc)) from exc
 
 
@@ -484,7 +497,7 @@ def get_processing_source_images(student_id: str) -> dict[str, Any]:
                 raise EnrollmentInvalidStateError(
                     "Processing integrity check failed: enrollment/student mismatch."
                 )
-            if enrollment.status not in {"approved", "processed"}:
+            if enrollment.status not in {"approved_pending_processing", "processing", "processed", "failed_processing"}:
                 raise EnrollmentInvalidStateError(
                     "Processing integrity check failed: enrollment is not in processable status."
                 )
@@ -751,6 +764,7 @@ def record_processing_completed_in_db(
                 enrollment = _latest_enrollment_for_student(db, student.student_id)
                 if enrollment is not None:
                     enrollment_id = enrollment.id
+                    enrollment.status = "processed" if processing_passed else "failed_processing"
                     db.flush()
 
             _create_audit_log(
@@ -866,8 +880,10 @@ def get_enrollments_snapshot_from_db() -> dict[str, Any]:
                     last_processing_message = str(latest_processing_audit.message)
                 if has_active_embeddings:
                     processing_state = "processed"
-                elif last_processing_passed is False:
+                elif enrollment.status == "failed_processing" or last_processing_passed is False:
                     processing_state = "processing_failed"
+                elif enrollment.status in {"approved_pending_processing", "processing"}:
+                    processing_state = enrollment.status
                 elif enrollment.status in {"approved", "processed"}:
                     processing_state = "needs_processing"
                 else:

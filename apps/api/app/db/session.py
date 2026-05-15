@@ -2,6 +2,7 @@
 
 from collections.abc import Generator
 from functools import lru_cache
+import os
 
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
@@ -13,7 +14,11 @@ from app.core.config import settings
 @lru_cache(maxsize=1)
 def get_engine() -> Engine:
     """Create and cache the SQLAlchemy engine."""
-    return create_engine(settings.database_url, pool_pre_ping=True)
+    return create_engine(
+        settings.database_url,
+        pool_pre_ping=True,
+        pool_timeout=int(os.getenv("DB_POOL_TIMEOUT_SECONDS", "5")),
+    )
 
 
 @lru_cache(maxsize=1)

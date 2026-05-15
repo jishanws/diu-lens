@@ -1,11 +1,12 @@
 services:
   db:
-    image: ankane/pgvector:v0.5.1
+    container_name: diu-lens-postgres
+    image: pgvector/pgvector:pg17
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME:-diu_lens}
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -14,21 +15,75 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery_worker:
+    container_name: celery_worker
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: always
+    command: celery -A app.core.celery_app worker --loglevel=info --concurrency=1
+    healthcheck:
+      disable: true
+    environment:
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-diu_lens}
+      - REDIS_URL=redis://redis:6379/0
+      - APP_NAME=${APP_NAME:-DIU Lens API}
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://www.diulens.app,https://diulens.app}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - ALGORITHM=${ALGORITHM:-HS256}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      - FACE_MATCH_DISTANCE_THRESHOLD=${FACE_MATCH_DISTANCE_THRESHOLD:-0.38}
+      - FACE_MATCH_TOP_K=${FACE_MATCH_TOP_K:-5}
+      - FACE_MATCH_CANDIDATE_POOL_LIMIT=${FACE_MATCH_CANDIDATE_POOL_LIMIT:-200}
+      - STORAGE_PATH=/app/storage
+      - HOME=/app
+      - INSIGHTFACE_ROOT=/app/.insightface
+      - INSIGHTFACE_MODEL_PACK=${INSIGHTFACE_MODEL_PACK:-antelopev2}
+      - BIOMETRIC_STARTUP_VALIDATION=true
+      - MPLCONFIGDIR=/tmp/matplotlib
+      - APP_ENV=production
+    volumes:
+      - api_storage:/app/storage
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   api:
+    container_name: diu-lens-api
     build:
       context: ./apps/api
       dockerfile: Dockerfile
     restart: always
     environment:
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD:?DB_PASSWORD is required}
       - DB_HOST=db
       - DB_PORT=5432
       - DB_NAME=${DB_NAME:-diu_lens}
       - APP_NAME=${APP_NAME:-DIU Lens API}
       - APP_VERSION=${APP_VERSION:-0.1.0}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://www.diulens.app,https://diulens.app}
-      - JWT_SECRET=${JWT_SECRET}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
       - ALGORITHM=${ALGORITHM:-HS256}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
       - FACE_MATCH_DISTANCE_THRESHOLD=${FACE_MATCH_DISTANCE_THRESHOLD:-0.38}
@@ -44,11 +99,14 @@ services:
       - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL}
       - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD}
       - BOOTSTRAP_ADMIN_FULL_NAME=${BOOTSTRAP_ADMIN_FULL_NAME}
+      - REDIS_URL=redis://redis:6379/0
       # Additional settings from .env
     volumes:
       - api_storage:/app/storage
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     ports:
       - "127.0.0.1:8000:8000"
@@ -71,3 +129,4 @@ services:
 volumes:
   postgres_data:
   api_storage:
+  redis_data:

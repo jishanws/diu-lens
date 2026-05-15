@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import os
 from pathlib import Path
+from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 from dotenv import load_dotenv
 
@@ -66,20 +67,19 @@ def _get_bool_env(name: str, default: bool) -> bool:
     raise RuntimeError(f"{name} must be a boolean value.")
 
 
-from urllib.parse import quote
-
 def _require_postgresql_url() -> str:
-    # Build URL dynamically if raw components are provided
     db_host = os.getenv("DB_HOST", "").strip()
     db_password = os.getenv("DB_PASSWORD", "")
-    
+
     if db_host and db_password:
         db_user = os.getenv("DB_USER", "postgres").strip()
         db_port = os.getenv("DB_PORT", "5432").strip()
         db_name = os.getenv("DB_NAME", "diu_lens").strip()
-        
-        encoded_password = quote(db_password)
-        return f"postgresql+psycopg://{db_user}:{encoded_password}@{db_host}:{db_port}/{db_name}"
+
+        encoded_password = quote(db_password, safe="")
+        return _with_postgres_timeouts(
+            f"postgresql+psycopg://{db_user}:{encoded_password}@{db_host}:{db_port}/{db_name}"
+        )
 
     database_url = _require_env(
         "DATABASE_URL",
@@ -90,7 +90,27 @@ def _require_postgresql_url() -> str:
         raise RuntimeError(
             "DATABASE_URL must be a PostgreSQL URL (postgresql+psycopg://...)."
         )
-    return database_url
+    return _with_postgres_timeouts(database_url)
+
+
+def _with_postgres_timeouts(database_url: str) -> str:
+    """Keep DB connection failures bounded in request paths."""
+    parsed = urlsplit(database_url)
+    query_pairs = dict(
+        pair.split("=", 1) if "=" in pair else (pair, "")
+        for pair in parsed.query.split("&")
+        if pair
+    )
+    query_pairs.setdefault("connect_timeout", os.getenv("DB_CONNECT_TIMEOUT_SECONDS", "5"))
+    return urlunsplit(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            urlencode(query_pairs),
+            parsed.fragment,
+        )
+    )
 
 
 def _get_env(name: str, default: str) -> str:
@@ -132,12 +152,14 @@ class Settings:
     bootstrap_admin_email: str | None
     bootstrap_admin_password: str | None
     bootstrap_admin_full_name: str | None
+    redis_url: str
 
 
 _environment = _get_env("APP_ENV", "development").lower()
 _database_url = os.getenv("DATABASE_URL", "").strip()
 _jwt_secret = os.getenv("JWT_SECRET", "").strip()
 _storage_path = os.getenv("STORAGE_PATH", "").strip()
+_redis_url = _get_env("REDIS_URL", "redis://redis:6379/0")
 
 if _environment == "production":
     has_database_config = bool(_database_url) or bool(
@@ -194,4 +216,5 @@ settings = Settings(
     bootstrap_admin_email=os.getenv("BOOTSTRAP_ADMIN_EMAIL"),
     bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD"),
     bootstrap_admin_full_name=os.getenv("BOOTSTRAP_ADMIN_FULL_NAME"),
+    redis_url=_redis_url,
 )

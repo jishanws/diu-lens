@@ -18,3 +18,5 @@ passlib
 pgvector
 pytest
 slowapi
+celery[redis]
+redis
