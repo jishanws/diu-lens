@@ -14,6 +14,8 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    request_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
+    correlation_id: Mapped[str | None] = mapped_column(String(128), index=True, nullable=True)
     event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     student_id: Mapped[int | None] = mapped_column(
         ForeignKey("students.id", ondelete="SET NULL"),

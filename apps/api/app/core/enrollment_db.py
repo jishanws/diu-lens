@@ -203,6 +203,8 @@ def _replace_enrollment_images(
             )
 
 
+from app.core.tracing import request_id_ctx, correlation_id_ctx
+
 def _create_audit_log(
     db: Session,
     *,
@@ -211,8 +213,13 @@ def _create_audit_log(
     enrollment_pk: int | None,
     message: str,
 ) -> None:
+    req_id = request_id_ctx.get()
+    corr_id = correlation_id_ctx.get()
+    
     db.add(
         AuditLog(
+            request_id=req_id,
+            correlation_id=corr_id,
             event_type=event_type,
             student_id=student_pk,
             enrollment_id=enrollment_pk,

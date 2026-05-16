@@ -11,10 +11,11 @@ DIU Lens is a robust, full-stack biometric facial recognition system.
 *   **Asynchronous Processing:** **Celery** with **Redis** is used for heavy biometric tasks (e.g., face embedding extraction).
 *   **Database:** **PostgreSQL** heavily relying on the **`pgvector`** extension for storing and querying 512-dimensional face embeddings.
 *   **Frontend (`apps/web`):** **Next.js** (App Router paradigm), **TypeScript**, **Tailwind CSS**, and **shadcn/ui**.
+*   **Observability & Diagnostics:** Features unified request tracing, recognition audit logging, and lightweight operational health intelligence built directly into the core app (no external stacks like Prometheus/OpenTelemetry).
 
 ## 2. Core Directives & Mandates
 
-1.  **Strict Architectural Compliance:** Do NOT introduce new architectural layers (e.g., Kubernetes, Kafka, microservices) or change the fundamental stack (e.g., swapping FastAPI for Django) unless explicitly instructed by the user.
+1.  **Strict Architectural Compliance:** Do NOT introduce new architectural layers (e.g., Kubernetes, Kafka, microservices) or change the fundamental stack (e.g., swapping FastAPI for Django) unless explicitly instructed by the user. Do NOT introduce OpenTelemetry, Prometheus, or external observability stacks.
 2.  **Idempotency & Concurrency:** All operations modifying enrollment states or handling biometric processing MUST be idempotent. You must utilize distributed Redis locks (`redis_client.lock`) to prevent race conditions in background tasks.
 3.  **Exhaustive Validation:** Never assume a code change works. You MUST run the backend test suite (`pytest`) after making any modifications to the API or Core logic. If you add a feature or fix a bug, you MUST write or update corresponding tests.
 4.  **Context Efficiency:** Keep your file reads targeted. Rely on `grep_search` and `glob` to find usage patterns rather than dumping entire large files into context.
@@ -37,6 +38,12 @@ DIU Lens is a robust, full-stack biometric facial recognition system.
 ### Asynchronous Tasks (Celery)
 *   **Task State Machine:** Tasks are tracked in the `biometric_tasks` table. Any new Celery task must update its state (`queued`, `processing`, `success`, `failed`, `retrying`) using functions in `app.core.task_db`.
 *   **Zombie Task Prevention:** Tasks must be robust against worker crashes. Ensure recovery mechanisms (like the one in `task_recovery.py`) account for new states if you introduce them.
+
+### Observability & Tracing
+*   **Request Tracing:** The system employs unified request tracing via FastAPI middleware (`TracingMiddleware`) and Celery signals. `request_id` and `correlation_id` are propagated using `contextvars` (in `app.core.tracing`). Always inject these context variables when creating new background tasks, audit logs, or biometric tasks.
+*   **Logging:** All application logs are standardized using a `TracingFilter`. Use standard `logging` module methods (e.g., `logger.info()`), and the context will automatically append `[req:...|task:...]`.
+*   **Failure Snapshotting:** For critical or unhandled exceptions, utilize `snapshot_failure(db, exc)` from `app.core.incident_timeline` to capture stack traces and processing context.
+*   **System Health:** A lightweight background monitor (`monitor_system_health_task`) evaluates queue depth, redis connectivity, worker states, and retry spikes.
 
 ### Testing
 *   **Execution:** Run tests from the `apps/api` directory using: `PYTHONPATH=. .venv/bin/pytest`.

@@ -24,6 +24,47 @@ logger = logging.getLogger(__name__)
 
 redis_client = redis.from_url(settings.redis_url)
 
+from app.core.health_intelligence import run_and_persist_health_check
+
+@celery_app.task(bind=True)
+def monitor_system_health_task(self) -> dict:
+    """Periodic task to run operational health diagnostics."""
+    logger.info("[system-health-monitor] starting scheduled health check")
+    
+    lock_key = "lock:system_health_monitor"
+    lock = redis_client.lock(lock_key, timeout=60)
+    
+    if not lock.acquire(blocking=False):
+        logger.info("[system-health-monitor] skipped, already running")
+        return {"success": True, "skipped": True}
+        
+    try:
+        from app.db.session import get_session_factory
+        session_factory = get_session_factory()
+        with session_factory() as db:
+            snapshot = run_and_persist_health_check(db)
+            logger.info(
+                "[system-health-monitor] finished scan, status=%s degraded=%s queue_depth=%s",
+                snapshot.overall_status,
+                snapshot.critical_events_json.get("degraded", []),
+                snapshot.queue_depth,
+            )
+            return {
+                "success": True, 
+                "skipped": False, 
+                "status": snapshot.overall_status,
+                "queue_depth": snapshot.queue_depth,
+            }
+    except Exception as exc:
+        logger.error("[system-health-monitor] error during health check: %s", exc)
+        return {"success": False, "error": str(exc)}
+    finally:
+        try:
+            lock.release()
+        except redis.exceptions.LockError:
+            pass
+
+
 @celery_app.task(bind=True)
 def recover_zombie_tasks_task(self) -> dict:
     """Periodic task to detect and recover zombie biometric tasks."""

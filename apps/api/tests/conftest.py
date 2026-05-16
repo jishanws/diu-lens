@@ -69,8 +69,11 @@ def db_session_factory(
     monkeypatch.setattr(task_db_module, "get_session_factory", get_factory)
     
     import app.core.task_recovery as task_recovery_module
+    import app.core.recognition_audit as recognition_audit_module
     import app.api.routes.admin as admin_routes_module
+    import app.api.routes.matching as matching_routes_module
     monkeypatch.setattr(task_recovery_module, "get_session_factory", get_factory)
+    monkeypatch.setattr(recognition_audit_module, "get_session_factory", get_factory)
     monkeypatch.setattr(admin_routes_module, "get_session_factory", get_factory)
 
     yield session_factory

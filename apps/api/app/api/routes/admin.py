@@ -22,6 +22,7 @@ from app.core.embeddings_db import (
 )
 from app.core.face_pipeline import FacePipelineError, process_student_images
 from app.core.storage import get_storage_service
+from app.db.models.recognition_audit_logs import RecognitionAuditLog
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -218,51 +219,152 @@ async def process_enrollment_admin(
     }
 
 
-@router.post("/enrollments/{student_id}/reject")
-async def reject_enrollment_admin(
-    student_id: str,
-    payload: RejectEnrollmentRequest | None = None,
+@router.get("/recognition-audit")
+async def list_recognition_audit_logs(
+    student_id: str | None = None,
+    accepted: bool | None = None,
+    min_confidence: float | None = None,
+    max_confidence: float | None = None,
+    limit: int = 50,
+    offset: int = 0,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
     require_admin(credentials)
-    if not student_id.strip():
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "message": "student_id is required."},
-        )
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        query = select(RecognitionAuditLog)
+        if student_id:
+            query = query.where(
+                (RecognitionAuditLog.searched_student_id == student_id) |
+                (RecognitionAuditLog.top_match_student_id == student_id)
+            )
+        if accepted is not None:
+            query = query.where(RecognitionAuditLog.accepted_match == accepted)
+        if min_confidence is not None:
+            query = query.where(RecognitionAuditLog.confidence_score >= min_confidence)
+        if max_confidence is not None:
+            query = query.where(RecognitionAuditLog.confidence_score <= max_confidence)
+        
+        query = query.order_by(desc(RecognitionAuditLog.created_at))
+        
+        # Get total count
+        total_query = select(func.count()).select_from(query.subquery())
+        total = db.scalar(total_query) or 0
+        
+        # Paginate
+        query = query.limit(limit).offset(offset)
+        logs = db.scalars(query).all()
+        
+        return {
+            "total": total,
+            "logs": [
+                {
+                    "id": log.id,
+                    "request_id": log.request_id,
+                    "searched_by_admin_id": log.searched_by_admin_id,
+                    "searched_student_id": log.searched_student_id,
+                    "top_match_student_id": log.top_match_student_id,
+                    "confidence_score": log.confidence_score,
+                    "cosine_distance": log.cosine_distance,
+                    "threshold_used": log.threshold_used,
+                    "accepted_match": log.accepted_match,
+                    "top_k_results_json": log.top_k_results_json,
+                    "image_metadata_json": log.image_metadata_json,
+                    "processing_duration_ms": log.processing_duration_ms,
+                    "recognition_model_version": log.recognition_model_version,
+                    "created_at": log.created_at.isoformat() if log.created_at else None,
+                }
+                for log in logs
+            ]
+        }
 
-    try:
-        result = reject_enrollment(
-            student_id,
-            reason=payload.reason if payload is not None else None,
-        )
-    except EnrollmentPersistenceError as exc:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "message": str(exc)},
-        )
 
-    return {"success": result.success, "message": result.message}
+from app.core.config import settings
+from app.core.recognition_analytics import (
+    get_confidence_distributions,
+    get_distance_distributions,
+    get_recognition_quality_metrics,
+    investigate_false_positives,
+    get_threshold_recommendations,
+)
 
-
-@router.post("/enrollments/{student_id}/reset")
-async def reset_enrollment_admin(
-    student_id: str,
+@router.get("/recognition-analytics")
+async def get_recognition_analytics(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
-    require_super_admin(credentials)
-    if not student_id.strip():
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "message": "student_id is required."},
-        )
+    require_admin(credentials)
+    
+    current_threshold = float(settings.face_match_distance_threshold)
+    
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        metrics = get_recognition_quality_metrics(db)
+        conf_dist = get_confidence_distributions(db)
+        dist_dist = get_distance_distributions(db)
+        recommendations = get_threshold_recommendations(db, current_threshold)
+        recent_false_positives = investigate_false_positives(db, current_threshold, limit=10)
+        
+        return {
+            "metrics": metrics,
+            "confidence_distributions": conf_dist,
+            "distance_distributions": dist_dist,
+            "recommendations": recommendations,
+            "recent_suspicious_edge_cases": recent_false_positives,
+        }
 
-    try:
-        result = reset_enrollment(student_id)
-    except EnrollmentPersistenceError as exc:
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "message": str(exc)},
-        )
+from app.core.incident_timeline import reconstruct_incident_timeline
 
-    return {"success": result.success, "message": result.message}
+@router.get("/incidents/{request_id}")
+async def get_incident_timeline(
+    request_id: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        timeline = reconstruct_incident_timeline(db, request_id)
+        return timeline
+
+
+from app.db.models.system_health_snapshots import SystemHealthSnapshot
+from app.core.health_intelligence import gather_system_diagnostics
+
+@router.get("/system-health")
+async def get_system_health(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        current = gather_system_diagnostics(db)
+        
+        # Get recent critical snapshots
+        recent_incidents = db.scalars(
+            select(SystemHealthSnapshot)
+            .where(SystemHealthSnapshot.overall_status != "healthy")
+            .order_by(desc(SystemHealthSnapshot.created_at))
+            .limit(5)
+        ).all()
+        
+        return {
+            "current_status": current["overall_status"],
+            "degraded_components": current["degraded_components"],
+            "queue_depth": current["queue_depth"],
+            "active_workers": current["active_workers"],
+            "retry_rate": current["retry_rate"],
+            "failed_task_rate": current["failed_task_rate"],
+            "avg_processing_duration": current["avg_processing_duration"],
+            "avg_recognition_duration": current["avg_recognition_duration"],
+            "critical_events": current["critical_events"],
+            "recent_incidents": [
+                {
+                    "id": i.id,
+                    "status": i.overall_status,
+                    "created_at": i.created_at.isoformat() if i.created_at else None,
+                    "events": i.critical_events_json.get("events", [])
+                }
+                for i in recent_incidents
+            ]
+        }

@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from app.db.models import BiometricTask
 from app.db.session import get_session_factory
+from app.core.tracing import request_id_ctx, correlation_id_ctx
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,13 @@ def create_biometric_task_record(celery_task_id: str, student_id: str, task_type
             if existing:
                 return
 
+            req_id = request_id_ctx.get()
+            corr_id = correlation_id_ctx.get()
+            
             task = BiometricTask(
                 celery_task_id=celery_task_id,
+                request_id=req_id,
+                correlation_id=corr_id,
                 student_id=student_id,
                 task_type=task_type,
                 status="queued"

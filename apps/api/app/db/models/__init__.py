@@ -8,6 +8,9 @@ from app.db.models.face_embeddings import FaceEmbedding
 from app.db.models.selected_crops import SelectedCrop
 from app.db.models.students import Student
 from app.db.models.biometric_tasks import BiometricTask
+from app.db.models.recognition_audit_logs import RecognitionAuditLog
+from app.db.models.incident_snapshots import IncidentSnapshot
+from app.db.models.system_health_snapshots import SystemHealthSnapshot
 
 __all__ = [
     "AdminUser",
@@ -18,4 +21,7 @@ __all__ = [
     "SelectedCrop",
     "Student",
     "BiometricTask",
+    "RecognitionAuditLog",
+    "IncidentSnapshot",
+    "SystemHealthSnapshot",
 ]

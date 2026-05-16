@@ -17,12 +17,26 @@ from app.db.bootstrap import initialize_database
 from app.db.session import check_database_connection
 
 
+from app.core.tracing import TracingFilter
+
 def _configure_logging() -> None:
     level = logging.DEBUG if settings.environment == "development" else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s %(levelname)s %(message)s",
+    
+    # Configure root logger
+    logger = logging.getLogger()
+    logger.setLevel(level)
+    
+    # Remove existing handlers if any
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+        
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter(
+        "%(asctime)s %(levelname)s [req:%(request_id)s|task:%(task_id)s] %(message)s"
     )
+    handler.setFormatter(formatter)
+    handler.addFilter(TracingFilter())
+    logger.addHandler(handler)
 
 
 def _validate_storage_path() -> None:
@@ -52,6 +66,8 @@ def create_app() -> FastAPI:
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
+    from app.core.middleware import TracingMiddleware
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -59,6 +75,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(TracingMiddleware)
 
     @app.on_event("startup")
     def create_tables() -> None:
@@ -120,10 +137,19 @@ def create_app() -> FastAPI:
             content={"detail": exc.detail, "request": request_info},
         )
 
+    from app.core.incident_timeline import snapshot_failure
+    from app.db.session import get_session_factory
+
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.exception("Unhandled exception", exc_info=exc)
         request_info = {"method": request.method, "path": request.url.path}
+        
+        # Snapshot the critical failure
+        session_factory = get_session_factory()
+        with session_factory() as db:
+            snapshot_failure(db, exc, additional_metadata={"http_request": request_info})
+            
         detail: dict[str, object] = {
             "message": "Internal server error",
             "request": request_info,

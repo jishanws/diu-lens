@@ -7,6 +7,8 @@ class BiometricTask(Base, TimestampMixin):
     __tablename__ = "biometric_tasks"
 
     id = Column(BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True, index=True)
+    request_id = Column(String(128), index=True, nullable=True)
+    correlation_id = Column(String(128), index=True, nullable=True)
     celery_task_id = Column(String(255), unique=True, index=True, nullable=False)
     student_id = Column(String(255), index=True, nullable=False)
     task_type = Column(String(255), nullable=False)
