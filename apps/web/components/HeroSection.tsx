@@ -49,7 +49,7 @@ export function HeroSection({ activeStep = 0 }: HeroSectionProps) {
   const currentHeroStep = heroSteps[heroStepIndex];
 
   return (
-    <section className="space-y-5 text-left sm:space-y-5 lg:space-y-[1.65rem]">
+    <section className="space-y-[1.125rem] text-left sm:space-y-5 lg:space-y-[1.65rem]">
       <AnimatePresence
         mode="wait"
         initial={false}
@@ -67,17 +67,28 @@ export function HeroSection({ activeStep = 0 }: HeroSectionProps) {
         </motion.div>
       </AnimatePresence>
 
-      <div className="space-y-3.5 sm:space-y-4 lg:space-y-[1.125rem]">
-        <h1 className="landing-text-primary max-w-[12.75ch] text-[2.02rem] leading-[1.1] font-semibold tracking-[-0.024em] min-[390px]:max-w-[13.6ch] min-[390px]:text-[2.12rem] sm:max-w-[12.5ch] sm:text-[2.45rem] sm:tracking-[-0.028em] lg:max-w-[10.1ch] lg:text-[4.08rem]">
-          Smart{' '}
-          <span className="bg-linear-to-r from-[#164eaf] via-[#2871d8] to-[#3c92ff] bg-clip-text text-transparent dark:from-[#ecf2ff] dark:via-[#98c6ff] dark:to-[#5ea7ff]">
-            Identification
+      <div className="space-y-3 sm:space-y-4 lg:space-y-[1.125rem]">
+        <h1 className="landing-text-primary max-w-[20rem] text-[1.86rem] leading-[1.08] font-semibold tracking-[-0.022em] min-[390px]:max-w-[21.5rem] min-[390px]:text-[1.96rem] min-[430px]:text-[2.04rem] sm:max-w-[12.5ch] sm:text-[2.45rem] sm:leading-[1.1] sm:tracking-[-0.028em] lg:max-w-[10.1ch] lg:text-[4.08rem]">
+          <span className="block sm:hidden">
+            <span className="block whitespace-nowrap">
+              Smart{' '}
+              <span className="bg-linear-to-r from-[#164eaf] via-[#2871d8] to-[#3c92ff] bg-clip-text text-transparent dark:from-[#ecf2ff] dark:via-[#98c6ff] dark:to-[#5ea7ff]">
+                Identification
+              </span>
+            </span>
+            for DIU Campus
           </span>
-          <br />
-          for DIU Campus
+          <span className="hidden sm:inline">
+            Smart{' '}
+            <span className="bg-linear-to-r from-[#164eaf] via-[#2871d8] to-[#3c92ff] bg-clip-text text-transparent dark:from-[#ecf2ff] dark:via-[#98c6ff] dark:to-[#5ea7ff]">
+              Identification
+            </span>
+            <br />
+            for DIU Campus
+          </span>
         </h1>
 
-        <p className="landing-text-secondary max-w-[33ch] text-[0.84rem] leading-[1.5] text-slate-600/90 dark:text-slate-300/85 min-[390px]:max-w-[35ch] sm:max-w-[28rem] sm:text-[0.88rem] lg:max-w-[31.5rem] lg:text-[0.93rem]">
+        <p className="landing-text-secondary max-w-[34ch] text-[0.82rem] leading-[1.48] text-slate-600/90 dark:text-slate-300/85 min-[390px]:max-w-[36ch] sm:max-w-[28rem] sm:text-[0.88rem] sm:leading-[1.5] lg:max-w-[31.5rem] lg:text-[0.93rem]">
           Secure your campus identity with AI-powered facial verification
           designed for faster access, safer authentication, and a smarter
           student experience. DIU Lens helps reduce impersonation risks while
