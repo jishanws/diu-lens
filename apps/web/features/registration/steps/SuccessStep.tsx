@@ -9,7 +9,7 @@ type SuccessStepProps = {
 export function SuccessStep({ onDone }: SuccessStepProps) {
   return (
     <div className="space-y-5 pt-1 text-center max-[639px]:space-y-3.5 sm:space-y-6">
-      <div className="mx-auto inline-flex size-12 items-center justify-center rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
+      <div className="mx-auto inline-flex size-12 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
         <CheckCircle2 className="size-6" />
       </div>
 

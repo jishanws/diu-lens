@@ -361,7 +361,7 @@ export function GuidedEnrollmentCapture({
 
   return (
     <section className="space-y-3 sm:space-y-4">
-      <div className="rounded-xl border border-slate-200/65 bg-white/45 p-4 shadow-[0_20px_40px_-28px_rgba(15,23,42,0.32)] backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/36 max-[639px]:rounded-[0.75rem] max-[639px]:p-3 sm:p-5">
+      <div className="rounded-xl border border-white/10 bg-slate-900/36 p-4 shadow-[0_20px_40px_-28px_rgba(15,23,42,0.32)] backdrop-blur-sm max-[639px]:rounded-[0.75rem] max-[639px]:p-3 sm:p-5">
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div>
@@ -372,12 +372,12 @@ export function GuidedEnrollmentCapture({
                 {getAngleLabel(state.currentAngle)}
               </h3>
             </div>
-            <div className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-1 text-xs font-semibold text-blue-700 dark:border-white/10 dark:bg-slate-900/55 dark:text-blue-300">
+            <div className="rounded-full border border-white/10 bg-slate-900/55 px-3 py-1 text-xs font-semibold text-blue-300">
               {state.capturedCount} / {captureAngles.length}
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-sm rounded-[2rem] border border-slate-200/70 bg-white/55 p-2 shadow-[0_14px_32px_-24px_rgba(15,23,42,0.45)] dark:border-white/10 dark:bg-slate-900/40">
+          <div className="relative mx-auto w-full max-w-sm rounded-[2rem] border border-white/10 bg-slate-900/40 p-2 shadow-[0_14px_32px_-24px_rgba(15,23,42,0.45)]">
             <div className="relative mx-auto w-full max-w-sm p-2">
               <div className="pointer-events-none absolute inset-0">
                 <CircularProgressGuide
@@ -409,7 +409,7 @@ export function GuidedEnrollmentCapture({
                         marker.className,
                         isActive
                           ? 'border-blue-500 bg-blue-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.6)] animate-pulse'
-                          : 'border-slate-300 bg-white/90 text-slate-600 dark:border-white/15 dark:bg-slate-900/75 dark:text-slate-300'
+                          : 'border-white/15 bg-slate-900/75 text-slate-300'
                       )}
                     >
                       {marker.label}
@@ -437,7 +437,7 @@ export function GuidedEnrollmentCapture({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 rounded-xl border border-slate-200/80 bg-white/72 px-3 py-2.5 dark:border-white/10 dark:bg-slate-900/45 max-[639px]:rounded-[0.66rem]">
+      <div className="flex items-center justify-end gap-2 rounded-xl border border-white/10 bg-slate-900/45 px-3 py-2.5 max-[639px]:rounded-[0.66rem]">
         <Button
           type="button"
           onClick={() => void handleSubmit()}

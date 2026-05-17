@@ -3,7 +3,6 @@
 @import 'shadcn/tailwind.css';
 @import '../styles/patterns.css';
 
-@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -52,112 +51,6 @@
 }
 
 :root {
-  --background: oklch(0.993 0.002 235);
-  --foreground: oklch(0.24 0.02 250);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.24 0.02 250);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.24 0.02 250);
-  --primary: oklch(0.47 0.09 215);
-  --primary-foreground: oklch(0.99 0.005 230);
-  --secondary: oklch(0.955 0.006 230);
-  --secondary-foreground: oklch(0.24 0.02 250);
-  --muted: oklch(0.972 0.006 230);
-  --muted-foreground: oklch(0.5 0.02 245);
-  --accent: oklch(0.945 0.015 205);
-  --accent-foreground: oklch(0.24 0.02 250);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.006 235);
-  --input: oklch(0.9 0.006 235);
-  --ring: oklch(0.6 0.06 215);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.75rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-  --landing-page-gradient:
-    radial-gradient(
-      circle at 18% 10%,
-      rgba(125, 211, 252, 0.08),
-      transparent 42%
-    ),
-    linear-gradient(128deg, #f7f9fc 0%, #f3f6fa 48%, #fbfcfe 100%);
-  --landing-grid-line: rgba(71, 85, 105, 0.048);
-  --landing-vignette: radial-gradient(
-    circle at 50% 50%,
-    transparent 44%,
-    rgba(15, 23, 42, 0.035) 100%
-  );
-  --landing-glow-top-left: radial-gradient(
-    circle at 3% -3%,
-    rgba(147, 197, 253, 0.12),
-    rgba(59, 130, 246, 0.045) 24%,
-    transparent 56%
-  );
-  --landing-glow-bottom-right: radial-gradient(
-    circle at 99% 99%,
-    rgba(147, 197, 253, 0.11),
-    rgba(59, 130, 246, 0.035) 26%,
-    transparent 58%
-  );
-  --landing-card-bg: linear-gradient(
-    150deg,
-    rgba(255, 255, 255, 0.96) 0%,
-    rgba(251, 253, 255, 0.94) 52%,
-    rgba(248, 250, 253, 0.92) 100%
-  );
-  --landing-card-border: rgba(148, 163, 184, 0.26);
-  --landing-card-shadow:
-    0 22px 42px -34px rgba(30, 64, 175, 0.14),
-    0 9px 20px -17px rgba(15, 23, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --landing-text-primary: #0f172a;
-  --landing-text-secondary: #33465e;
-  --landing-text-muted: #556b87;
-  --landing-accent: #3b82f6;
-  --landing-accent-hover: #5b9ef4;
-  --landing-progress-inactive: rgba(148, 163, 184, 0.26);
-  --landing-progress-active: linear-gradient(
-    90deg,
-    #1f56d4 0%,
-    #2b6adf 55%,
-    #6aa7f5 100%
-  );
-  --landing-input-bg: rgba(252, 254, 255, 0.95);
-  --landing-input-border: rgba(148, 163, 184, 0.48);
-  --landing-input-placeholder: rgba(100, 116, 139, 0.88);
-  --landing-focus-ring: rgba(59, 130, 246, 0.18);
-  --landing-input-text: #0f172a;
-  --landing-button-bg: linear-gradient(
-    90deg,
-    #1b62cf 0%,
-    #2c79e9 52%,
-    #5b9ff5 100%
-  );
-  --landing-button-shadow:
-    0 10px 22px -14px rgba(37, 99, 235, 0.3),
-    inset 0 1px 0 rgba(186, 230, 253, 0.32);
-  --landing-card-blur: 7px;
-  --landing-input-inset-shadow:
-    inset 0 1px 2px rgba(15, 23, 42, 0.08), 0 0 0 1px rgba(148, 163, 184, 0.18);
-  --landing-card-spotlight: radial-gradient(
-    circle at 52% 50%,
-    rgba(56, 189, 248, 0.08),
-    rgba(37, 99, 235, 0.05) 30%,
-    transparent 72%
-  );
-}
-
-.dark {
   --background: oklch(0.155 0.013 258);
   --foreground: oklch(0.96 0.01 260);
   --card: oklch(0.22 0.017 258);
@@ -263,18 +156,18 @@
   );
 }
 
+
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   html {
     @apply font-sans;
-    color-scheme: light;
+    color-scheme: dark;
     scroll-behavior: smooth;
   }
-  html.dark {
-    color-scheme: dark;
-  }
+  
   body {
     @apply bg-background text-foreground selection:bg-primary/20 transition-colors duration-150;
   }
@@ -390,10 +283,11 @@
   @media (hover: hover) and (pointer: fine) {
     .landing-card-surface:hover {
       transform: translateY(-1px);
+      border-color: rgba(60, 95, 130, 0.55);
       box-shadow:
-        0 26px 52px -34px rgba(15, 23, 42, 0.5),
-        0 10px 20px -17px rgba(59, 130, 246, 0.1),
-        inset 0 1px 0 rgba(226, 232, 240, 0.18);
+        0 14px 32px -10px rgba(0, 0, 0, 0.5),
+        0 1px 3px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(160, 197, 235, 0.06);
     }
   }
 

@@ -37,7 +37,7 @@ export function BasicInfoStep({
         {errorMessage ? (
           <p
             role="alert"
-            className="text-sm font-medium text-red-600 dark:text-red-400"
+            className="text-sm font-medium text-red-400"
           >
             {errorMessage}
           </p>
@@ -119,7 +119,7 @@ export function BasicInfoStep({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-4 border-t border-slate-200/80 pt-4 max-[639px]:gap-2 max-[639px]:pt-2.5 dark:border-white/10">
+      <div className="mt-auto flex flex-col gap-4 border-t border-white/10 pt-4 max-[639px]:gap-2 max-[639px]:pt-2.5">
         <Button
           type="button"
           variant="outline"

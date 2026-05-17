@@ -530,11 +530,11 @@ function MetricCard({
 }) {
   const toneClass =
     tone === 'pending'
-      ? 'text-amber-600 dark:text-amber-300'
+      ? 'text-amber-300'
       : tone === 'approved'
-        ? 'text-emerald-600 dark:text-emerald-300'
+        ? 'text-emerald-300'
         : tone === 'rejected'
-          ? 'text-rose-600 dark:text-rose-300'
+          ? 'text-rose-300'
           : 'text-foreground';
 
   return (

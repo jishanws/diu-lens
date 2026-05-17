@@ -69,7 +69,7 @@ function getCandidateConfidence(classification: RecognitionMatchCandidate['class
   if (classification === 'strong_match') {
     return {
       label: 'Strong match',
-      className: 'border-emerald-300/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200',
+      className: 'border-emerald-300/30 bg-emerald-500/10 text-emerald-200',
       cardClassName: 'border-emerald-300/35 bg-emerald-500/5',
     };
   }
@@ -77,14 +77,14 @@ function getCandidateConfidence(classification: RecognitionMatchCandidate['class
   if (classification === 'possible_match') {
     return {
       label: 'Possible match',
-      className: 'border-amber-300/30 bg-amber-500/10 text-amber-700 dark:text-amber-200',
+      className: 'border-amber-300/30 bg-amber-500/10 text-amber-200',
       cardClassName: 'border-amber-300/35 bg-amber-500/5',
     };
   }
 
   return {
     label: 'Weak candidate',
-    className: 'border-rose-300/30 bg-rose-500/10 text-rose-700 dark:text-rose-200',
+    className: 'border-rose-300/30 bg-rose-500/10 text-rose-200',
     cardClassName: 'border-rose-300/35 bg-rose-500/5',
   };
 }
@@ -523,7 +523,7 @@ export function RecognitionView() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-200">
+            <div className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-3 text-xs text-amber-200">
               Candidate ranking indicates similarity only. It does not confirm identity.
             </div>
 
@@ -572,9 +572,9 @@ export function RecognitionView() {
                 <div className="rounded-lg border border-border bg-muted/25 p-3 text-xs text-muted-foreground">
                   <p>
                     Ranked candidates: <span className="text-foreground">{allCandidates.length}</span>
-                    {' '}| Strong: <span className="text-emerald-700 dark:text-emerald-200">{confidenceCounts.strong}</span>
+                    {' '}| Strong: <span className="text-emerald-200">{confidenceCounts.strong}</span>
                     {' '}| Possible: <span className="text-amber-700 dark:text-amber-200">{confidenceCounts.possible}</span>
-                    {' '}| Weak: <span className="text-rose-700 dark:text-rose-200">{confidenceCounts.weak}</span>
+                    {' '}| Weak: <span className="text-rose-200">{confidenceCounts.weak}</span>
                     {' '}
                     | Threshold used: <span className="text-foreground">{formatDistance(results?.threshold_used ?? 0)}</span>
                   </p>
