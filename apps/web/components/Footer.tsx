@@ -24,6 +24,12 @@ export function Footer() {
           Support
         </a>
         <Link
+          href="/faq"
+          className="landing-link"
+        >
+          FAQ
+        </Link>
+        <Link
           href="/admin/login"
           className="landing-link"
         >

@@ -1,10 +1,17 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
@@ -53,15 +60,32 @@ export default function AdminLoginPage() {
 
       <Card className="relative z-10 w-full max-w-md border border-border bg-card text-foreground backdrop-blur-2xl">
         <CardHeader className="space-y-2">
-          <p className="text-xs uppercase tracking-[0.3em] text-blue-300/80">DIU Lens</p>
-          <CardTitle className="text-2xl text-foreground">Admin Login</CardTitle>
+          <div className="flex justify-center">
+            <Image
+              src="/branding/logo.png"
+              alt="DIU Lens logo"
+              width={56}
+              height={56}
+              className="size-14 rounded-[1rem] shadow-[0_12px_26px_-16px_rgba(59,130,246,0.6)]"
+              priority
+            />
+          </div>
+          <p className="text-xs uppercase tracking-[0.3em] text-blue-300/80">
+            DIU Lens
+          </p>
+          <CardTitle className="text-2xl text-foreground">
+            Admin Login
+          </CardTitle>
           <CardDescription className="text-muted-foreground">
             Sign in with an admin or super admin account to manage enrollments.
           </CardDescription>
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form
+            className="space-y-4"
+            onSubmit={handleSubmit}
+          >
             <div className="space-y-2">
               <Label htmlFor="admin-email">Email</Label>
               <Input
@@ -92,7 +116,11 @@ export default function AdminLoginPage() {
                   className="absolute inset-y-0 right-2 my-auto inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={() => setShowPassword((prev) => !prev)}
                 >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  {showPassword ? (
+                    <EyeOff className="size-4" />
+                  ) : (
+                    <Eye className="size-4" />
+                  )}
                 </button>
               </div>
             </div>
@@ -103,7 +131,11 @@ export default function AdminLoginPage() {
               </p>
             ) : null}
 
-            <Button type="submit" className="h-10 w-full" disabled={isLoggingIn || status === 'loading'}>
+            <Button
+              type="submit"
+              className="h-10 w-full"
+              disabled={isLoggingIn || status === 'loading'}
+            >
               {isLoggingIn ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />

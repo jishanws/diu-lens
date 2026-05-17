@@ -49,7 +49,7 @@ export function HeroSection({ activeStep = 0 }: HeroSectionProps) {
   const currentHeroStep = heroSteps[heroStepIndex];
 
   return (
-    <section className="space-y-4 text-left lg:space-y-[1.65rem]">
+    <section className="space-y-3 text-left sm:space-y-4 lg:space-y-[1.65rem]">
       <AnimatePresence
         mode="wait"
         initial={false}
@@ -60,15 +60,15 @@ export function HeroSection({ activeStep = 0 }: HeroSectionProps) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.22, ease: [0.2, 0.7, 0.2, 1] }}
-          className="inline-flex items-center gap-2 rounded-full border border-blue-300/45 bg-blue-50/65 px-3.5 py-1.5 text-[0.62rem] font-semibold tracking-[0.15em] text-blue-900 uppercase shadow-[0_0_20px_rgba(30,64,175,0.11)] backdrop-blur-sm dark:border-blue-300/35 dark:bg-[#0c1c3c]/70 dark:text-slate-300 dark:shadow-[0_0_22px_rgba(30,64,175,0.17)]"
+          className="inline-flex items-center gap-2 rounded-full border border-blue-300/45 bg-blue-50/65 px-3 py-1.25 text-[0.56rem] font-semibold tracking-[0.15em] text-blue-900 uppercase shadow-[0_0_20px_rgba(30,64,175,0.11)] backdrop-blur-sm sm:px-3.5 sm:py-1.5 sm:text-[0.62rem] dark:border-blue-300/35 dark:bg-[#0c1c3c]/70 dark:text-slate-300 dark:shadow-[0_0_22px_rgba(30,64,175,0.17)]"
         >
           <span className="inline-flex size-2 rounded-full bg-sky-500 shadow-[0_0_12px_rgba(56,189,248,0.8)] dark:bg-sky-400" />
           {currentHeroStep.accent}
         </motion.div>
       </AnimatePresence>
 
-      <div className="space-y-[0.8rem] lg:space-y-[1.125rem]">
-        <h1 className="landing-text-primary max-w-[12.5ch] text-[2.55rem] leading-[1] font-semibold tracking-[-0.028em] lg:max-w-[10.1ch] lg:text-[4.08rem]">
+      <div className="space-y-3 lg:space-y-[1.125rem]">
+        <h1 className="landing-text-primary max-w-[11.2ch] text-[2.2rem] leading-[1.08] font-semibold tracking-[-0.028em] sm:max-w-[12.5ch] sm:text-[2.45rem] lg:max-w-[10.1ch] lg:text-[4.08rem]">
           Smart{' '}
           <span className="bg-linear-to-r from-[#164eaf] via-[#2871d8] to-[#3c92ff] bg-clip-text text-transparent dark:from-[#ecf2ff] dark:via-[#98c6ff] dark:to-[#5ea7ff]">
             Identification
@@ -77,36 +77,19 @@ export function HeroSection({ activeStep = 0 }: HeroSectionProps) {
           for DIU Campus
         </h1>
 
-        <AnimatePresence
-          mode="wait"
-          initial={false}
-        >
-          <motion.div
-            key={`hero-context-${currentHeroStep.id}`}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.24, ease: [0.2, 0.7, 0.2, 1] }}
-            className="space-y-2 rounded-xl border border-slate-200/65 bg-white/45 p-3.5 dark:border-white/10 dark:bg-slate-900/36"
-          >
-            <p className="landing-text-primary text-[0.9rem] font-semibold lg:text-[0.96rem]">
-              {currentHeroStep.headline}
-            </p>
-            <p
-              id="how-it-works"
-              className="landing-text-secondary max-w-[26rem] text-[0.86rem] leading-[1.5] lg:max-w-[28.5rem] lg:text-[0.91rem]"
-            >
-              {currentHeroStep.body}
-            </p>
-          </motion.div>
-        </AnimatePresence>
+        <p className="landing-text-secondary max-w-[25ch] text-[0.82rem] leading-[1.52] text-slate-600/90 dark:text-slate-300/85 sm:max-w-[28rem] sm:text-[0.88rem] lg:max-w-[31.5rem] lg:text-[0.93rem]">
+          Secure your campus identity with AI-powered facial verification
+          designed for faster access, safer authentication, and a smarter
+          student experience. DIU Lens helps reduce impersonation risks while
+          enabling trusted biometric identity validation across campus systems.
+        </p>
       </div>
 
       <div
         id="for-students"
         className="pt-0.5"
       >
-        <ol className="grid grid-cols-3 gap-3 lg:max-w-[31.25rem]">
+        <ol className="grid max-w-[19rem] grid-cols-3 gap-2.5 sm:max-w-none sm:gap-3 lg:max-w-[31.25rem]">
           {heroSteps.map((item, index, arr) => (
             <li
               key={item.id}
@@ -131,7 +114,7 @@ export function HeroSection({ activeStep = 0 }: HeroSectionProps) {
                   {item.id}
                 </span>
               </div>
-              <span className="landing-text-secondary text-[0.72rem] leading-tight lg:text-[0.9rem]">
+              <span className="landing-text-secondary text-[0.68rem] leading-tight sm:text-[0.72rem] lg:text-[0.9rem]">
                 {item.label}
               </span>
             </li>
@@ -163,9 +146,11 @@ export function MobileHeroIntro() {
           <span className="text-[#4fa3ff]">for DIU Campus</span>
         </h1>
 
-        <p className="mx-auto max-w-[30ch] text-[0.76rem] leading-[1.54] text-[#aebfd3]">
-          Verify your identity once to securely access campus services,
-          examination halls, and automated registration systems.
+        <p className="mx-auto max-w-[36ch] text-[0.76rem] leading-[1.54] text-[#aebfd3]/90">
+          Secure your campus identity with AI-powered facial verification
+          designed for faster access, safer authentication, and a smarter
+          student experience. DIU Lens helps reduce impersonation risks while
+          enabling trusted biometric identity validation across campus systems.
         </p>
       </div>
     </section>
