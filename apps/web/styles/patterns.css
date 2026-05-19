@@ -12,6 +12,7 @@
     animation:
       aiGridDrift 11s linear infinite,
       aiGridPulse 3.8s ease-in-out infinite;
+    opacity: 0.55;
   }
 
   .ai-noise {
@@ -21,6 +22,7 @@
     );
     background-size: 4px 4px;
     mix-blend-mode: multiply;
+    opacity: 0.45;
   }
 
   .ai-orbital {
@@ -31,6 +33,8 @@
       transparent 72%
     );
     animation: aiOrbitalPulse 13s ease-in-out infinite;
+    opacity: 0.65;
+    filter: blur(0.2px);
   }
 
   .ai-scan-beam {
@@ -42,6 +46,7 @@
     filter: blur(0.22px);
     mix-blend-mode: soft-light;
     animation: aiScanSweep 8.5s ease-in-out infinite;
+    opacity: 0.45;
   }
 
   .ai-float {
@@ -165,21 +170,7 @@
     }
 
     .ai-grid {
-      opacity: 0.55;
       background-size: 52px 52px;
-    }
-
-    .ai-orbital {
-      opacity: 0.65;
-      filter: blur(0.2px);
-    }
-
-    .ai-scan-beam {
-      opacity: 0.45;
-    }
-
-    .ai-noise {
-      opacity: 0.45;
     }
 
     .ai-flow-step + .ai-flow-step {
