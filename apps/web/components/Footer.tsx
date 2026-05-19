@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export function Footer() {
   return (
-    <footer className="flex flex-col items-center justify-between gap-3.5 px-4 pt-5 text-[0.84rem] sm:flex-row sm:items-end sm:gap-5 sm:px-10 lg:px-16 lg:pt-7">
+    <footer className="mx-auto flex w-full max-w-4xl flex-col items-center justify-between gap-3.5 pt-5 text-[0.84rem] sm:flex-row sm:items-end sm:gap-5 lg:pt-7">
       <p className="landing-text-muted text-center sm:text-left">
         © 2024 DIU Lens Identity System.
       </p>

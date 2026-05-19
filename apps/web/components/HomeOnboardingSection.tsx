@@ -72,7 +72,7 @@ export function HomeOnboardingSection() {
         id="start-verification"
         className="relative scroll-mt-8 py-10 sm:py-14 lg:py-16"
       >
-        <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:items-center">
+        <div className="relative mx-auto grid w-full max-w-4xl grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:items-center">
           <div
             className={cn(
               'mx-auto max-w-md text-center transition-all duration-300 ease-out lg:mx-0 lg:text-left',
