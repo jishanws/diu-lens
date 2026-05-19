@@ -105,22 +105,18 @@ function BenefitsSection() {
     <section className="py-10 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase">
-          Trusted Identity Layer
+          Features
         </p>
-        <h2 className="mt-4 text-3xl leading-tight font-semibold tracking-tight text-white sm:text-[2.2rem]">
+        <h2 className="mt-3 text-3xl leading-tight font-semibold tracking-tight text-white sm:text-[2.2rem]">
           Built for secure, modern campus verification.
         </h2>
-        <p className="mt-4 text-[0.95rem] leading-relaxed text-slate-400 sm:text-[1rem]">
-          DIU Lens brings identity assurance, biometric enrollment, and faster
-          access into one focused student verification experience.
-        </p>
       </div>
 
-      <div className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-5 md:grid-cols-3">
+      <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-5 md:grid-cols-3">
         {benefits.map((benefit, index) => (
           <article
             key={benefit.title}
-            className="landing-card-surface flex h-full min-h-[12rem] flex-col rounded-2xl border border-white/5 bg-[#0a1120]/40 p-6"
+            className="landing-card-surface flex h-full min-h-[10.5rem] flex-col rounded-[2rem] border border-white/5 bg-[#0a1120]/40 p-5"
           >
             <div className="mb-5 flex items-center gap-2.5">
               <benefit.Icon
@@ -156,11 +152,11 @@ function HowItWorksSection() {
         </h2>
       </div>
 
-      <ol className="mx-auto mt-12 grid max-w-5xl grid-cols-1 gap-5 md:grid-cols-3">
+      <ol className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-5 md:grid-cols-3">
         {workflowSteps.map((step, index) => (
           <li
             key={step.title}
-            className="landing-card-surface relative flex h-full min-h-[12rem] flex-col rounded-2xl border border-white/5 bg-[#0a1120]/40 p-6"
+            className="landing-card-surface relative flex h-full min-h-[10.5rem] flex-col rounded-[2rem] border border-white/5 bg-[#0a1120]/40 p-5"
           >
             {index < workflowSteps.length - 1 ? (
               <span

@@ -5,7 +5,7 @@ import { ArrowRight } from 'lucide-react';
 export function Header() {
   return (
     <div className="fixed top-6 inset-x-0 z-50 flex w-full justify-center px-4">
-      <header className="grid h-[3.25rem] w-full max-w-[46rem] grid-cols-2 items-center md:grid-cols-[1fr_auto_1fr] rounded-full border border-white/[0.03] bg-[#0a1120]/30 px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_4px_24px_-8px_rgba(0,0,0,0.3)] backdrop-blur-lg transition-all duration-300">
+      <header className="grid h-[3.25rem] w-full max-w-[50rem] grid-cols-2 items-center md:grid-cols-[1fr_auto_1fr] rounded-full border border-white/[0.03] bg-[#0a1120]/30 px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_4px_24px_-8px_rgba(0,0,0,0.3)] backdrop-blur-lg transition-all duration-300">
 
         <div className="flex items-center gap-2 pl-2 justify-self-start">
           <div className="flex size-[2.15rem] items-center justify-center rounded-[0.65rem] border border-white/[0.06] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
