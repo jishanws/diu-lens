@@ -6,7 +6,7 @@ export function Header() {
   return (
     <div className="fixed top-6 inset-x-0 z-50 flex w-full justify-center px-4">
       <header className="grid h-[3.25rem] w-full max-w-[46rem] grid-cols-2 items-center md:grid-cols-[1fr_auto_1fr] rounded-full border border-white/[0.03] bg-[#0a1120]/30 px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_4px_24px_-8px_rgba(0,0,0,0.3)] backdrop-blur-lg transition-all duration-300">
-        
+
         <div className="flex items-center gap-2 pl-2 justify-self-start">
           <div className="flex size-[2.15rem] items-center justify-center rounded-[0.65rem] border border-white/[0.06] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <Image
@@ -15,7 +15,7 @@ export function Header() {
               width={40}
               height={40}
               priority
-              className="size-[1.3rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+              className="size-[2.1rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
             />
           </div>
           <span className="text-[0.95rem] font-medium tracking-wide text-slate-100">
@@ -24,20 +24,20 @@ export function Header() {
         </div>
 
         <nav className="hidden items-center gap-1 md:flex justify-self-center">
-          <Link 
-            href="#features" 
+          <Link
+            href="#features"
             className="rounded-full px-4 py-1.5 text-[0.85rem] font-medium text-slate-400 transition-colors duration-200 hover:bg-white/[0.06] hover:text-slate-100 active:bg-white/[0.04]"
           >
             Features
           </Link>
-          <Link 
-            href="#how-it-works" 
+          <Link
+            href="#how-it-works"
             className="rounded-full px-4 py-1.5 text-[0.85rem] font-medium text-slate-400 transition-colors duration-200 hover:bg-white/[0.06] hover:text-slate-100 active:bg-white/[0.04]"
           >
             How It Works
           </Link>
-          <Link 
-            href="#contact" 
+          <Link
+            href="#contact"
             className="rounded-full px-4 py-1.5 text-[0.85rem] font-medium text-slate-400 transition-colors duration-200 hover:bg-white/[0.06] hover:text-slate-100 active:bg-white/[0.04]"
           >
             Contact
