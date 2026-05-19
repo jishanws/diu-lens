@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { DM_Sans, Space_Grotesk } from 'next/font/google';
-import { ThemeProvider } from '@/components/theme/ThemeProvider';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -61,15 +60,16 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${spaceGrotesk.variable} h-full antialiased`}
+      className={`dark ${dmSans.variable} ${spaceGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body
         className="min-h-full flex flex-col"
         suppressHydrationWarning
       >
-        <ThemeProvider>{children}</ThemeProvider>
+        {children}
       </body>
     </html>
   );
 }
+

@@ -3,7 +3,6 @@
 @import 'shadcn/tailwind.css';
 @import '../styles/patterns.css';
 
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -84,79 +83,48 @@
   --sidebar-ring: oklch(0.68 0.08 245);
   --landing-page-gradient:
     radial-gradient(
-      circle at 10% -10%,
-      rgba(56, 189, 248, 0.09),
-      transparent 45%
+      circle at 50% -20%,
+      rgba(30, 58, 138, 0.08),
+      transparent 50%
     ),
-    linear-gradient(124deg, #040914 0%, #071321 48%, #050d19 100%);
-  --landing-grid-line: rgba(80, 124, 176, 0.065);
+    linear-gradient(to bottom, #030712 0%, #060e1d 50%, #020617 100%);
+  --landing-grid-line: rgba(255, 255, 255, 0.015);
   --landing-vignette: radial-gradient(
     circle at 50% 50%,
-    transparent 40%,
-    rgba(2, 6, 23, 0.42) 100%
+    transparent 20%,
+    rgba(2, 6, 23, 0.7) 100%
   );
-  --landing-glow-top-left: radial-gradient(
-    circle at 2% -7%,
-    rgba(125, 211, 252, 0.18),
-    rgba(59, 130, 246, 0.075) 25%,
-    transparent 60%
-  );
-  --landing-glow-bottom-right: radial-gradient(
-    circle at 100% 100%,
-    rgba(125, 211, 252, 0.12),
-    rgba(59, 130, 246, 0.045) 25%,
-    transparent 60%
-  );
+  --landing-glow-top-left: none;
+  --landing-glow-bottom-right: none;
   --landing-card-bg: linear-gradient(
-    140deg,
-    rgba(15, 30, 52, 0.76) 0%,
-    rgba(12, 25, 44, 0.7) 44%,
-    rgba(17, 29, 52, 0.72) 72%,
-    rgba(24, 26, 50, 0.74) 100%
+    180deg,
+    rgba(15, 23, 42, 0.4) 0%,
+    rgba(7, 12, 22, 0.3) 100%
   );
-  --landing-card-border: rgba(191, 219, 254, 0.14);
+  --landing-card-border: rgba(255, 255, 255, 0.05);
   --landing-card-shadow:
-    0 26px 56px -36px rgba(2, 6, 23, 0.66),
-    0 10px 22px -18px rgba(59, 130, 246, 0.08),
-    inset 0 1px 0 rgba(226, 232, 240, 0.1);
+    0 12px 32px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
   --landing-text-primary: #f8fafc;
-  --landing-text-secondary: #c8d6e9;
-  --landing-text-muted: #a5b8cf;
+  --landing-text-secondary: #94a3b8;
+  --landing-text-muted: #64748b;
   --landing-accent: #3b82f6;
-  --landing-accent-hover: #5b9ef4;
-  --landing-progress-inactive: rgba(148, 163, 184, 0.26);
-  --landing-progress-active: linear-gradient(
-    90deg,
-    #1f56d4 0%,
-    #2b6adf 55%,
-    #6aa7f5 100%
-  );
-  --landing-input-bg: rgba(7, 20, 38, 0.62);
-  --landing-input-border: rgba(148, 163, 184, 0.42);
-  --landing-input-placeholder: rgba(148, 163, 184, 0.84);
-  --landing-focus-ring: rgba(96, 165, 250, 0.28);
-  --landing-input-text: #d7e6f8;
-  --landing-button-bg: linear-gradient(
-    90deg,
-    #1b62cf 0%,
-    #2c79e9 52%,
-    #5b9ff5 100%
-  );
+  --landing-accent-hover: #60a5fa;
+  --landing-progress-inactive: rgba(255, 255, 255, 0.05);
+  --landing-progress-active: linear-gradient(90deg, #2563eb 0%, #3b82f6 100%);
+  --landing-input-bg: rgba(15, 23, 42, 0.3);
+  --landing-input-border: rgba(255, 255, 255, 0.08);
+  --landing-input-placeholder: rgba(148, 163, 184, 0.5);
+  --landing-focus-ring: rgba(59, 130, 246, 0.2);
+  --landing-input-text: #f1f5f9;
+  --landing-button-bg: linear-gradient(180deg, #4480e6 0%, #2f65c6 100%);
   --landing-button-shadow:
-    0 12px 24px -16px rgba(37, 99, 235, 0.28),
-    inset 0 1px 0 rgba(186, 230, 253, 0.18);
-  --landing-card-blur: 20px;
-  --landing-input-inset-shadow:
-    inset 0 1px 2px rgba(2, 6, 23, 0.48), 0 0 0 1px rgba(37, 99, 235, 0.14);
-  --landing-card-spotlight: radial-gradient(
-    circle at 50% 50%,
-    rgba(56, 189, 248, 0.1),
-    rgba(59, 130, 246, 0.065) 32%,
-    transparent 74%
-  );
+    0 4px 12px -4px rgba(37, 99, 235, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  --landing-card-blur: 16px;
+  --landing-input-inset-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  --landing-card-spotlight: none;
 }
-
-
 
 @layer base {
   * {
@@ -167,7 +135,7 @@
     color-scheme: dark;
     scroll-behavior: smooth;
   }
-  
+
   body {
     @apply bg-background text-foreground selection:bg-primary/20 transition-colors duration-150;
   }
