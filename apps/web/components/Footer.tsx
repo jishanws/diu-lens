@@ -9,7 +9,7 @@ export function Footer() {
       <nav
         id="support"
         aria-label="Footer links"
-        className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 sm:justify-end sm:gap-6"
+        className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 sm:justify-end sm:gap-6"
       >
         <a
           href="#"

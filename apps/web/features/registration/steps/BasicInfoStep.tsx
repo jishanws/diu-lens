@@ -26,29 +26,29 @@ export function BasicInfoStep({
   errorMessage,
 }: BasicInfoStepProps) {
   return (
-    <div className="flex h-full flex-col gap-4 max-[639px]:gap-2.5 sm:gap-5">
-      <header className="space-y-2.5 max-[639px]:space-y-1">
-        <h2 className="landing-text-primary text-xl font-semibold tracking-tight max-[639px]:text-[0.94rem] sm:text-[1.35rem]">
+    <div className="flex h-full flex-col gap-4 sm:gap-5">
+      <header className="space-y-2">
+        <h2 className="landing-text-primary text-[1.25rem] font-semibold tracking-tight sm:text-[1.35rem]">
           Basic Information
         </h2>
-        <p className="landing-text-secondary text-sm leading-6 max-[639px]:max-w-[29ch] max-[639px]:text-[0.68rem] max-[639px]:leading-[1.36]">
+        <p className="landing-text-secondary text-[0.85rem] leading-relaxed sm:text-[0.9rem]">
           Confirm your profile details before starting identity verification.
         </p>
         {errorMessage ? (
           <p
             role="alert"
-            className="text-sm font-medium text-red-400"
+            className="font-medium text-red-400"
           >
             {errorMessage}
           </p>
         ) : null}
       </header>
 
-      <div className="grid grid-cols-1 gap-3.5 rounded-xl border border-slate-200/65 bg-white/45 p-3.5 max-[639px]:gap-2 max-[639px]:rounded-[0.75rem] max-[639px]:p-2.5 dark:border-white/10 dark:bg-slate-900/36 sm:gap-4 sm:p-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 border border-slate-200/65 bg-white/45 p-3.5 rounded-2xl dark:border-white/10 dark:bg-slate-900/36 sm:gap-4 sm:p-4 md:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label
             htmlFor="basic-student-id"
-            className="landing-form-label text-[0.82rem] font-semibold tracking-[0.02em] max-[639px]:text-[0.72rem] max-[639px]:font-medium"
+            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
           >
             Student ID
           </Label>
@@ -63,7 +63,7 @@ export function BasicInfoStep({
         <div className="flex flex-col gap-1.5">
           <Label
             htmlFor="full-name"
-            className="landing-form-label text-[0.82rem] font-semibold tracking-[0.02em] max-[639px]:text-[0.72rem] max-[639px]:font-medium"
+            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
           >
             Full Name
           </Label>
@@ -80,7 +80,7 @@ export function BasicInfoStep({
         <div className="col-span-1 flex flex-col gap-1.5 md:col-span-2">
           <Label
             htmlFor="phone-number"
-            className="landing-form-label text-[0.82rem] font-semibold tracking-[0.02em] max-[639px]:text-[0.72rem] max-[639px]:font-medium"
+            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
           >
             Phone Number
           </Label>
@@ -100,7 +100,7 @@ export function BasicInfoStep({
         <div className="col-span-1 flex flex-col gap-1.5 md:col-span-2">
           <Label
             htmlFor="university-email"
-            className="landing-form-label text-[0.82rem] font-semibold tracking-[0.02em] max-[639px]:text-[0.72rem] max-[639px]:font-medium"
+            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
           >
             University Email
           </Label>
@@ -119,13 +119,13 @@ export function BasicInfoStep({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-4 border-t border-white/10 pt-4 max-[639px]:gap-2 max-[639px]:pt-2.5">
+      <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:gap-4">
         <Button
           type="button"
           variant="outline"
           onClick={onBack}
           disabled={isSubmitting}
-          className="landing-cta-outline h-11 w-full rounded-xl border-slate-300/80 bg-white/72 px-4 text-sm text-slate-700 hover:bg-slate-100 dark:border-white/12 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900/85"
+          className="landing-cta-outline w-full sm:w-1/3 border-slate-300/80 bg-white/72 px-4 text-slate-700 hover:bg-slate-100 dark:border-white/12 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900/85"
         >
           <ArrowLeft className="size-4" />
           Back
@@ -139,7 +139,7 @@ export function BasicInfoStep({
             !values.phoneNumber.trim() ||
             !values.universityEmail.trim()
           }
-          className="landing-button-bg landing-cta h-11 w-full gap-2 rounded-xl px-5 text-sm text-white"
+          className="landing-button-bg landing-cta w-full sm:w-2/3 gap-2 px-5 text-white"
         >
           {isSubmitting ? 'Continuing...' : 'Continue'}
           <ArrowRight className="size-4 transition-transform duration-150 group-hover/button:translate-x-0.5" />

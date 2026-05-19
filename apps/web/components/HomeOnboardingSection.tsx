@@ -153,7 +153,7 @@ function HowItWorksSection() {
         </h2>
       </div>
 
-      <ol className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-5 md:grid-cols-3">
+      <ol className="mx-auto mt-8 grid max-w-4xl grid-cols-1 gap-4 sm:mt-10 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
         {workflowSteps.map((step, index) => (
           <li
             key={step.title}
@@ -162,7 +162,7 @@ function HowItWorksSection() {
             {index < workflowSteps.length - 1 ? (
               <span
                 aria-hidden="true"
-                className="absolute left-[calc(100%-1rem)] top-10 hidden h-px w-8 bg-white/5 md:block"
+                className="absolute left-[calc(100%-1rem)] top-10 hidden h-px w-8 bg-white/5 lg:block"
               />
             ) : null}
             <div className="mb-5 flex items-center gap-2.5">

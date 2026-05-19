@@ -302,6 +302,7 @@
     height: 2.6rem;
     border-radius: 0.75rem;
     font-weight: 600;
+    font-size: 0.9rem;
     letter-spacing: -0.01em;
     transition:
       transform 160ms ease,
@@ -384,27 +385,29 @@
     }
 
     .landing-form-input {
-      height: 2.62rem;
-      border-radius: 0.42rem;
-      font-size: 0.74rem;
-      line-height: 1.1rem;
-      padding-left: 0.78rem;
-      padding-right: 0.78rem;
+      height: 3rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      line-height: 1.2rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
     }
 
     .landing-form-input-with-icon {
-      padding-left: 2rem;
+      padding-left: 2.25rem;
     }
 
     .landing-cta {
-      height: 2.62rem;
-      border-radius: 0.42rem;
-      font-size: 0.8rem;
+      height: 3rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      width: 100%;
     }
 
     .landing-cta-outline {
-      height: 2.54rem;
-      border-radius: 0.42rem;
+      height: 3rem;
+      border-radius: 0.5rem;
+      width: 100%;
     }
   }
 }
