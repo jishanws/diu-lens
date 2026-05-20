@@ -383,22 +383,11 @@ export function GuidedEnrollmentCapture({
               className="pointer-events-none absolute -inset-8 rounded-full"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 65%)',
+                  'radial-gradient(circle, rgba(37,99,235,0.09) 0%, transparent 65%)',
               }}
             />
 
-            {/* Outer progress ring SVG */}
-            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-              <CircularProgressGuide
-                totalSteps={captureAngles.length}
-                currentStepIndex={Math.max(
-                  0,
-                  captureAngles.indexOf(state.currentAngle)
-                )}
-              />
-            </div>
-
-            {/* Circular camera feed */}
+            {/* Circular camera feed — flow element, sets container height */}
             <CameraPreview
               videoRef={mergedVideoRef}
               streamActive={streamActive}
@@ -409,7 +398,7 @@ export function GuidedEnrollmentCapture({
             {/* Inner biometric guide ring */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-[10%] rounded-full border border-white/[0.1]"
+              className="pointer-events-none absolute inset-[10%] rounded-full border border-white/[0.08]"
               style={{ boxShadow: 'inset 0 0 20px rgba(0,0,0,0.35)' }}
             />
 
@@ -428,6 +417,24 @@ export function GuidedEnrollmentCapture({
                 />
               </div>
             )}
+
+            {/*
+              Biometric progress ring — LAST child so it renders ON TOP of the camera.
+              -inset-4 extends 16px beyond camera edges; z-10 ensures it's above everything.
+              Segments in CircularProgressGuide at r=150 appear around the camera rim.
+            */}
+            <div
+              className="pointer-events-none absolute -inset-4 z-10"
+              aria-hidden="true"
+            >
+              <CircularProgressGuide
+                totalSteps={captureAngles.length}
+                currentStepIndex={Math.max(
+                  0,
+                  captureAngles.indexOf(state.currentAngle)
+                )}
+              />
+            </div>
 
           </div>
 
