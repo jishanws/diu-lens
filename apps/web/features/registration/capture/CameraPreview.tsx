@@ -14,12 +14,7 @@ export function CameraPreview({
   className,
 }: CameraPreviewProps) {
   return (
-    <div
-      className={cn(
-        'relative aspect-[3/4] w-full overflow-hidden rounded-[1.25rem] border border-slate-300/70 bg-slate-950/95 shadow-[0_18px_45px_-30px_rgba(15,23,42,0.85)] max-[639px]:rounded-[0.76rem] max-[639px]:border-[#2e4b6a]',
-        className
-      )}
-    >
+    <div className={cn('relative w-full overflow-hidden bg-slate-950', className)}>
       <video
         ref={videoRef}
         autoPlay
@@ -29,10 +24,18 @@ export function CameraPreview({
         aria-label="Live camera preview"
       />
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_37%,rgba(2,6,23,0.28)_80%)]" />
+      {/* Radial inner vignette — darker edges, brighter center */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(circle at center, transparent 36%, rgba(1,5,15,0.55) 88%)',
+        }}
+      />
 
+      {/* Permission / no-stream fallback overlay */}
       {!streamActive && fallbackMessage ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/90 px-5 text-center text-sm font-medium text-slate-100">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#01040c]/92 px-6 text-center text-[0.82rem] font-medium leading-relaxed text-slate-300">
           {fallbackMessage}
         </div>
       ) : null}

@@ -360,66 +360,151 @@ export function GuidedEnrollmentCapture({
     permissionState === 'requesting' ? 'Starting camera...' : 'Enable camera';
 
   return (
-    <section className="space-y-3 sm:space-y-4">
-      <div className="rounded-xl border border-white/10 bg-slate-900/36 p-4 shadow-[0_20px_40px_-28px_rgba(15,23,42,0.32)] backdrop-blur-sm max-[639px]:rounded-[0.75rem] max-[639px]:p-3 sm:p-5">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-2">
+    <section className="space-y-3">
+      {/* ── Main scan card ──────────────────────────────────────── */}
+      <div className="rounded-[1.15rem] border border-white/[0.07] bg-[#040a14]/95 px-4 py-5 shadow-[0_24px_56px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.2rem] sm:px-5 sm:py-6">
+        <div className="space-y-5">
+
+          {/* STATUS HEADER */}
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="landing-text-muted text-xs font-semibold tracking-[0.04em] uppercase">
-                Face Check
+              <p
+                className="mb-[0.2rem] text-[0.63rem] font-semibold tracking-[0.12em] uppercase"
+                style={{ color: 'rgba(59,130,246,0.6)' }}
+              >
+                Face Verification
               </p>
-              <h3 className="landing-text-primary text-xl font-semibold tracking-tight max-[639px]:text-[1.05rem]">
+              <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
                 {getAngleLabel(state.currentAngle)}
               </h3>
             </div>
-            <div className="rounded-full border border-white/10 bg-slate-900/55 px-3 py-1 text-xs font-semibold text-blue-300">
-              {state.capturedCount} / {captureAngles.length}
+
+            {/* Step dot progress */}
+            <div
+              className="flex items-center gap-[0.28rem] pt-1"
+              aria-label={`Step ${captureAngles.indexOf(state.currentAngle) + 1} of ${captureAngles.length}`}
+            >
+              {captureAngles.map((angle, i) => {
+                const currentIdx = captureAngles.indexOf(state.currentAngle);
+                const isDone = i < currentIdx;
+                const isCurrent = i === currentIdx;
+                return (
+                  <span
+                    key={angle}
+                    className={cn(
+                      'rounded-full transition-all duration-300',
+                      isDone
+                        ? 'h-[5px] w-[5px] bg-blue-400'
+                        : isCurrent
+                          ? 'biometric-dot-active h-[6px] w-[6px] bg-blue-500'
+                          : 'h-[4px] w-[4px] bg-white/[0.18]'
+                    )}
+                  />
+                );
+              })}
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-sm rounded-[2rem] border border-white/10 bg-slate-900/40 p-2 shadow-[0_14px_32px_-24px_rgba(15,23,42,0.45)]">
-            <div className="relative mx-auto w-full max-w-sm p-2">
-              <div className="pointer-events-none absolute inset-0">
-                <CircularProgressGuide
-                  totalSteps={captureAngles.length}
-                  currentStepIndex={Math.max(
-                    0,
-                    captureAngles.indexOf(state.currentAngle)
-                  )}
-                />
-              </div>
+          {/* SCAN CIRCLE AREA */}
+          <div className="relative mx-auto w-full max-w-[16rem] sm:max-w-[18rem]">
 
-              <CameraPreview
-                videoRef={mergedVideoRef}
-                streamActive={streamActive}
-                fallbackMessage={permissionBlocked ? statusText : undefined}
-                className="aspect-square rounded-full border-4 border-white bg-slate-900"
+            {/* Ambient bloom behind circle */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute -inset-8 rounded-full"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 65%)',
+              }}
+            />
+
+            {/* Outer progress ring SVG */}
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              <CircularProgressGuide
+                totalSteps={captureAngles.length}
+                currentStepIndex={Math.max(
+                  0,
+                  captureAngles.indexOf(state.currentAngle)
+                )}
               />
+            </div>
 
-              <div className="pointer-events-none absolute inset-[10%] rounded-full border-2 border-white/90" />
-
-              <div className="pointer-events-none absolute inset-0">
-                {angleMarkerConfig.map((marker) => {
-                  const isActive = state.currentAngle === marker.angle;
-                  return (
+            {/* Direction indicator nodes (cardinal positions) */}
+            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+              {angleMarkerConfig.map((marker) => {
+                if (marker.angle === 'front') return null;
+                const isActive = state.currentAngle === marker.angle;
+                return (
+                  <div key={marker.angle} className={cn('absolute', marker.className)}>
                     <div
-                      key={marker.angle}
                       className={cn(
-                        'absolute rounded-full border px-2 py-1 text-[10px] font-semibold tracking-[0.02em] transition-all',
-                        marker.className,
+                        'rounded-full border px-[0.45rem] py-[0.18rem] text-[0.54rem] font-bold tracking-[0.07em] transition-all duration-300',
                         isActive
-                          ? 'border-blue-500 bg-blue-500 text-white shadow-[0_0_18px_rgba(59,130,246,0.6)] animate-pulse'
-                          : 'border-white/15 bg-slate-900/75 text-slate-300'
+                          ? 'border-blue-400/50 bg-blue-500/[0.18] text-blue-200 shadow-[0_0_10px_rgba(59,130,246,0.3),inset_0_1px_0_rgba(255,255,255,0.07)]'
+                          : 'border-white/[0.07] bg-black/40 text-slate-600'
                       )}
+                      style={isActive ? { transform: 'scale(1.1)' } : undefined}
                     >
                       {marker.label}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
+
+            {/* Circular camera feed */}
+            <CameraPreview
+              videoRef={mergedVideoRef}
+              streamActive={streamActive}
+              fallbackMessage={permissionBlocked ? statusText : undefined}
+              className="aspect-square rounded-full shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(37,99,235,0.07),inset_0_0_32px_rgba(0,0,0,0.55)]"
+            />
+
+            {/* Inner biometric guide ring */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-[10%] rounded-full border border-white/[0.1]"
+              style={{ boxShadow: 'inset 0 0 20px rgba(0,0,0,0.35)' }}
+            />
+
+            {/* Animated scan line — only when camera is live */}
+            {streamActive && !permissionBlocked && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
+              >
+                <div
+                  className="biometric-scan-line absolute left-[10%] right-[10%] h-px"
+                  style={{
+                    background:
+                      'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.4) 35%, rgba(96,165,250,0.65) 50%, rgba(59,130,246,0.4) 65%, transparent 100%)',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* FRONT: tiny center indicator when active */}
+            {state.currentAngle === 'front' && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 flex items-center justify-center"
+              >
+                <div className="h-[5px] w-[5px] rounded-full bg-blue-400/50" />
+              </div>
+            )}
           </div>
 
+          {/* STATUS MESSAGE */}
+          <div className="min-h-[2.2rem] px-1 text-center">
+            <p
+              className="text-[0.8rem] leading-[1.5]"
+              style={{ color: 'rgba(148,163,184,0.82)' }}
+            >
+              {statusText}
+            </p>
+          </div>
+
+          {/* CAMERA PERMISSION BUTTON */}
           {permissionBlocked ? (
             <Button
               type="button"
@@ -437,7 +522,8 @@ export function GuidedEnrollmentCapture({
         </div>
       </div>
 
-      <div className="flex items-center justify-end gap-2 rounded-xl border border-white/10 bg-slate-900/45 px-3 py-2.5 max-[639px]:rounded-[0.66rem]">
+      {/* ── Submit button row ────────────────────────────────────── */}
+      <div className="flex items-center justify-end rounded-xl border border-white/[0.06] bg-[#04080f]/80 px-4 py-3">
         <Button
           type="button"
           onClick={() => void handleSubmit()}
@@ -447,7 +533,7 @@ export function GuidedEnrollmentCapture({
             !state.canSubmit ||
             isSubmittingCompletion
           }
-          className="landing-button-bg landing-cta h-11 min-w-38 rounded-xl px-5 text-sm text-white"
+          className="landing-button-bg landing-cta h-10 min-w-[9.5rem] rounded-xl px-5 text-sm text-white disabled:opacity-40"
         >
           {isSubmittingCompletion ? (
             <>
