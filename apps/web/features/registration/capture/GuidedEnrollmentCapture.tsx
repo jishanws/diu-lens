@@ -37,37 +37,6 @@ function getAngleLabel(angle: VerificationAngle) {
   return angle.charAt(0).toUpperCase() + angle.slice(1);
 }
 
-const angleMarkerConfig: Array<{
-  angle: VerificationAngle;
-  label: string;
-  className: string;
-}> = [
-  {
-    angle: 'up',
-    label: 'UP',
-    className: 'left-1/2 top-1 -translate-x-1/2 -translate-y-1/2',
-  },
-  {
-    angle: 'left',
-    label: 'LEFT',
-    className: 'left-1 top-1/2 -translate-x-1/2 -translate-y-1/2',
-  },
-  {
-    angle: 'front',
-    label: 'FRONT',
-    className: 'left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2',
-  },
-  {
-    angle: 'right',
-    label: 'RIGHT',
-    className: 'right-1 top-1/2 translate-x-1/2 -translate-y-1/2',
-  },
-  {
-    angle: 'down',
-    label: 'DOWN',
-    className: 'left-1/2 bottom-1 -translate-x-1/2 translate-y-1/2',
-  },
-];
 
 export function GuidedEnrollmentCapture({
   studentId,
@@ -429,29 +398,6 @@ export function GuidedEnrollmentCapture({
               />
             </div>
 
-            {/* Direction indicator nodes (cardinal positions) */}
-            <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-              {angleMarkerConfig.map((marker) => {
-                if (marker.angle === 'front') return null;
-                const isActive = state.currentAngle === marker.angle;
-                return (
-                  <div key={marker.angle} className={cn('absolute', marker.className)}>
-                    <div
-                      className={cn(
-                        'rounded-full border px-[0.45rem] py-[0.18rem] text-[0.54rem] font-bold tracking-[0.07em] transition-all duration-300',
-                        isActive
-                          ? 'border-blue-400/50 bg-blue-500/[0.18] text-blue-200 shadow-[0_0_10px_rgba(59,130,246,0.3),inset_0_1px_0_rgba(255,255,255,0.07)]'
-                          : 'border-white/[0.07] bg-black/40 text-slate-600'
-                      )}
-                      style={isActive ? { transform: 'scale(1.1)' } : undefined}
-                    >
-                      {marker.label}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
             {/* Circular camera feed */}
             <CameraPreview
               videoRef={mergedVideoRef}
@@ -483,15 +429,6 @@ export function GuidedEnrollmentCapture({
               </div>
             )}
 
-            {/* FRONT: tiny center indicator when active */}
-            {state.currentAngle === 'front' && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 flex items-center justify-center"
-              >
-                <div className="h-[5px] w-[5px] rounded-full bg-blue-400/50" />
-              </div>
-            )}
           </div>
 
           {/* STATUS MESSAGE */}
