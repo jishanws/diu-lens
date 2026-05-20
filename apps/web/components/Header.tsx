@@ -12,18 +12,18 @@ export function Header() {
     <div className="fixed top-6 inset-x-0 z-50 flex w-full justify-center px-4">
       <header className="relative flex h-[3.25rem] w-full max-w-[50rem] items-center justify-between rounded-full border border-white/[0.03] bg-[#0a1120]/30 px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_4px_24px_-8px_rgba(0,0,0,0.3)] backdrop-blur-lg transition-all duration-300">
         
-        <div className="flex items-center gap-2 pl-2">
-          <div className="flex size-[2.15rem] items-center justify-center rounded-[0.65rem] border border-white/[0.06] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="flex items-center gap-1.5 sm:gap-2 pl-2">
+          <div className="flex size-[1.85rem] sm:size-[2.15rem] items-center justify-center rounded-[0.55rem] sm:rounded-[0.65rem] border border-white/[0.06] bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <Image
               src="/branding/logo.png"
               alt="DIU Lens logo"
               width={40}
               height={40}
               priority
-              className="size-[2.1rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
+              className="size-[1.8rem] sm:size-[2.1rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]"
             />
           </div>
-          <span className="text-[0.95rem] font-medium tracking-wide text-slate-100 hidden sm:block">
+          <span className="text-[0.85rem] sm:text-[0.95rem] font-medium tracking-wide text-slate-100">
             DIU Lens
           </span>
         </div>
