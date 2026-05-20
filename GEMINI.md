@@ -7,7 +7,7 @@ It uses a monorepo structure managed by `pnpm` workspaces.
 
 ### Tech Stack
 *   **Backend (`apps/api`)**: Python, FastAPI, SQLAlchemy, Alembic, Celery, Redis. Database is PostgreSQL with the `pgvector` extension for storing and querying face embeddings.
-*   **Frontend (`apps/web`)**: Next.js (App Router), TypeScript, Tailwind CSS, shadcn/ui, Lucide icons.
+*   **Frontend (`apps/web`)**: Next.js (App Router), TypeScript, Tailwind CSS, Framer Motion, shadcn/ui, Lucide icons.
 *   **Infrastructure**: Docker (Docker Compose for production), Nginx.
 
 ## Building and Running
@@ -78,5 +78,5 @@ pytest
     *   Database models and session management are in `apps/api/app/db`.
     *   Heavy biometric operations (extraction, validation) are handled asynchronously by Celery workers in `apps/api/app/tasks` and `apps/api/app/core`.
     *   Operational data mutations should ensure idempotency and utilize distributed Redis locks.
-*   **Frontend Architecture**: Uses Next.js App Router paradigm. UI components are primarily sourced from shadcn/ui.
+*   **Frontend Architecture**: Uses Next.js App Router paradigm. UI components are primarily sourced from shadcn/ui. Styling relies on Tailwind CSS, enhanced by Framer Motion for premium, state-driven biometric scanning animations and cinematic transitions.
 *   **Testing**: Backend testing is robust and must be updated alongside feature changes. Ensure database teardown and mock isolation using fixtures in `conftest.py`.
