@@ -57,7 +57,9 @@ DIU Lens is a robust, full-stack biometric facial recognition system.
 ## 4. Frontend Development Rules (`apps/web`)
 
 *   **UI Components:** Check `apps/web/components/ui/` for existing `shadcn/ui` components before creating new ones or installing new libraries.
-*   **Styling:** Use Tailwind CSS utility classes strictly. Avoid creating custom `.css` files unless absolutely necessary for complex animations or global overrides.
+*   **Styling:** Use Tailwind CSS utility classes strictly. Custom CSS (`globals.css`) is permitted for complex keyframe animations (e.g., biometric scanning pulses) or global theme overrides.
+*   **Animations:** Use **Framer Motion** for complex, state-driven SVG/path animations, liquid transitions, and layout changes. Easing should feel premium and cinematic (e.g., `ease: [0.32, 0.72, 0, 1]`).
+*   **Aesthetics:** The UI relies on a premium, dark, futuristic "glassmorphism" aesthetic. Prioritize visual communication (e.g., animated rings, glows, segmented nodes) over textual labels whenever possible, especially in biometric verification flows.
 *   **Linting:** Ensure code passes `pnpm --filter web lint` before finalizing tasks.
 
 ## 5. Standard Commands for Agents
