@@ -75,7 +75,7 @@ export function Header() {
 
         {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="absolute top-[4rem] inset-x-0 flex flex-col gap-2 rounded-2xl border border-white/[0.03] bg-[#0a1120]/80 p-4 shadow-[0_8px_32px_rgba(0,0,0,0.5)] backdrop-blur-xl md:hidden">
+          <div className="absolute top-[4rem] inset-x-0 flex flex-col gap-1.5 rounded-[32px] border border-white/[0.06] bg-[#04080f]/[0.96] p-5 shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.3)] [backdrop-filter:blur(48px)_saturate(180%)] md:hidden">
             <Link
               href="#features"
               onClick={() => setMobileMenuOpen(false)}
