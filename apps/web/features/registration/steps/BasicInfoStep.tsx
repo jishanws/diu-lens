@@ -26,25 +26,25 @@ export function BasicInfoStep({
   errorMessage,
 }: BasicInfoStepProps) {
   return (
-    <div className="flex h-full flex-col gap-4 sm:gap-5">
-      <header className="space-y-2">
-        <h2 className="landing-text-primary text-[1.25rem] font-semibold tracking-tight sm:text-[1.35rem]">
+    <div className="flex h-full flex-col gap-5 sm:gap-6">
+      <header className="space-y-1.5">
+        <h2 className="landing-text-primary text-[1.22rem] font-semibold tracking-tight sm:text-[1.35rem]">
           Basic Information
         </h2>
-        <p className="landing-text-secondary text-[0.85rem] leading-relaxed sm:text-[0.9rem]">
+        <p className="landing-text-secondary text-[0.84rem] leading-[1.55] sm:text-[0.86rem]">
           Confirm your profile details before starting identity verification.
         </p>
         {errorMessage ? (
           <p
             role="alert"
-            className="font-medium text-red-400"
+            className="pt-0.5 text-[0.82rem] font-medium text-red-400"
           >
             {errorMessage}
           </p>
         ) : null}
       </header>
 
-      <div className="grid grid-cols-1 gap-3 border border-slate-200/65 bg-white/45 p-3.5 rounded-2xl dark:border-white/10 dark:bg-slate-900/36 sm:gap-4 sm:p-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 sm:gap-[1.1rem] sm:p-[1.1rem] md:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <Label
             htmlFor="basic-student-id"
@@ -119,7 +119,7 @@ export function BasicInfoStep({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-3 border-t border-white/10 pt-4 sm:flex-row sm:gap-4">
+      <div className="mt-auto flex flex-col gap-3 pt-1 sm:flex-row sm:gap-3">
         <Button
           type="button"
           variant="outline"

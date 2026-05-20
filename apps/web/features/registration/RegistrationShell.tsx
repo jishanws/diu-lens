@@ -29,10 +29,10 @@ export function RegistrationShell({
         className
       )}
     >
-      <CardContent className="space-y-5 p-0 sm:space-y-[1.1rem]">
-        <header className="space-y-4 sm:space-y-3">
+      <CardContent className="space-y-0 p-0">
+        <header className="space-y-3 sm:space-y-2.5 pb-5 sm:pb-[1.4rem]">
           <div>
-            <h2 className="landing-text-primary text-center text-[1.48rem] leading-none font-semibold tracking-[-0.012em] sm:text-[1.72rem] sm:tracking-[-0.015em]">
+            <h2 className="landing-text-primary text-center text-[1.38rem] leading-none font-semibold tracking-[-0.012em] sm:text-[1.58rem] sm:tracking-[-0.015em]">
               Verification Portal
             </h2>
           </div>
@@ -95,7 +95,7 @@ export function RegistrationShell({
                 return (
                   <div
                     key={step.id}
-                    className="flex flex-col items-center gap-[0.45rem]"
+                    className="flex flex-col items-center gap-[0.5rem]"
                   >
                     {/* Node */}
                     <div
@@ -171,7 +171,7 @@ export function RegistrationShell({
           </nav>
         </header>
 
-        <div className="space-y-5 sm:space-y-4">
+        <div className="space-y-5 border-t border-white/[0.06] pt-5 sm:space-y-4 sm:pt-[1.35rem]">
           {children}
         </div>
       </CardContent>

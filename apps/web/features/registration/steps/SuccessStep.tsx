@@ -8,16 +8,16 @@ type SuccessStepProps = {
 
 export function SuccessStep({ onDone }: SuccessStepProps) {
   return (
-    <div className="space-y-4 pt-1 text-center sm:space-y-6">
-      <div className="mx-auto inline-flex size-12 items-center justify-center rounded-full bg-blue-500/15 text-blue-300">
-        <CheckCircle2 className="size-6" />
+    <div className="space-y-5 pt-1 text-center sm:space-y-6">
+      <div className="mx-auto inline-flex size-11 items-center justify-center rounded-full bg-blue-500/12 text-blue-300/90">
+        <CheckCircle2 className="size-5" />
       </div>
 
-      <header className="space-y-2">
-        <h2 className="landing-text-primary text-[1.25rem] font-semibold tracking-tight sm:text-xl">
+      <header className="space-y-1.5">
+        <h2 className="landing-text-primary text-[1.22rem] font-semibold tracking-tight sm:text-[1.35rem]">
           Registration Complete
         </h2>
-        <p className="landing-text-secondary text-[0.85rem] leading-relaxed sm:text-[0.9rem]">
+        <p className="landing-text-secondary mx-auto max-w-[34ch] text-[0.84rem] leading-[1.55] sm:text-[0.86rem]">
           Your onboarding details have been saved. Face verification integration
           will be connected in the next release.
         </p>

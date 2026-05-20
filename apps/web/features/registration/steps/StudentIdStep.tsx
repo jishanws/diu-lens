@@ -16,17 +16,17 @@ export function StudentIdStep({
   onContinue,
 }: StudentIdStepProps) {
   return (
-    <div className="space-y-5">
-      <header className="space-y-2.5 sm:space-y-2">
-        <h3 className="landing-text-primary text-[1.48rem] leading-[1.12] font-semibold tracking-[-0.014em] sm:text-[1.68rem] sm:leading-[1.1] sm:tracking-[-0.016em]">
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <h3 className="landing-text-primary text-[1.22rem] leading-[1.15] font-semibold tracking-[-0.012em] sm:text-[1.35rem] sm:tracking-[-0.014em]">
           Check Registration Status
         </h3>
-        <p className="landing-text-secondary max-w-[31ch] text-[0.84rem] leading-[1.48] sm:max-w-[29ch] sm:text-[0.86rem] sm:leading-[1.45]">
+        <p className="landing-text-secondary text-[0.84rem] leading-[1.55] sm:text-[0.86rem]">
           Enter your student ID to continue with DIU Lens.
         </p>
       </header>
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Label
           htmlFor="student-id"
           className="sr-only"
