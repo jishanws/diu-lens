@@ -2,11 +2,33 @@
 
 import { animate, motion, useMotionValue } from 'framer-motion';
 import { useEffect } from 'react';
+import type { VerificationAngle } from '@/features/registration/verification/types';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type DirectionCompletionMap = Partial<Record<string, boolean>>;
 
 type CircularProgressGuideProps = {
-  totalSteps: number;
-  currentStepIndex: number;
+  /** Which directional angles have been successfully captured */
+  completedDirections: DirectionCompletionMap;
+  /** The angle currently being captured */
+  activeDirection: VerificationAngle;
 };
+
+// ── Fixed arc positions — anatomy of the face ─────────────────────────────────
+// 0° = top, 90° = right, 180° = bottom, 270° = left (clockwise).
+// Each arc is 80°, gaps are 10°. Total = 4×80 + 4×10 = 360°.
+
+const DIRECTION_ARCS = [
+  { key: 'up',    startDeg: -40, endDeg:  40 },   // top arc
+  { key: 'right', startDeg:  50, endDeg: 130 },   // right arc
+  { key: 'down',  startDeg: 140, endDeg: 220 },   // bottom arc
+  { key: 'left',  startDeg: 230, endDeg: 310 },   // left arc
+] as const;
+
+const DIRECTIONAL_KEYS = DIRECTION_ARCS.map((a) => a.key);
+
+// ── Geometry helpers ──────────────────────────────────────────────────────────
 
 function polarToCartesian(
   cx: number,
@@ -31,13 +53,8 @@ function describeArc(
   return `M ${s.x} ${s.y} A ${r} ${r} 0 ${la} 0 ${e.x} ${e.y}`;
 }
 
-/**
- * Sweeping comet that continuously traces the active arc.
- * Three stacked motion.paths share the same pathOffset motion value:
- *   tail  — wide, very translucent (trailing glow)
- *   body  — medium, softer
- *   head  — narrow, bright + strong glow filter
- */
+// ── ActiveComet — sweeping light trace on the currently active arc ─────────────
+
 function ActiveComet({ d }: { d: string }) {
   const pathOffset = useMotionValue(0);
 
@@ -53,7 +70,7 @@ function ActiveComet({ d }: { d: string }) {
 
   return (
     <>
-      {/* Tail — wide translucent */}
+      {/* Tail — wide, very translucent trailing glow */}
       <motion.path
         d={d}
         fill="none"
@@ -62,7 +79,7 @@ function ActiveComet({ d }: { d: string }) {
         strokeLinecap="round"
         style={{ pathLength: 0.3, pathOffset }}
       />
-      {/* Body — medium */}
+      {/* Body — medium brightness */}
       <motion.path
         d={d}
         fill="none"
@@ -71,7 +88,7 @@ function ActiveComet({ d }: { d: string }) {
         strokeLinecap="round"
         style={{ pathLength: 0.13, pathOffset }}
       />
-      {/* Head — bright, sharp glow */}
+      {/* Head — sharp, bright with strong glow filter */}
       <motion.path
         d={d}
         fill="none"
@@ -85,26 +102,27 @@ function ActiveComet({ d }: { d: string }) {
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
+
 export function CircularProgressGuide({
-  totalSteps,
-  currentStepIndex,
+  completedDirections,
+  activeDirection,
 }: CircularProgressGuideProps) {
   const size = 320;
   const cx = size / 2; // 160
   const cy = size / 2; // 160
 
   /*
-   * Geometry rationale for -inset-4 (16px extended) container:
-   *   mobile  (max-w-[16rem] = 256px): SVG = 288px → camera edge ≈ 142 SVG units
-   *   desktop (max-w-[18rem] = 288px): SVG = 320px → camera edge ≈ 144 SVG units
-   *   segmentR = 150  → sits  6–8 px outside the camera rim  ✓
-   *   orbitR   = 161  → sits 17–19 px outside the camera rim ✓
+   * Geometry: container is -inset-4 (16px extended beyond camera on each side).
+   *   mobile  max-w-[16rem]=256px → SVG=288px, camera edge ≈ 142 SVG units
+   *   desktop max-w-[18rem]=288px → SVG=320px, camera edge ≈ 144 SVG units
+   *   segmentR=150  →  6–8 px OUTSIDE the camera rim  ✓
+   *   orbitR  =161  → 17–19 px outside the camera rim ✓
    */
   const segmentR = 150;
   const orbitR = 161;
-  const segmentSpan = 360 / totalSteps;
-  const gap = 8; // degrees gap between adjacent segments
-  const allDone = currentStepIndex >= totalSteps;
+
+  const isDirectional = DIRECTIONAL_KEYS.includes(activeDirection as never);
 
   return (
     <svg
@@ -114,54 +132,27 @@ export function CircularProgressGuide({
     >
       <defs>
         {/* Bright comet head glow */}
-        <filter
-          id="cpg-comet-glow"
-          x="-70%"
-          y="-70%"
-          width="240%"
-          height="240%"
-        >
+        <filter id="cpg-comet-glow" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-
         {/* Completed arc — crisp edge glow */}
-        <filter
-          id="cpg-glow-done"
-          x="-30%"
-          y="-30%"
-          width="160%"
-          height="160%"
-        >
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+        <filter id="cpg-glow-done" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3.5" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-
-        {/* Completed arc — wide bloom halo (blur only, no source) */}
-        <filter
-          id="cpg-bloom-done"
-          x="-70%"
-          y="-70%"
-          width="240%"
-          height="240%"
-        >
+        {/* Completed arc — wide ambient bloom (blur only, no source) */}
+        <filter id="cpg-bloom-done" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="10" />
         </filter>
-
-        {/* Active arc — breathing bloom (blur only) */}
-        <filter
-          id="cpg-active-bloom"
-          x="-70%"
-          y="-70%"
-          width="240%"
-          height="240%"
-        >
+        {/* Active arc — breathing bloom */}
+        <filter id="cpg-active-bloom" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
         </filter>
       </defs>
@@ -198,109 +189,116 @@ export function CircularProgressGuide({
         strokeWidth="1"
       />
 
-      {/* ── Layer 1: Track — dim navy base for every segment ──────── */}
-      {Array.from({ length: totalSteps }).map((_, i) => {
-        const s = i * segmentSpan + gap / 2;
-        const e = (i + 1) * segmentSpan - gap / 2;
-        return (
-          <path
-            key={`track-${i}`}
-            d={describeArc(cx, cy, segmentR, s, e)}
-            fill="none"
-            stroke="rgba(12,30,58,0.85)"
-            strokeWidth={5}
-            strokeLinecap="round"
-          />
-        );
-      })}
+      {/* Full-ring gentle pulse when active angle is non-directional (front / natural_front) */}
+      {!isDirectional && (
+        <motion.circle
+          cx={cx}
+          cy={cy}
+          r={segmentR}
+          fill="none"
+          stroke="rgba(59,130,246,0.15)"
+          strokeWidth={6}
+          filter="url(#cpg-active-bloom)"
+          animate={{ opacity: [0.3, 1, 0.3] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
 
-      {/* ── Layer 2: Completed segments — liquid sweep + teal glow ── */}
-      {Array.from({ length: totalSteps }).map((_, i) => {
-        if (i >= currentStepIndex) return null;
-        const s = i * segmentSpan + gap / 2;
-        const e = (i + 1) * segmentSpan - gap / 2;
-        const d = describeArc(cx, cy, segmentR, s, e);
+      {/* ── Render each directional arc independently ───────────────────── */}
+      {DIRECTION_ARCS.map(({ key, startDeg, endDeg }) => {
+        const d = describeArc(cx, cy, segmentR, startDeg, endDeg);
+        const isCompleted = !!completedDirections[key];
+        const isActive = isDirectional && activeDirection === key && !isCompleted;
+
         return (
-          <g key={`done-${i}`}>
-            {/* Bloom halo — pure glow, no sharp source */}
-            <motion.path
+          <g key={key}>
+            {/* Track arc — dim navy base, always visible */}
+            <path
               d={d}
               fill="none"
-              stroke="#34d399"
-              strokeWidth={18}
+              stroke="rgba(12,30,58,0.85)"
+              strokeWidth={5}
               strokeLinecap="round"
-              filter="url(#cpg-bloom-done)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.25 }}
-              transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
             />
-            {/* Primary filled arc */}
-            <motion.path
-              d={d}
-              fill="none"
-              stroke="#34d399"
-              strokeWidth={8}
-              strokeLinecap="round"
-              filter="url(#cpg-glow-done)"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.92 }}
-              transition={{ duration: 0.55, ease: [0.32, 0.72, 0, 1] }}
-            />
-            {/* Cyan specular highlight on top */}
-            <motion.path
-              d={d}
-              fill="none"
-              stroke="#6ee7b7"
-              strokeWidth={3}
-              strokeLinecap="round"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.6 }}
-              transition={{
-                duration: 0.55,
-                delay: 0.06,
-                ease: [0.32, 0.72, 0, 1],
-              }}
-            />
+
+            {/* ── COMPLETED: teal sweep fills in on mount ── */}
+            {isCompleted && (
+              <g>
+                {/* Wide bloom halo (pure blur, no sharp source) */}
+                <motion.path
+                  d={d}
+                  fill="none"
+                  stroke="#34d399"
+                  strokeWidth={18}
+                  strokeLinecap="round"
+                  filter="url(#cpg-bloom-done)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.3 }}
+                  transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                />
+                {/* Primary teal arc */}
+                <motion.path
+                  d={d}
+                  fill="none"
+                  stroke="#34d399"
+                  strokeWidth={8}
+                  strokeLinecap="round"
+                  filter="url(#cpg-glow-done)"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.92 }}
+                  transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                />
+                {/* Cyan specular highlight on top edge */}
+                <motion.path
+                  d={d}
+                  fill="none"
+                  stroke="#6ee7b7"
+                  strokeWidth={3}
+                  strokeLinecap="round"
+                  initial={{ pathLength: 0, opacity: 0 }}
+                  animate={{ pathLength: 1, opacity: 0.6 }}
+                  transition={{
+                    duration: 0.5,
+                    delay: 0.06,
+                    ease: [0.32, 0.72, 0, 1],
+                  }}
+                />
+              </g>
+            )}
+
+            {/* ── ACTIVE: breathing bloom + dim base + sweeping comet ── */}
+            {isActive && (
+              <g key={`active-${key}`}>
+                {/* Breathing bloom pulse */}
+                <motion.path
+                  d={d}
+                  fill="none"
+                  stroke="#3b82f6"
+                  strokeWidth={22}
+                  strokeLinecap="round"
+                  filter="url(#cpg-active-bloom)"
+                  animate={{ opacity: [0.05, 0.28, 0.05] }}
+                  transition={{
+                    duration: 2.2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  }}
+                />
+                {/* Dim arc base */}
+                <path
+                  d={d}
+                  fill="none"
+                  stroke="rgba(59,130,246,0.2)"
+                  strokeWidth={6}
+                  strokeLinecap="round"
+                />
+                {/* Comet sweep */}
+                <ActiveComet d={d} />
+              </g>
+            )}
           </g>
         );
       })}
-
-      {/* ── Layer 3: Active segment — breathing glow + comet ─────── */}
-      {!allDone &&
-        (() => {
-          const s = currentStepIndex * segmentSpan + gap / 2;
-          const e = (currentStepIndex + 1) * segmentSpan - gap / 2;
-          const d = describeArc(cx, cy, segmentR, s, e);
-          return (
-            <g key={`active-${currentStepIndex}`}>
-              {/* Breathing bloom pulse */}
-              <motion.path
-                d={d}
-                fill="none"
-                stroke="#3b82f6"
-                strokeWidth={22}
-                strokeLinecap="round"
-                filter="url(#cpg-active-bloom)"
-                animate={{ opacity: [0.05, 0.25, 0.05] }}
-                transition={{
-                  duration: 2.2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                }}
-              />
-              {/* Dim arc base */}
-              <path
-                d={d}
-                fill="none"
-                stroke="rgba(59,130,246,0.18)"
-                strokeWidth={6}
-                strokeLinecap="round"
-              />
-              {/* Sweeping comet */}
-              <ActiveComet d={d} />
-            </g>
-          );
-        })()}
     </svg>
   );
 }

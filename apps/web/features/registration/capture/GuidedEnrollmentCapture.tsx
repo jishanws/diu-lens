@@ -80,6 +80,22 @@ export function GuidedEnrollmentCapture({
       storageKey: getStorageKey(studentId),
     });
 
+  /**
+   * Map each directional angle to a boolean: true when enough frames have
+   * been captured for that angle. Used by CircularProgressGuide to light
+   * the correct arc independently (not sequentially).
+   */
+  const completedDirections = useMemo(() => {
+    const dirs = ['up', 'left', 'right', 'down'] as const;
+    return Object.fromEntries(
+      dirs.map((dir) => [
+        dir,
+        (capturesByAngle[dir] ?? []).length >=
+          getRequiredFramesForAngle(dir),
+      ])
+    );
+  }, [capturesByAngle]);
+
   useEffect(() => {
     currentAngleRef.current = state.currentAngle;
     currentBlockerRef.current = state.feedback.guidanceState;
@@ -428,11 +444,8 @@ export function GuidedEnrollmentCapture({
               aria-hidden="true"
             >
               <CircularProgressGuide
-                totalSteps={captureAngles.length}
-                currentStepIndex={Math.max(
-                  0,
-                  captureAngles.indexOf(state.currentAngle)
-                )}
+                completedDirections={completedDirections}
+                activeDirection={state.currentAngle}
               />
             </div>
 
