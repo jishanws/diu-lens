@@ -8,12 +8,7 @@ import { ThemeProvider } from '@/components/theme/ThemeProvider';
 export default function AdminRootLayout({ children }: { children: ReactNode }) {
   return (
     <AdminAuthProvider>
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="system"
-        enableSystem
-        disableTransitionOnChange
-      >
+      <ThemeProvider>
         <AdminToastProvider>{children}</AdminToastProvider>
       </ThemeProvider>
     </AdminAuthProvider>
