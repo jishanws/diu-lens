@@ -11,18 +11,6 @@ export function Footer() {
         aria-label="Footer links"
         className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 sm:justify-end sm:gap-6"
       >
-        <a
-          href="#"
-          className="landing-link"
-        >
-          Privacy Policy
-        </a>
-        <a
-          href="#"
-          className="landing-link"
-        >
-          Support
-        </a>
         <Link
           href="/faq"
           className="landing-link"
