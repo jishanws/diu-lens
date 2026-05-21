@@ -63,7 +63,7 @@ export function StudentIdStep({
             aria-invalid={isInvalid}
             aria-describedby={isInvalid ? 'student-id-error' : undefined}
             className={cn(
-              'landing-form-input pr-10 transition-all duration-200',
+              'landing-form-input pr-10 transition-all duration-200 placeholder:text-white/30 placeholder:font-light',
               inputRingClass
             )}
             required
