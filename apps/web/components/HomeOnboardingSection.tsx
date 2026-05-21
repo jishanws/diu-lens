@@ -103,7 +103,7 @@ export function HomeOnboardingSection() {
 
 function BenefitsSection() {
   return (
-    <section className="py-10 sm:py-14 lg:py-16">
+    <section id="features" className="scroll-mt-24 py-10 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase">
           Features
@@ -143,7 +143,7 @@ function BenefitsSection() {
 
 function HowItWorksSection() {
   return (
-    <section className="py-10 sm:py-14 lg:py-16">
+    <section id="how-it-works" className="scroll-mt-24 py-10 sm:py-14 lg:py-16">
       <div className="mx-auto max-w-2xl text-center">
         <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase">
           How It Works
