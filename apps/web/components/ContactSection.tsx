@@ -39,7 +39,7 @@ export function ContactSection() {
   };
 
   return (
-    <section id="contact" className="relative scroll-mt-24 py-16 sm:py-20 lg:py-24 overflow-hidden">
+    <section className="relative py-28 sm:py-36 lg:py-40 overflow-hidden">
       {/* Background Atmosphere */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
         <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2 h-[500px] w-[500px] rounded-full bg-cyan-900/10 blur-[120px]" />
