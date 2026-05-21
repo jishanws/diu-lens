@@ -12,6 +12,7 @@ import {
   validateStudentId,
 } from '@/features/registration/api';
 import { RegistrationShell } from '@/features/registration/RegistrationShell';
+import { AlreadyRegisteredPanel } from '@/features/registration/steps/AlreadyRegisteredPanel';
 import { BasicInfoStep } from '@/features/registration/steps/BasicInfoStep';
 import { StudentIdStep } from '@/features/registration/steps/StudentIdStep';
 import { SuccessStep } from '@/features/registration/steps/SuccessStep';
@@ -98,6 +99,7 @@ export function RegistrationFlow({
   const [verificationError, setVerificationError] = useState<string | null>(
     null
   );
+  const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   // Tracks the student ID that was successfully validated so that Step 2
   // cannot open for a different (or no) validated ID.
   const validatedStudentIdRef = useRef<string | null>(null);
@@ -117,6 +119,7 @@ export function RegistrationFlow({
 
     setValues(initialValues);
     setValidationState({ status: 'idle' });
+    setAlreadyRegistered(false);
     validatedStudentIdRef.current = null;
     setBasicInfoError(null);
     setVerificationError(null);
@@ -154,6 +157,11 @@ export function RegistrationFlow({
       setValidationState({ status: 'valid' });
       // Brief delay so the user sees the green check before the step animates.
       window.setTimeout(() => setActiveStep(1), 220);
+    } else if (result.reason === 'already_registered') {
+      // Don't treat this as an error — show the premium already-enrolled state.
+      console.log('[validate-id] already_registered — showing AlreadyRegisteredPanel', { studentId: rawId });
+      setValidationState({ status: 'idle' });
+      setAlreadyRegistered(true);
     } else {
       console.warn('[validate-id] failed', { reason: result.reason });
       validatedStudentIdRef.current = null;
@@ -309,6 +317,16 @@ export function RegistrationFlow({
   }, [activeStep, onStepIndexChange]);
 
   const renderedStep = useMemo(() => {
+    // Already-registered short-circuit: bypass all enrollment steps.
+    if (alreadyRegistered) {
+      return (
+        <AlreadyRegisteredPanel
+          studentId={values.studentId || undefined}
+          onDone={handleDone}
+        />
+      );
+    }
+
     if (activeStep === 0) {
       return (
         <StudentIdStep
@@ -361,16 +379,20 @@ export function RegistrationFlow({
     return <SuccessStep onDone={handleDone} />;
   }, [
     activeStep,
+    alreadyRegistered,
     basicInfoError,
     handleDone,
+    handleStudentIdContinue,
     handleVerificationComplete,
     handleBasicInfoContinue,
     isCompletingRegistration,
     isSubmittingBasicInfo,
+    validationState,
     verificationError,
     values,
   ]);
 
+  // When showing AlreadyRegisteredPanel, bypass RegistrationShell entirely.
   const isVerificationStep = activeStep === 2;
 
   const stepContent = (
@@ -392,6 +414,24 @@ export function RegistrationFlow({
       </AnimatePresence>
     </div>
   );
+
+  if (alreadyRegistered) {
+    return (
+      <section className={cn('w-full', className)}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key="already-registered"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={transition}
+          >
+            {renderedStep}
+          </motion.div>
+        </AnimatePresence>
+      </section>
+    );
+  }
 
   if (isVerificationStep) {
     return (
