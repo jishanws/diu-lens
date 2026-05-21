@@ -1,20 +1,39 @@
-import { ArrowRight, IdCard } from 'lucide-react';
+'use client';
+
+import { AnimatePresence, motion } from 'framer-motion';
+import { ArrowRight, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import type { StudentIdValidationState } from '@/features/registration/types';
+import { cn } from '@/lib/utils';
 
 type StudentIdStepProps = {
   studentId: string;
   onStudentIdChange: (value: string) => void;
+  /** Called when the user clicks Continue — parent handles the async validation. */
   onContinue: () => void;
+  validationState: StudentIdValidationState;
 };
 
 export function StudentIdStep({
   studentId,
   onStudentIdChange,
   onContinue,
+  validationState,
 }: StudentIdStepProps) {
+  const isValidating = validationState.status === 'validating';
+  const isValid = validationState.status === 'valid';
+  const isInvalid = validationState.status === 'invalid';
+  const errorMessage = isInvalid ? validationState.reason : null;
+
+  const inputRingClass = isInvalid
+    ? 'ring-2 ring-red-500/60 focus-visible:ring-red-500/60'
+    : isValid
+      ? 'ring-2 ring-emerald-500/60 focus-visible:ring-emerald-500/60'
+      : '';
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -27,17 +46,11 @@ export function StudentIdStep({
       </header>
 
       <div className="space-y-2">
-        <Label
-          htmlFor="student-id"
-          className="sr-only"
-        >
+        <Label htmlFor="student-id" className="sr-only">
           Student ID
         </Label>
+
         <div className="relative">
-          <IdCard
-            className="pointer-events-none absolute left-3 top-1/2 hidden size-[0.86rem] -translate-y-1/2 text-[#859bb3]"
-            aria-hidden="true"
-          />
           <Input
             id="student-id"
             name="student-id"
@@ -46,23 +59,101 @@ export function StudentIdStep({
             inputMode="numeric"
             value={studentId}
             onChange={(event) => onStudentIdChange(event.target.value)}
-            className="landing-form-input landing-form-input-with-icon"
+            disabled={isValidating}
+            aria-invalid={isInvalid}
+            aria-describedby={isInvalid ? 'student-id-error' : undefined}
+            className={cn(
+              'landing-form-input pr-10 transition-all duration-200',
+              inputRingClass
+            )}
             required
           />
+
+          {/* Trailing status icon */}
+          <AnimatePresence mode="wait">
+            {isValidating && (
+              <motion.span
+                key="spinner"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.15 }}
+                aria-hidden="true"
+              >
+                <Loader2 className="size-4 animate-spin text-blue-400" />
+              </motion.span>
+            )}
+            {isValid && (
+              <motion.span
+                key="check"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+                aria-hidden="true"
+              >
+                <CheckCircle2 className="size-4 text-emerald-400" />
+              </motion.span>
+            )}
+            {isInvalid && (
+              <motion.span
+                key="error-icon"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2"
+                initial={{ opacity: 0, scale: 0.7 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }}
+                transition={{ duration: 0.15 }}
+                aria-hidden="true"
+              >
+                <XCircle className="size-4 text-red-400" />
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
+
+        {/* Inline error message */}
+        <AnimatePresence>
+          {isInvalid && errorMessage && (
+            <motion.p
+              id="student-id-error"
+              role="alert"
+              className="flex items-center gap-1.5 text-[0.78rem] text-red-400"
+              initial={{ opacity: 0, y: -4, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -4, height: 0 }}
+              transition={{ duration: 0.18, ease: [0.32, 0.72, 0, 1] }}
+            >
+              <XCircle className="size-3 shrink-0" aria-hidden="true" />
+              {errorMessage}
+            </motion.p>
+          )}
+        </AnimatePresence>
       </div>
 
       <Button
+        id="student-id-continue"
         type="button"
         onClick={onContinue}
-        disabled={!studentId}
+        disabled={!studentId || isValidating}
         className="landing-button-bg landing-cta w-full gap-1.5 px-5 text-white"
+        aria-busy={isValidating}
       >
-        Continue
-        <ArrowRight
-          className="size-4 transition-transform duration-150 group-hover/button:translate-x-0.5"
-          aria-hidden="true"
-        />
+        {isValidating ? (
+          <>
+            <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+            Checking...
+          </>
+        ) : (
+          <>
+            Continue
+            <ArrowRight
+              className="size-4 transition-transform duration-150 group-hover/button:translate-x-0.5"
+              aria-hidden="true"
+            />
+          </>
+        )}
       </Button>
     </div>
   );

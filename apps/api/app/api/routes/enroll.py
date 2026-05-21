@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import traceback
 from collections import Counter
 from datetime import datetime, timezone
@@ -916,6 +917,58 @@ async def _handle_multipart_enrollment(
             ),
         },
     )
+
+
+_STUDENT_ID_PATTERN = re.compile(r"^\d{3}-\d{2}-\d{4}$")
+
+
+class StudentIdValidationRequest(BaseModel):
+    student_id: str
+
+
+class StudentIdValidationResponse(BaseModel):
+    valid: bool
+    reason: str | None = None
+
+
+@router.post("/enroll/validate-id", response_model=StudentIdValidationResponse)
+@limiter.limit("20/minute")
+async def validate_student_id(
+    request: Request,
+    body: StudentIdValidationRequest,
+) -> StudentIdValidationResponse:
+    """
+    Read-only pre-flight check for the enrollment Step 1 UI.
+    No data is written to the database.
+
+    Returns:
+        {valid: true}                              — ID is well-formed and not yet enrolled
+        {valid: false, reason: "invalid_format"}   — ID doesn't match NNN-NN-NNNN
+        {valid: false, reason: "already_registered"} — active enrollment already exists
+    """
+    enroll_logger.info("[validate-id] checking student_id=%s", body.student_id)
+
+    normalized = body.student_id.strip()
+
+    if not _STUDENT_ID_PATTERN.match(normalized):
+        enroll_logger.info("[validate-id] invalid_format student_id=%s", normalized)
+        return StudentIdValidationResponse(valid=False, reason="invalid_format")
+
+    try:
+        exists = student_exists_in_db(normalized)
+    except EnrollmentPersistenceError:
+        enroll_logger.exception(
+            "[validate-id] db error while checking student_id=%s", normalized
+        )
+        # Fail open — don't block enrollment for a transient DB error.
+        return StudentIdValidationResponse(valid=True, reason=None)
+
+    if exists:
+        enroll_logger.info("[validate-id] already_registered student_id=%s", normalized)
+        return StudentIdValidationResponse(valid=False, reason="already_registered")
+
+    enroll_logger.info("[validate-id] valid student_id=%s", normalized)
+    return StudentIdValidationResponse(valid=True, reason=None)
 
 
 @router.post("/enroll")

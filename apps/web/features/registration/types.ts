@@ -22,3 +22,13 @@ export type RegistrationFlowProps = {
   onStepIndexChange?: (index: number) => void;
   onDone?: () => void;
 };
+
+/**
+ * State machine for upfront student ID validation in Step 1.
+ * The step can only advance when status === 'valid'.
+ */
+export type StudentIdValidationState =
+  | { status: 'idle' }
+  | { status: 'validating' }
+  | { status: 'valid' }
+  | { status: 'invalid'; reason: string };

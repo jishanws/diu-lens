@@ -10,6 +10,88 @@ import {
 } from '@/features/registration/capture/constants';
 import { request } from '@/lib/api';
 
+// ─── Student ID Validation ─────────────────────────────────────────────────
+
+export type StudentIdValidationResult =
+  | { valid: true }
+  | {
+      valid: false;
+      reason: 'already_registered' | 'invalid_format' | 'network_error' | 'unknown';
+      message: string;
+    };
+
+const REASON_MESSAGES: Record<string, string> = {
+  already_registered: 'This student ID is already enrolled.',
+  invalid_format: 'Invalid student ID format. Expected format: 221-15-0001.',
+};
+
+/**
+ * Validates a student ID against the backend before the user advances to
+ * Basic Info. Read-only probe — no data is written to the DB.
+ */
+export async function validateStudentId(
+  studentId: string
+): Promise<StudentIdValidationResult> {
+  console.log('[validate-id] calling POST /enroll/validate-id', { studentId });
+  try {
+    const response = await request('/enroll/validate-id', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ student_id: studentId }),
+    });
+
+    const rawText = await response.text();
+    console.log('[validate-id] raw response', { status: response.status, body: rawText });
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      parsed = null;
+    }
+
+    if (response.status >= 500) {
+      console.error('[validate-id] server error', { status: response.status });
+      return {
+        valid: false,
+        reason: 'network_error',
+        message: 'Server error. Please try again.',
+      };
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      const data = parsed as Record<string, unknown>;
+      if (data.valid === true) {
+        console.log('[validate-id] valid');
+        return { valid: true };
+      }
+      if (data.valid === false) {
+        const reason = (data.reason as string) || 'unknown';
+        const knownReason = reason as 'already_registered' | 'invalid_format' | 'unknown';
+        const message =
+          REASON_MESSAGES[reason] ?? 'This student ID cannot be used for enrollment.';
+        console.warn('[validate-id] invalid', { reason, message });
+        return { valid: false, reason: knownReason, message };
+      }
+    }
+
+    return {
+      valid: false,
+      reason: 'unknown',
+      message: 'Unexpected response from server. Please try again.',
+    };
+  } catch (error) {
+    console.error('[validate-id] network error', error);
+    return {
+      valid: false,
+      reason: 'network_error',
+      message: 'Unable to reach the server. Check your connection and try again.',
+    };
+  }
+}
+
+// ─── Enrollment ────────────────────────────────────────────────────────────
+
 const GENERIC_ENROLLMENT_ERROR =
   'Unable to continue right now. Please try again.';
 const GENERIC_REGISTRATION_COMPLETION_ERROR =

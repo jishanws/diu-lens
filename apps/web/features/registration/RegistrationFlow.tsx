@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { registrationStepMeta } from '@/features/registration/constants';
 import {
@@ -9,6 +9,7 @@ import {
   GENERIC_REGISTRATION_COMPLETION_ERROR,
   submitEnrollment,
   submitEnrollmentCompletion,
+  validateStudentId,
 } from '@/features/registration/api';
 import { RegistrationShell } from '@/features/registration/RegistrationShell';
 import { BasicInfoStep } from '@/features/registration/steps/BasicInfoStep';
@@ -19,6 +20,7 @@ import type { VerificationCompletionSummary } from '@/features/registration/veri
 import type {
   RegistrationFlowProps,
   RegistrationFormValues,
+  StudentIdValidationState,
 } from '@/features/registration/types';
 import { cn } from '@/lib/utils';
 
@@ -86,6 +88,9 @@ export function RegistrationFlow({
 }: RegistrationFlowProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [values, setValues] = useState<RegistrationFormValues>(initialValues);
+  const [validationState, setValidationState] = useState<StudentIdValidationState>(
+    { status: 'idle' }
+  );
   const [isSubmittingBasicInfo, setIsSubmittingBasicInfo] = useState(false);
   const [basicInfoError, setBasicInfoError] = useState<string | null>(null);
   const [isCompletingRegistration, setIsCompletingRegistration] =
@@ -93,6 +98,9 @@ export function RegistrationFlow({
   const [verificationError, setVerificationError] = useState<string | null>(
     null
   );
+  // Tracks the student ID that was successfully validated so that Step 2
+  // cannot open for a different (or no) validated ID.
+  const validatedStudentIdRef = useRef<string | null>(null);
   const toErrorMessage = useCallback((error: unknown, fallback: string) => {
     if (error instanceof Error && error.message.trim()) {
       return error.message;
@@ -108,6 +116,8 @@ export function RegistrationFlow({
     }
 
     setValues(initialValues);
+    setValidationState({ status: 'idle' });
+    validatedStudentIdRef.current = null;
     setBasicInfoError(null);
     setVerificationError(null);
     setIsSubmittingBasicInfo(false);
@@ -115,8 +125,60 @@ export function RegistrationFlow({
     setActiveStep(0);
   }, [onDone]);
 
+  /**
+   * Step 1 — Validate student ID before advancing.
+   * Prevents users from wasting time on Basic Info if the ID is invalid.
+   */
+  const handleStudentIdContinue = useCallback(async () => {
+    const rawId = values.studentId.trim();
+    if (!rawId) return;
+
+    // Already validated this exact ID — skip the round-trip.
+    if (
+      validationState.status === 'valid' &&
+      validatedStudentIdRef.current === rawId
+    ) {
+      console.log('[validate-id] already valid, advancing', { studentId: rawId });
+      setActiveStep(1);
+      return;
+    }
+
+    setValidationState({ status: 'validating' });
+    console.log('[validate-id] starting validation', { studentId: rawId });
+
+    const result = await validateStudentId(rawId);
+
+    if (result.valid) {
+      console.log('[validate-id] passed — advancing to basic info');
+      validatedStudentIdRef.current = rawId;
+      setValidationState({ status: 'valid' });
+      // Brief delay so the user sees the green check before the step animates.
+      window.setTimeout(() => setActiveStep(1), 220);
+    } else {
+      console.warn('[validate-id] failed', { reason: result.reason });
+      validatedStudentIdRef.current = null;
+      setValidationState({ status: 'invalid', reason: result.message });
+    }
+  }, [validationState.status, values.studentId]);
+
   const handleBasicInfoContinue = useCallback(async () => {
     console.log('[registration] handleBasicInfoContinue called');
+
+    // Bypass guard: Step 2 must not open unless the current student ID
+    // was explicitly validated in this session.
+    if (
+      validationState.status !== 'valid' ||
+      validatedStudentIdRef.current !== values.studentId.trim()
+    ) {
+      console.warn('[registration] Step 2 blocked: student ID not validated', {
+        validationStatus: validationState.status,
+        validatedId: validatedStudentIdRef.current,
+        currentId: values.studentId,
+      });
+      setActiveStep(0);
+      return;
+    }
+
     if (isSubmittingBasicInfo) {
       console.log('[registration] submission blocked: request already in flight');
       return;
@@ -160,6 +222,7 @@ export function RegistrationFlow({
   }, [
     isSubmittingBasicInfo,
     toErrorMessage,
+    validationState.status,
     values.fullName,
     values.phoneNumber,
     values.studentId,
@@ -250,13 +313,17 @@ export function RegistrationFlow({
       return (
         <StudentIdStep
           studentId={values.studentId}
-          onStudentIdChange={(value) =>
+          onStudentIdChange={(value) => {
+            // Reset validation state whenever the user edits the ID.
+            setValidationState({ status: 'idle' });
+            validatedStudentIdRef.current = null;
             setValues((current) => ({
               ...current,
               studentId: formatStudentId(value),
-            }))
-          }
-          onContinue={() => setActiveStep(1)}
+            }));
+          }}
+          onContinue={() => { void handleStudentIdContinue(); }}
+          validationState={validationState}
         />
       );
     }
