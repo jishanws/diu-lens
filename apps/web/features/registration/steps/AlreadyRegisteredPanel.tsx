@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 
 type AlreadyRegisteredPanelProps = {
   studentId?: string;
+  studentName?: string;
   onDone?: () => void;
 };
 
@@ -76,6 +77,7 @@ function useParticles(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
 
 export function AlreadyRegisteredPanel({
   studentId,
+  studentName,
   onDone,
 }: AlreadyRegisteredPanelProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -158,13 +160,24 @@ export function AlreadyRegisteredPanel({
         transition={{ delay: 0.5, duration: 0.34 }}
       >
         <h2 className="text-[1.35rem] font-semibold tracking-tight text-white sm:text-[1.5rem]">
-          Congratulations! 🎉
+          Congratulations{studentName ? ',' : '!'}
+          {studentName && (
+            <motion.span
+              className="mt-1 block bg-gradient-to-r from-emerald-200 via-cyan-300 to-blue-400 bg-clip-text text-transparent"
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.58, duration: 0.4 }}
+            >
+              {studentName}!
+            </motion.span>
+          )}
+          {!studentName && ' 🎉'}
         </h2>
         <p className="mx-auto max-w-[30ch] text-[0.88rem] leading-[1.6] text-slate-300">
           Your Face ID registration is already completed.
           {studentId && (
-            <span className="mt-1 block font-mono text-[0.78rem] text-emerald-400/80">
-              {studentId}
+            <span className="mt-2 block font-mono text-[0.85rem] tracking-wide text-emerald-400/80">
+              Student ID: {studentId}
             </span>
           )}
         </p>

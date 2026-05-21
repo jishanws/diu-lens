@@ -100,6 +100,7 @@ export function RegistrationFlow({
     null
   );
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
+  const [alreadyRegisteredName, setAlreadyRegisteredName] = useState<string | undefined>();
   // Tracks the student ID that was successfully validated so that Step 2
   // cannot open for a different (or no) validated ID.
   const validatedStudentIdRef = useRef<string | null>(null);
@@ -120,6 +121,7 @@ export function RegistrationFlow({
     setValues(initialValues);
     setValidationState({ status: 'idle' });
     setAlreadyRegistered(false);
+    setAlreadyRegisteredName(undefined);
     validatedStudentIdRef.current = null;
     setBasicInfoError(null);
     setVerificationError(null);
@@ -159,9 +161,10 @@ export function RegistrationFlow({
       window.setTimeout(() => setActiveStep(1), 220);
     } else if (result.reason === 'already_registered') {
       // Don't treat this as an error — show the premium already-enrolled state.
-      console.log('[validate-id] already_registered — showing AlreadyRegisteredPanel', { studentId: rawId });
+      console.log('[validate-id] already_registered — showing AlreadyRegisteredPanel', { studentId: rawId, name: result.studentName });
       setValidationState({ status: 'idle' });
       setAlreadyRegistered(true);
+      setAlreadyRegisteredName(result.studentName);
     } else {
       console.warn('[validate-id] failed', { reason: result.reason });
       validatedStudentIdRef.current = null;
@@ -322,6 +325,7 @@ export function RegistrationFlow({
       return (
         <AlreadyRegisteredPanel
           studentId={values.studentId || undefined}
+          studentName={alreadyRegisteredName}
           onDone={handleDone}
         />
       );
@@ -380,6 +384,7 @@ export function RegistrationFlow({
   }, [
     activeStep,
     alreadyRegistered,
+    alreadyRegisteredName,
     basicInfoError,
     handleDone,
     handleStudentIdContinue,

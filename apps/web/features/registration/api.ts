@@ -18,6 +18,7 @@ export type StudentIdValidationResult =
       valid: false;
       reason: 'already_registered' | 'invalid_format' | 'network_error' | 'unknown';
       message: string;
+      studentName?: string;
     };
 
 const REASON_MESSAGES: Record<string, string> = {
@@ -70,8 +71,14 @@ export async function validateStudentId(
         const knownReason = reason as 'already_registered' | 'invalid_format' | 'unknown';
         const message =
           REASON_MESSAGES[reason] ?? 'This student ID cannot be used for enrollment.';
-        console.warn('[validate-id] invalid', { reason, message });
-        return { valid: false, reason: knownReason, message };
+        
+        let studentName: string | undefined;
+        if (knownReason === 'already_registered' && data.student && typeof data.student === 'object') {
+          studentName = (data.student as Record<string, string>).name;
+        }
+
+        console.warn('[validate-id] invalid', { reason, message, studentName });
+        return { valid: false, reason: knownReason, message, studentName };
       }
     }
 

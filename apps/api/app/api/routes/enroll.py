@@ -19,6 +19,7 @@ from app.core.enrollment_db import (
     persist_enrollment_to_db,
     persist_enrollment_verification_to_db,
     student_exists_in_db,
+    get_student_by_id,
     StudentAlreadyRegisteredError,
 )
 from app.core.config import settings
@@ -926,9 +927,14 @@ class StudentIdValidationRequest(BaseModel):
     student_id: str
 
 
+class StudentInfo(BaseModel):
+    student_id: str
+    name: str
+
 class StudentIdValidationResponse(BaseModel):
     valid: bool
     reason: str | None = None
+    student: StudentInfo | None = None
 
 
 @router.post("/enroll/validate-id", response_model=StudentIdValidationResponse)
@@ -955,7 +961,7 @@ async def validate_student_id(
         return StudentIdValidationResponse(valid=False, reason="invalid_format")
 
     try:
-        exists = student_exists_in_db(normalized)
+        student_record = get_student_by_id(normalized)
     except EnrollmentPersistenceError:
         enroll_logger.exception(
             "[validate-id] db error while checking student_id=%s", normalized
@@ -963,9 +969,13 @@ async def validate_student_id(
         # Fail open — don't block enrollment for a transient DB error.
         return StudentIdValidationResponse(valid=True, reason=None)
 
-    if exists:
+    if student_record:
         enroll_logger.info("[validate-id] already_registered student_id=%s", normalized)
-        return StudentIdValidationResponse(valid=False, reason="already_registered")
+        return StudentIdValidationResponse(
+            valid=False, 
+            reason="already_registered",
+            student=StudentInfo(student_id=student_record.student_id, name=student_record.full_name)
+        )
 
     enroll_logger.info("[validate-id] valid student_id=%s", normalized)
     return StudentIdValidationResponse(valid=True, reason=None)

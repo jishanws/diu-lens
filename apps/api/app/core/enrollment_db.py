@@ -92,6 +92,15 @@ def student_exists_in_db(student_id: str) -> bool:
             raise EnrollmentPersistenceError(str(exc)) from exc
 
 
+def get_student_by_id(student_id: str) -> Student | None:
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        try:
+            return db.scalar(select(Student).where(Student.student_id == student_id))
+        except SQLAlchemyError as exc:
+            raise EnrollmentPersistenceError(str(exc)) from exc
+
+
 def _create_student(db: Session, payload: EnrollmentRecordInput) -> Student:
     student = Student(
         student_id=payload.student_id,

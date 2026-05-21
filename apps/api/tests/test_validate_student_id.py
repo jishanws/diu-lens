@@ -107,6 +107,9 @@ class TestValidateStudentId:
         data = response.json()
         assert data["valid"] is False
         assert data["reason"] == "already_registered"
+        assert data["student"] is not None
+        assert data["student"]["student_id"] == "221-15-9999"
+        assert data["student"]["name"] == "Test Student"
 
     def test_valid_id_with_leading_trailing_whitespace_is_normalised(
         self, client: TestClient
