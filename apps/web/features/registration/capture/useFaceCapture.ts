@@ -596,8 +596,21 @@ export function useFaceCapture({
       const nextAngle = findFirstMissingAngle(nextShots);
       cooldownUntilRef.current = performance.now() + POST_CAPTURE_COOLDOWN_MS;
       if (nextAngle) {
+        console.log('[capture] angle complete, advancing', {
+          completedAngle: targetAngle,
+          nextAngle,
+          totalCompleted: captureAngles.filter(
+            (a) => isAngleComplete(nextShots, a)
+          ).length,
+          totalRequired: captureAngles.length,
+        });
         setActiveAngle(nextAngle);
       } else {
+        console.log('[capture] ALL angles complete — finalizing', {
+          completedAngle: targetAngle,
+          totalCompleted: captureAngles.length,
+          totalRequired: captureAngles.length,
+        });
         finalizedRef.current = true;
         stopVideoStream(videoElement);
       }
@@ -625,6 +638,15 @@ export function useFaceCapture({
         if (timerId !== null) window.clearTimeout(timerId);
         detectionTimerRef.current = null;
         setIsAutoCapturing(false);
+        console.log('[capture-loop] exiting — all captures finalized', {
+          totalRequired: captureAngles.length,
+        });
+        setFeedback((prev) => ({
+          ...prev,
+          guidanceState: 'complete',
+          liveMessage: 'All captures complete.',
+          holdProgress: 1,
+        }));
         stopVideoStream(videoElement);
         return;
       }
@@ -652,12 +674,25 @@ export function useFaceCapture({
       if (isAngleComplete(latestShotsRef.current, angle)) {
         const nextAngle = findFirstMissingAngle(latestShotsRef.current);
         if (nextAngle) {
+          console.log('[capture-loop] angle already done, advancing', {
+            doneAngle: angle,
+            nextAngle,
+          });
           setActiveAngle(nextAngle);
           scheduleNext();
           return;
         }
+        console.log('[capture-loop] all angles already done — finalizing', {
+          angle,
+        });
         finalizedRef.current = true;
         runningRef.current = false;
+        setFeedback((prev) => ({
+          ...prev,
+          guidanceState: 'complete',
+          liveMessage: 'All captures complete.',
+          holdProgress: 1,
+        }));
         stopVideoStream(videoElement);
         return;
       }

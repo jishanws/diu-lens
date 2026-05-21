@@ -303,6 +303,30 @@ export function GuidedEnrollmentCapture({
     studentId,
   ]);
 
+  /**
+   * Auto-submit guard — fires exactly once when all captures are complete.
+   * The ref prevents duplicate submissions on re-renders or StrictMode double-invoke.
+   * setTimeout(0) defers the call past the current render cycle so React does not
+   * flag synchronous setState calls inside the effect body.
+   */
+  const autoSubmittedRef = useRef(false);
+
+  useEffect(() => {
+    if (!state.canSubmit || isSubmittingCompletion || autoSubmittedRef.current) {
+      return;
+    }
+    autoSubmittedRef.current = true;
+    console.log('[auto-submit] all captures complete — scheduling auto-submit', {
+      capturedCount: state.capturedCount,
+      currentAngle: state.currentAngle,
+    });
+    const timerId = window.setTimeout(() => {
+      console.log('[auto-submit] executing handleSubmit');
+      void handleSubmit();
+    }, 0);
+    return () => window.clearTimeout(timerId);
+  }, [state.canSubmit, isSubmittingCompletion, handleSubmit, state.capturedCount, state.currentAngle]);
+
   const permissionBlocked = permissionState !== 'granted';
 
   const statusText = useMemo(() => {
@@ -310,7 +334,13 @@ export function GuidedEnrollmentCapture({
       return 'Uploading verification images...';
     }
 
-    if (completionErrorMessage && state.canSubmit) {
+    if (state.canSubmit) {
+      // Captures are done; auto-submit is about to fire (or already fired).
+      // Don't show any stale capture message from the detection loop.
+      return completionErrorMessage ?? 'All captures complete. Submitting...';
+    }
+
+    if (completionErrorMessage) {
       return completionErrorMessage;
     }
 

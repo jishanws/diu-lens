@@ -43,7 +43,8 @@ export type CaptureFeedback = {
     | 'wrong_angle'
     | 'hold_steady'
     | 'ready'
-    | 'cooldown';
+    | 'cooldown'
+    | 'complete';
   instruction: string;
   liveMessage: string;
   holdProgress: number;
