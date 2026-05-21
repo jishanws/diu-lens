@@ -322,14 +322,14 @@ export function RegistrationFlow({
         <StudentIdStep
           studentId={values.studentId}
           onStudentIdChange={(value) => {
-            // Reset validation state whenever the user edits the ID.
-            setValidationState({ status: 'idle' });
-            validatedStudentIdRef.current = null;
-            setValues((current) => ({
-              ...current,
-              studentId: value.replace(/\D/g, ''),
-            }));
-          }}
+              // Reset validation state whenever the user edits the ID.
+              setValidationState({ status: 'idle' });
+              validatedStudentIdRef.current = null;
+              setValues((current) => ({
+                ...current,
+                studentId: value.replace(/[^0-9-]/g, ''),
+              }));
+            }}
           onContinue={() => { void handleStudentIdContinue(); }}
           validationState={validationState}
         />

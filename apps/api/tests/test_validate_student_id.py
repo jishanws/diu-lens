@@ -58,7 +58,7 @@ class TestValidateStudentId:
         assert data["valid"] is False
         assert data["reason"] == "invalid_format"
 
-    def test_invalid_format_contains_dashes_returns_invalid_format(
+    def test_valid_format_contains_dashes_returns_valid(
         self, client: TestClient
     ) -> None:
         response = client.post(
@@ -67,8 +67,8 @@ class TestValidateStudentId:
         )
         assert response.status_code == 200
         data = response.json()
-        assert data["valid"] is False
-        assert data["reason"] == "invalid_format"
+        assert data["valid"] is True
+        assert data["reason"] is None
 
     def test_empty_student_id_returns_invalid_format(
         self, client: TestClient

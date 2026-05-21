@@ -920,7 +920,7 @@ async def _handle_multipart_enrollment(
     )
 
 
-_STUDENT_ID_PATTERN = re.compile(r"^\d+$")
+_STUDENT_ID_PATTERN = re.compile(r"^[\d-]+$")
 
 
 class StudentIdValidationRequest(BaseModel):

@@ -54,9 +54,9 @@ export function StudentIdStep({
           <Input
             id="student-id"
             name="student-id"
-            placeholder="e.g. 221150001"
+            placeholder="e.g. 222-15-6226"
             autoComplete="off"
-            inputMode="numeric"
+            inputMode="text"
             value={studentId}
             onChange={(event) => onStudentIdChange(event.target.value)}
             disabled={isValidating}
