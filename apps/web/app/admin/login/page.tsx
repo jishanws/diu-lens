@@ -1,19 +1,10 @@
 'use client';
 
 import { FormEvent, useEffect, useState } from 'react';
-import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
 
 export default function AdminLoginPage() {
@@ -26,10 +17,7 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   const getNextPath = () => {
-    if (typeof window === 'undefined') {
-      return '/admin/enrollments';
-    }
-
+    if (typeof window === 'undefined') return '/admin/enrollments';
     const next = new URLSearchParams(window.location.search).get('next');
     return next || '/admin/enrollments';
   };
@@ -43,111 +31,131 @@ export default function AdminLoginPage() {
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
-
     const result = await login(email.trim(), password);
-
     if (!result.success) {
       setError(result.message || 'Invalid email or password.');
       return;
     }
-
     router.replace(getNextPath());
   };
 
   return (
-    <main className="relative grid min-h-screen place-items-center overflow-hidden bg-background px-4 py-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(37,99,235,0.26),transparent_40%),radial-gradient(circle_at_85%_80%,rgba(14,116,144,0.22),transparent_42%)]" />
+    <main className="landing-page relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
+      {/* Exact Homepage Background System */}
+      <div aria-hidden="true" className="landing-vignette pointer-events-none absolute inset-0" />
+      <div aria-hidden="true" className="landing-grid-overlay pointer-events-none absolute inset-0" />
+      <div aria-hidden="true" className="landing-glow-top-left pointer-events-none absolute inset-0" />
+      <div aria-hidden="true" className="landing-glow-bottom-right pointer-events-none absolute inset-0" />
 
-      <Card className="relative z-10 w-full max-w-md border border-border bg-card text-foreground backdrop-blur-2xl">
-        <CardHeader className="space-y-2">
-          <div className="flex justify-center">
-            <Image
-              src="/branding/logo.png"
-              alt="DIU Lens logo"
-              width={56}
-              height={56}
-              className="size-14 rounded-[1rem] shadow-[0_12px_26px_-16px_rgba(59,130,246,0.6)]"
-              priority
-            />
+      <motion.div
+        className="relative z-10 flex w-full max-w-[26rem] flex-col items-center"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+      >
+        {/* Registration Card Style Floating Panel */}
+        <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/5 bg-[#0a1120]/60 p-10 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-12">
+          {/* Subtle Top Glow */}
+          <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
+
+          {/* Header */}
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-[0.62rem] font-bold uppercase tracking-[0.35em] text-slate-500">
+              DIU Lens
+            </p>
+            <h1 className="text-[1.55rem] font-medium tracking-tight text-white">
+              Secure Admin Access
+            </h1>
           </div>
-          <p className="text-xs uppercase tracking-[0.3em] text-blue-300/80">
-            DIU Lens
-          </p>
-          <CardTitle className="text-2xl text-foreground">
-            Admin Login
-          </CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Sign in with an admin or super admin account to manage enrollments.
-          </CardDescription>
-        </CardHeader>
 
-        <CardContent className="space-y-4">
-          <form
-            className="space-y-4"
-            onSubmit={handleSubmit}
-          >
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            {/* Email Input */}
             <div className="space-y-2">
-              <Label htmlFor="admin-email">Email</Label>
-              <Input
-                id="admin-email"
-                type="email"
-                required
-                placeholder="admin@diulens.app"
-                className="h-10 border-border bg-muted/40 text-foreground"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
+              <label htmlFor="admin-email" className="ml-1 block text-[0.8rem] font-medium text-slate-400">
+                Email Address
+              </label>
+              <div className="relative text-slate-500 focus-within:text-white transition-colors duration-300">
+                <Mail className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 transition-colors" />
+                <input
+                  id="admin-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  placeholder="admin@diulens.app"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-4 text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
+                />
+              </div>
             </div>
 
+            {/* Password Input */}
             <div className="space-y-2">
-              <Label htmlFor="admin-password">Password</Label>
-              <div className="relative">
-                <Input
+              <label htmlFor="admin-password" className="ml-1 block text-[0.8rem] font-medium text-slate-400">
+                Password
+              </label>
+              <div className="relative text-slate-500 focus-within:text-white transition-colors duration-300">
+                <Lock className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 transition-colors" />
+                <input
                   id="admin-password"
                   type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="current-password"
                   placeholder="Enter your password"
-                  className="h-10 border-border bg-muted/40 pr-10 text-foreground"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-12 text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-2 my-auto inline-flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                  onClick={() => setShowPassword((prev) => !prev)}
+                  className="absolute inset-y-0 right-3.5 my-auto inline-flex size-8 items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
+                  onClick={() => setShowPassword((p) => !p)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    <EyeOff className="size-4" />
-                  ) : (
-                    <Eye className="size-4" />
-                  )}
+                  {showPassword ? <EyeOff className="size-[1.1rem]" /> : <Eye className="size-[1.1rem]" />}
                 </button>
               </div>
             </div>
 
+            {/* Error Message */}
             {error ? (
-              <p className="rounded-lg border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.08] px-4 py-3.5 text-[0.85rem] text-rose-300"
+              >
                 {error}
-              </p>
+              </motion.div>
             ) : null}
 
-            <Button
+            {/* Submit Button - Exact Homepage CTA Match (Scaled up for form) */}
+            <button
               type="submit"
-              className="h-10 w-full"
               disabled={isLoggingIn || status === 'loading'}
+              className="mt-4 flex w-full h-[3.25rem] items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-gradient-to-b from-[#3b76e3] to-[#255ac2] px-6 text-[0.95rem] font-medium text-white shadow-[0_2px_6px_-2px_rgba(37,99,235,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 hover:from-[#4381f0] hover:to-[#2b65d6] hover:shadow-[0_4px_10px_-2px_rgba(37,99,235,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {isLoggingIn ? (
                 <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Signing in...
+                  <Loader2 className="size-5 animate-spin opacity-80" />
+                  Signing in…
                 </>
               ) : (
                 'Sign In'
               )}
-            </Button>
+            </button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Back to Homepage */}
+        <Link 
+          href="/" 
+          className="mt-8 flex items-center gap-2 text-[0.85rem] font-medium text-slate-500 transition-all hover:text-slate-300 hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+        >
+          <ArrowLeft className="size-4 opacity-80" />
+          Back to Homepage
+        </Link>
+      </motion.div>
     </main>
   );
 }

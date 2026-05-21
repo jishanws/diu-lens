@@ -19,156 +19,167 @@ import {
 } from '@/features/admin/api';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
 import { useAdminToast } from '@/features/admin/ui/AdminToastProvider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_TOP_K = '5';
 const DEFAULT_THRESHOLD = '0.38';
 
 function formatDistance(value: number) {
-  if (!Number.isFinite(value)) {
-    return '-';
-  }
+  if (!Number.isFinite(value)) return '-';
   return value.toFixed(4);
 }
 
 function parsePositiveInt(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
+  if (!value.trim()) return null;
   const parsed = Number.parseInt(value, 10);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
 }
 
 function parsePositiveFloat(value: string): number | null {
-  if (!value.trim()) {
-    return null;
-  }
-
+  if (!value.trim()) return null;
   const parsed = Number.parseFloat(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
 }
 
-function getCandidateConfidence(classification: RecognitionMatchCandidate['classification']): {
-  label: string;
-  className: string;
-  cardClassName: string;
-} {
-  if (classification === 'strong_match') {
-    return {
-      label: 'Strong match',
-      className: 'border-emerald-300/30 bg-emerald-500/10 text-emerald-200',
-      cardClassName: 'border-emerald-300/35 bg-emerald-500/5',
-    };
-  }
-
-  if (classification === 'possible_match') {
-    return {
-      label: 'Possible match',
-      className: 'border-amber-300/30 bg-amber-500/10 text-amber-200',
-      cardClassName: 'border-amber-300/35 bg-amber-500/5',
-    };
-  }
-
-  return {
-    label: 'Weak candidate',
-    className: 'border-rose-300/30 bg-rose-500/10 text-rose-200',
-    cardClassName: 'border-rose-300/35 bg-rose-500/5',
-  };
+function getConfidenceBadgeClass(classification: RecognitionMatchCandidate['classification']): string {
+  if (classification === 'strong_match') return 'admin-badge admin-badge-approved';
+  if (classification === 'possible_match') return 'admin-badge admin-badge-pending';
+  return 'admin-badge admin-badge-rejected';
 }
 
-function CandidateCard({ candidate, isTopCandidate }: { candidate: RecognitionMatchCandidate; isTopCandidate: boolean }) {
-  const confidence = getCandidateConfidence(candidate.classification);
+function getConfidenceLabel(classification: RecognitionMatchCandidate['classification']): string {
+  if (classification === 'strong_match') return 'Strong match';
+  if (classification === 'possible_match') return 'Possible match';
+  return 'Weak candidate';
+}
+
+function CandidateCard({
+  candidate,
+  isTopCandidate,
+}: {
+  candidate: RecognitionMatchCandidate;
+  isTopCandidate: boolean;
+}) {
+  const similarity = Math.max(0, Math.min(100, (1 - candidate.best_distance) * 100));
+  const simColor = candidate.classification === 'strong_match' ? 'bg-emerald-400' 
+                 : candidate.classification === 'possible_match' ? 'bg-amber-400' 
+                 : 'bg-rose-400';
 
   return (
-    <article
-      className={cn(
-        'grid gap-3 rounded-xl border p-4 md:grid-cols-[auto_1fr] md:items-start',
-        isTopCandidate
-          ? 'border-primary/35 bg-primary/10'
-          : confidence.cardClassName
+    <div className={cn(
+      "relative overflow-hidden rounded-xl border p-5 transition-all duration-300",
+      isTopCandidate 
+        ? "border-cyan-500/40 bg-cyan-500/[0.04] shadow-[0_0_30px_-5px_rgba(6,182,212,0.15)]"
+        : candidate.classification === 'strong_match' ? "border-emerald-500/20 bg-emerald-500/[0.02]"
+        : candidate.classification === 'possible_match' ? "border-amber-500/20 bg-amber-500/[0.02]"
+        : "border-white/[0.05] bg-white/[0.01]"
+    )}>
+      {isTopCandidate && (
+         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-400/50 to-transparent" />
       )}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md border border-border bg-background/70 px-2 py-1 text-xs text-muted-foreground">
-          Rank #{candidate.rank}
-        </span>
-        <span
-          className={cn(
-            'rounded-md border px-2 py-1 text-xs',
-            confidence.className
-          )}
-        >
-          {confidence.label}
-        </span>
-      </div>
+      
+      <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <span className="flex items-center justify-center rounded-lg bg-white/[0.05] px-2.5 py-1 text-[0.75rem] font-bold text-slate-300">
+              #{candidate.rank}
+            </span>
+            <span className={getConfidenceBadgeClass(candidate.classification)}>
+              {getConfidenceLabel(candidate.classification)}
+            </span>
+            {isTopCandidate && (
+               <span className="text-[0.7rem] font-bold uppercase tracking-widest text-cyan-400 animate-pulse">
+                 Best Match
+               </span>
+            )}
+          </div>
+          
+          <div>
+            <h4 className={cn("text-lg font-semibold", isTopCandidate ? "text-cyan-300" : "text-slate-100")}>
+              {candidate.full_name || 'Name unavailable'}
+            </h4>
+            <div className="mt-1 flex flex-wrap items-center gap-3 text-[0.8rem] text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <span className="text-slate-500">ID:</span>
+                <span className="font-medium text-slate-300">{candidate.student_id}</span>
+              </span>
+              {candidate.university_email && (
+                <>
+                  <span className="size-1 rounded-full bg-white/10" />
+                  <span className="text-slate-300">{candidate.university_email}</span>
+                </>
+              )}
+              {candidate.phone && (
+                <>
+                  <span className="size-1 rounded-full bg-white/10" />
+                  <span className="text-slate-300">{candidate.phone}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
 
-      <div className="grid gap-2 text-sm">
-        {candidate.full_name ? (
-          <p className="font-medium text-foreground">{candidate.full_name}</p>
-        ) : (
-          <p className="font-medium text-foreground">Name unavailable</p>
-        )}
-        <p className="text-xs text-muted-foreground">Student ID: <span className="text-foreground">{candidate.student_id}</span></p>
-        {candidate.university_email ? (
-          <p className="text-xs text-muted-foreground">
-            University email: <span className="text-foreground">{candidate.university_email}</span>
-          </p>
-        ) : null}
-        {candidate.phone ? (
-          <p className="text-xs text-muted-foreground">
-            Phone: <span className="text-foreground">{candidate.phone}</span>
-          </p>
-        ) : null}
-
-        <div className="grid gap-1 text-xs text-muted-foreground sm:grid-cols-2">
-          <p>Best distance: <span className="text-foreground">{formatDistance(candidate.best_distance)}</span></p>
-          <p>Top-3 avg distance: <span className="text-foreground">{formatDistance(candidate.top_avg_distance)}</span></p>
-          <p>Support count: <span className="text-foreground">{candidate.support_count}</span></p>
-          <p>Matched angles count: <span className="text-foreground">{candidate.matched_angles_count}</span></p>
-          <p>
-            Rank gap to next:{' '}
-            <span className="text-foreground">
-              {candidate.rank_gap_to_next === null ? '-' : formatDistance(candidate.rank_gap_to_next)}
-            </span>
-          </p>
-          <p>
-            Matched angles:{' '}
-            <span className="text-foreground">
-              {candidate.matched_angles.length > 0 ? candidate.matched_angles.join(', ') : '-'}
-            </span>
-          </p>
-          <p>
-            Crop path:{' '}
-            <span className="break-all text-foreground">{candidate.representative_crop_path || '-'}</span>
-          </p>
-          <p className="sm:col-span-2">
-            Source image path:{' '}
-            <span className="break-all text-foreground">{candidate.representative_source_image_path || '-'}</span>
-          </p>
-          <p className="sm:col-span-2">
-            Decision factors:{' '}
-            <span className="text-foreground">
-              {candidate.decision_reasons.length > 0
-                ? candidate.decision_reasons.join(', ')
-                : '-'}
-            </span>
-          </p>
+        <div className="w-full shrink-0 md:w-48 text-right">
+           <div className="flex items-end justify-between md:justify-end md:gap-3 mb-2">
+              <span className="text-[0.75rem] text-slate-500 uppercase tracking-wider">Similarity</span>
+              <span className={cn("text-xl font-bold tracking-tight", isTopCandidate ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" : "text-slate-200")}>
+                {similarity.toFixed(1)}%
+              </span>
+           </div>
+           <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.05]">
+             <div 
+               className={cn("h-full rounded-full transition-all duration-700 ease-out", simColor)}
+               style={{ width: `${similarity}%` }}
+             />
+           </div>
+           <p className="mt-2 text-[0.7rem] text-slate-500">
+             Distance: <span className="text-slate-300 font-medium">{formatDistance(candidate.best_distance)}</span>
+           </p>
         </div>
       </div>
-    </article>
+
+      <div className="mt-5 rounded-lg bg-black/20 p-4 border border-white/[0.02]">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.7rem] uppercase tracking-widest text-slate-500">Top-3 Avg</span>
+            <span className="text-[0.8rem] font-medium text-slate-300">{formatDistance(candidate.top_avg_distance)}</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.7rem] uppercase tracking-widest text-slate-500">Support</span>
+            <span className="text-[0.8rem] font-medium text-slate-300">{candidate.support_count} frames / {candidate.matched_angles_count} angles</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.7rem] uppercase tracking-widest text-slate-500">Gap to Next</span>
+            <span className="text-[0.8rem] font-medium text-slate-300">{candidate.rank_gap_to_next === null ? '-' : formatDistance(candidate.rank_gap_to_next)}</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-[0.7rem] uppercase tracking-widest text-slate-500">Angles</span>
+            <span className="truncate text-[0.8rem] font-medium text-slate-300" title={candidate.matched_angles.join(', ')}>
+              {candidate.matched_angles.length > 0 ? candidate.matched_angles.join(', ') : '-'}
+            </span>
+          </div>
+        </div>
+        
+        <div className="mt-4 border-t border-white/[0.04] pt-4 grid gap-2">
+           <div className="flex gap-2">
+             <span className="w-24 shrink-0 text-[0.7rem] uppercase tracking-widest text-slate-500">Factors</span>
+             <span className="text-[0.75rem] text-slate-300">
+                {candidate.decision_reasons.length > 0 ? candidate.decision_reasons.join(', ') : '-'}
+             </span>
+           </div>
+           <div className="flex gap-2">
+             <span className="w-24 shrink-0 text-[0.7rem] uppercase tracking-widest text-slate-500">Crop Path</span>
+             <span className="break-all text-[0.75rem] text-slate-300">{candidate.representative_crop_path || '-'}</span>
+           </div>
+           <div className="flex gap-2">
+             <span className="w-24 shrink-0 text-[0.7rem] uppercase tracking-widest text-slate-500">Src Image</span>
+             <span className="break-all text-[0.75rem] text-slate-300">{candidate.representative_source_image_path || '-'}</span>
+           </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -189,21 +200,15 @@ export function RecognitionView() {
   const [hasSearched, setHasSearched] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [results, setResults] = useState<RecognitionMatchResponse | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const hasImage = Boolean(selectedFile);
 
   useEffect(() => {
-    if (!selectedFile) {
-      setPreviewUrl(null);
-      return;
-    }
-
+    if (!selectedFile) { setPreviewUrl(null); return; }
     const objectUrl = URL.createObjectURL(selectedFile);
     setPreviewUrl(objectUrl);
-
-    return () => {
-      URL.revokeObjectURL(objectUrl);
-    };
+    return () => { URL.revokeObjectURL(objectUrl); };
   }, [selectedFile]);
 
   const handleAuthFailure = useCallback(
@@ -220,19 +225,16 @@ export function RecognitionView() {
   );
 
   const onSelectFile = useCallback((file: File | null) => {
-    if (!file) {
-      return;
-    }
-
+    if (!file) return;
     if (!file.type || !file.type.startsWith('image/')) {
       setErrorMessage('Please choose a valid image file.');
       return;
     }
-
     setSelectedFile(file);
     setErrorMessage(null);
     setResults(null);
     setHasSearched(false);
+    setCurrentPage(1);
   }, []);
 
   const onInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -244,7 +246,6 @@ export function RecognitionView() {
     event.preventDefault();
     event.stopPropagation();
     setDragActive(false);
-
     const file = event.dataTransfer.files?.[0] ?? null;
     onSelectFile(file);
   };
@@ -266,56 +267,37 @@ export function RecognitionView() {
     setResults(null);
     setErrorMessage(null);
     setHasSearched(false);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    setCurrentPage(1);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const runMatch = useCallback(async () => {
-    if (!token || !selectedFile) {
-      return;
-    }
+    if (!token || !selectedFile) return;
 
     const parsedTopK = parsePositiveInt(topKInput);
-    if (parsedTopK === null) {
-      setErrorMessage('top_k must be a positive integer.');
-      return;
-    }
+    if (parsedTopK === null) { setErrorMessage('top_k must be a positive integer.'); return; }
 
     const parsedThreshold = parsePositiveFloat(thresholdInput);
-    if (parsedThreshold === null) {
-      setErrorMessage('threshold must be a positive number.');
-      return;
-    }
+    if (parsedThreshold === null) { setErrorMessage('threshold must be a positive number.'); return; }
 
     setHasSearched(true);
     setIsMatching(true);
     setErrorMessage(null);
 
     try {
-      const response = await matchRecognitionProbe(token, selectedFile, {
-        topK: parsedTopK,
-        threshold: parsedThreshold,
-      });
-
+      const response = await matchRecognitionProbe(token, selectedFile, { topK: parsedTopK, threshold: parsedThreshold });
       if (!response.success) {
         setResults(null);
         setErrorMessage(response.message);
         showToast({ title: 'Match request failed', message: response.message, variant: 'error' });
         return;
       }
-
       setResults(response);
+      setCurrentPage(1);
       showToast({ title: 'Search completed', message: response.message, variant: 'success' });
     } catch (errorValue) {
-      if (handleAuthFailure(errorValue)) {
-        return;
-      }
-
-      const message =
-        errorValue instanceof Error
-          ? errorValue.message
-          : 'Unable to run recognition match right now.';
+      if (handleAuthFailure(errorValue)) return;
+      const message = errorValue instanceof Error ? errorValue.message : 'Unable to run recognition match right now.';
       setErrorMessage(message);
       setResults(null);
       showToast({ title: 'Request failed', message, variant: 'error' });
@@ -335,70 +317,55 @@ export function RecognitionView() {
     () => [...candidates, ...weakCandidates].sort((a, b) => a.rank - b.rank),
     [candidates, weakCandidates]
   );
-  const strongCandidates = useMemo(
-    () => allCandidates.filter((candidate) => candidate.classification === 'strong_match'),
-    [allCandidates]
-  );
-  const possibleCandidates = useMemo(
-    () => allCandidates.filter((candidate) => candidate.classification === 'possible_match'),
-    [allCandidates]
-  );
-  const weakOrRejectedCandidates = useMemo(
-    () => allCandidates.filter((candidate) => candidate.classification === 'rejected'),
-    [allCandidates]
-  );
-  const topCandidateRank = useMemo(() => {
-    if (allCandidates.length === 0) {
-      return null;
-    }
-    return allCandidates[0].rank;
-  }, [allCandidates]);
+  const topCandidateRank = useMemo(() => (allCandidates.length === 0 ? null : allCandidates[0].rank), [allCandidates]);
   const confidenceCounts = useMemo(() => {
-    let strong = 0;
-    let possible = 0;
-    let weak = 0;
-
-    for (const candidate of allCandidates) {
-      if (candidate.classification === 'strong_match') {
-        strong += 1;
-      } else if (candidate.classification === 'possible_match') {
-        possible += 1;
-      } else {
-        weak += 1;
-      }
+    let strong = 0, possible = 0, weak = 0;
+    for (const c of allCandidates) {
+      if (c.classification === 'strong_match') strong += 1;
+      else if (c.classification === 'possible_match') possible += 1;
+      else weak += 1;
     }
-
     return { strong, possible, weak };
   }, [allCandidates]);
 
-  return (
-    <div className="grid gap-6">
-      <Card className="border-border bg-card text-foreground">
-        <CardHeader>
-          <CardTitle className="text-foreground">Recognition Candidate Search</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Upload a probe image to find ranked candidate students from approved enrollments.
-            Results are suggestions for manual review, not automatic identity confirmation.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+  const pageSize = 5;
+  const totalPages = Math.max(1, Math.ceil(allCandidates.length / pageSize));
+  
+  const paginatedCandidates = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return allCandidates.slice(start, start + pageSize);
+  }, [allCandidates, currentPage, pageSize]);
 
-      <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
-        <Card className="border-border bg-card text-foreground">
-          <CardHeader>
-            <CardTitle className="text-foreground">Probe Image</CardTitle>
-            <CardDescription className="text-muted-foreground">
+  return (
+    <div className="grid gap-5">
+      {/* Header */}
+      <div className="admin-surface relative overflow-hidden px-6 py-5">
+        <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+        <h2 className="text-[0.95rem] font-semibold text-white">Recognition Candidate Search</h2>
+        <p className="mt-0.5 text-[0.82rem] text-slate-400">
+          Upload a probe image to find ranked candidate students from approved enrollments. Results are suggestions for manual review, not automatic identity confirmation.
+        </p>
+      </div>
+
+      <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
+        {/* Left — Probe Image */}
+        <div className="admin-surface relative overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+          <div className="border-b border-white/[0.05] px-6 py-5">
+            <h3 className="text-[0.9rem] font-semibold text-white">Probe Image</h3>
+            <p className="mt-0.5 text-[0.8rem] text-slate-400">
               Use a clear face crop when possible. Low-quality input images may return weaker candidates.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </p>
+          </div>
+          <div className="space-y-4 p-6">
             <form className="space-y-4" onSubmit={onSubmit}>
+              {/* Drop zone */}
               <div
                 className={cn(
-                  'rounded-xl border border-dashed p-5 transition-colors',
+                  'rounded-xl border border-dashed p-6 transition-colors',
                   dragActive
-                    ? 'border-primary/60 bg-primary/10'
-                    : 'border-border bg-muted/25'
+                    ? 'border-cyan-500/50 bg-cyan-500/[0.06]'
+                    : 'border-white/[0.08] bg-white/[0.02]'
                 )}
                 onDrop={onDrop}
                 onDragOver={onDragOver}
@@ -411,77 +378,69 @@ export function RecognitionView() {
                   className="hidden"
                   onChange={onInputChange}
                 />
-
                 <div className="grid gap-3 text-center">
-                  <div className="mx-auto inline-flex size-12 items-center justify-center rounded-full border border-border bg-background/70 text-muted-foreground">
-                    <Upload className="size-5" />
+                  <div className="mx-auto flex size-12 items-center justify-center rounded-full border border-white/[0.08] bg-white/[0.04] shadow-[0_0_16px_-4px_rgba(6,182,212,0.2)]">
+                    <Upload className="size-5 text-cyan-400/70" />
                   </div>
-                  <p className="text-sm text-foreground">Drag and drop an image here</p>
-                  <p className="text-xs text-muted-foreground">or select one from your device</p>
+                  <p className="text-[0.85rem] text-slate-300">Drop an image here</p>
+                  <p className="text-[0.75rem] text-slate-500">or select from your device</p>
                   <div className="flex justify-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
+                    <button type="button" className="admin-btn-ghost" onClick={() => fileInputRef.current?.click()}>
                       <ImagePlus className="size-4" />
                       Choose Image
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={!hasImage}
-                      onClick={clearSelectedFile}
-                    >
+                    </button>
+                    <button type="button" className="admin-btn-ghost" disabled={!hasImage} onClick={clearSelectedFile}>
                       <Trash2 className="size-4" />
                       Remove
-                    </Button>
+                    </button>
                   </div>
                 </div>
               </div>
 
               {previewUrl ? (
-                <div className="rounded-xl border border-border bg-muted/30 p-3">
-                  <p className="text-xs text-muted-foreground">Selected file: {selectedFile?.name || '-'}</p>
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-3">
+                  <p className="text-[0.75rem] text-slate-500">Selected file: {selectedFile?.name || '-'}</p>
                   <img
                     src={previewUrl}
                     alt="Uploaded probe preview"
-                    className="mt-2 h-64 w-full rounded-lg border border-border object-cover"
+                    className="mt-2 h-64 w-full rounded-lg border border-white/[0.06] object-cover"
                   />
                 </div>
               ) : (
-                <div className="rounded-xl border border-border bg-muted/25 p-4 text-sm text-muted-foreground">
+                <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-6 text-center text-[0.82rem] text-slate-500">
                   No input image selected yet.
                 </div>
               )}
 
-              <details className="rounded-xl border border-border bg-muted/25 p-3">
-                <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-medium text-foreground">
-                  <SlidersHorizontal className="size-4" />
+              <details className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
+                <summary className="flex cursor-pointer list-none items-center gap-2 text-[0.85rem] font-medium text-slate-300">
+                  <SlidersHorizontal className="size-4 text-slate-500" />
                   Advanced matching controls
                 </summary>
                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="top-k">top_k</Label>
-                    <Input
+                  <div>
+                    <label htmlFor="top-k" className="mb-1 block text-[0.75rem] font-medium text-slate-400">top_k</label>
+                    <input
                       id="top-k"
+                      className="admin-input"
                       type="number"
                       min={1}
                       step={1}
                       value={topKInput}
-                      onChange={(event) => setTopKInput(event.target.value)}
+                      onChange={(e) => setTopKInput(e.target.value)}
                       disabled={isMatching}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="threshold">threshold</Label>
-                    <Input
+                  <div>
+                    <label htmlFor="threshold" className="mb-1 block text-[0.75rem] font-medium text-slate-400">threshold</label>
+                    <input
                       id="threshold"
+                      className="admin-input"
                       type="number"
                       min={0.0001}
                       step={0.01}
                       value={thresholdInput}
-                      onChange={(event) => setThresholdInput(event.target.value)}
+                      onChange={(e) => setThresholdInput(e.target.value)}
                       disabled={isMatching}
                     />
                   </div>
@@ -489,176 +448,164 @@ export function RecognitionView() {
               </details>
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button
+                <button
                   type="button"
+                  className="admin-btn-primary"
                   disabled={!hasImage || isMatching}
-                  onClick={() => {
-                    void runMatch();
-                  }}
+                  onClick={() => { void runMatch(); }}
                 >
-                  {isMatching ? <Loader2 className="size-4 animate-spin" /> : <Search className="size-4" />}
-                  {isMatching ? 'Finding matches...' : 'Find Matches'}
-                </Button>
-                <Button
+                  {isMatching ? (
+                    <>
+                      <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-white/70" />
+                      Finding matches…
+                    </>
+                  ) : (
+                    <>
+                      <Search className="size-4" />
+                      Find Matches
+                    </>
+                  )}
+                </button>
+                <button
                   type="button"
-                  variant="outline"
+                  className="admin-btn-ghost"
                   disabled={!hasImage || isMatching}
-                  onClick={() => {
-                    void runMatch();
-                  }}
+                  onClick={() => { void runMatch(); }}
                 >
                   <RefreshCw className="size-4" />
                   Retry
-                </Button>
+                </button>
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="border-border bg-card text-foreground">
-          <CardHeader>
-            <CardTitle className="text-foreground">Candidate Results</CardTitle>
-            <CardDescription className="text-muted-foreground">
+        {/* Right — Candidate Results */}
+        <div className="admin-surface relative overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
+          <div className="border-b border-white/[0.05] px-6 py-5">
+            <h3 className="text-[0.9rem] font-semibold text-white">Candidate Results</h3>
+            <p className="mt-0.5 text-[0.8rem] text-slate-400">
               Review ranked candidates and supporting evidence before taking any manual action.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-amber-300/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+            </p>
+          </div>
+          <div className="space-y-4 p-6">
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-[0.8rem] text-amber-300">
               Candidate ranking indicates similarity only. It does not confirm identity.
             </div>
 
             {isMatching ? (
-              <div className="grid place-items-center rounded-xl border border-border bg-muted/25 p-10 text-sm text-muted-foreground">
-                <div className="inline-flex items-center gap-2">
-                  <Loader2 className="size-4 animate-spin" />
-                  Searching...
-                </div>
+              <div className="flex items-center justify-center gap-2.5 rounded-xl border border-white/[0.05] bg-white/[0.02] py-16 text-[0.85rem] text-slate-500">
+                <div className="size-5 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400/60" />
+                Searching…
               </div>
             ) : null}
 
             {!isMatching && errorMessage ? (
-              <div className="rounded-xl border border-destructive/35 bg-destructive/10 p-4 text-sm text-red-500">
+              <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] p-4 text-[0.85rem] text-rose-300">
                 <p>{errorMessage}</p>
-                <Button
+                <button
                   type="button"
-                  size="sm"
-                  variant="outline"
-                  className="mt-3"
+                  className="admin-btn-ghost mt-3"
                   disabled={!hasImage}
-                  onClick={() => {
-                    void runMatch();
-                  }}
+                  onClick={() => { void runMatch(); }}
                 >
                   Retry
-                </Button>
+                </button>
               </div>
             ) : null}
 
             {!isMatching && !errorMessage && !hasSearched ? (
-              <div className="rounded-xl border border-border bg-muted/25 p-8 text-center text-sm text-muted-foreground">
-                Upload a probe image and run “Find Matches” to view ranked candidates.
+              <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] py-16 text-center text-[0.85rem] text-slate-500">
+                Upload a probe image and run &ldquo;Find Matches&rdquo; to view ranked candidates.
               </div>
             ) : null}
 
             {!isMatching && !errorMessage && hasSearched && allCandidates.length === 0 ? (
-              <div className="rounded-xl border border-border bg-muted/25 p-8 text-center text-sm text-muted-foreground">
-                <p className="font-medium text-foreground">No reliable match found.</p>
+              <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] py-16 text-center text-[0.85rem] text-slate-500">
+                <p className="font-medium text-slate-300">No reliable match found.</p>
                 <p className="mt-2">Try a clearer face image or search manually.</p>
               </div>
             ) : null}
 
             {!isMatching && !errorMessage && hasSearched && allCandidates.length > 0 ? (
               <div className="space-y-4">
-                <div className="rounded-lg border border-border bg-muted/25 p-3 text-xs text-muted-foreground">
+                <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-3 text-[0.78rem] text-slate-500">
                   <p>
-                    Ranked candidates: <span className="text-foreground">{allCandidates.length}</span>
-                    {' '}| Strong: <span className="text-emerald-200">{confidenceCounts.strong}</span>
-                    {' '}| Possible: <span className="text-amber-700 dark:text-amber-200">{confidenceCounts.possible}</span>
-                    {' '}| Weak: <span className="text-rose-200">{confidenceCounts.weak}</span>
-                    {' '}
-                    | Threshold used: <span className="text-foreground">{formatDistance(results?.threshold_used ?? 0)}</span>
+                    Ranked candidates: <span className="text-slate-300">{allCandidates.length}</span>
+                    {' '}| Strong: <span className="text-emerald-400">{confidenceCounts.strong}</span>
+                    {' '}| Possible: <span className="text-amber-400">{confidenceCounts.possible}</span>
+                    {' '}| Weak: <span className="text-rose-400">{confidenceCounts.weak}</span>
+                    {' '}| Threshold: <span className="text-slate-300">{formatDistance(results?.threshold_used ?? 0)}</span>
                   </p>
                   <p className="mt-1">
-                    Embeddings searched: <span className="text-foreground">{results?.searched_embedding_rows ?? 0}</span>
+                    Embeddings searched: <span className="text-slate-300">{results?.searched_embedding_rows ?? 0}</span>
                   </p>
                 </div>
 
-                {strongCandidates.length > 0 ? (
-                  <section className="space-y-3 rounded-xl border border-emerald-300/30 bg-emerald-500/5 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-200">
-                      Strong matches ({strongCandidates.length})
-                    </p>
-                    <div className="grid gap-3">
-                      {strongCandidates.map((candidate, index) => (
-                        <CandidateCard
-                          key={`${candidate.student_id}-${candidate.rank}-${index}`}
-                          candidate={candidate}
-                          isTopCandidate={candidate.rank === topCandidateRank}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {possibleCandidates.length > 0 ? (
-                  <section className="space-y-3 rounded-xl border border-amber-300/30 bg-amber-500/5 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-amber-700 dark:text-amber-200">
-                      Possible matches ({possibleCandidates.length})
-                    </p>
-                    <div className="grid gap-3">
-                      {possibleCandidates.map((candidate, index) => (
-                        <CandidateCard
-                          key={`${candidate.student_id}-${candidate.rank}-${index}`}
-                          candidate={candidate}
-                          isTopCandidate={candidate.rank === topCandidateRank}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {weakOrRejectedCandidates.length > 0 ? (
-                  <section className="space-y-3 rounded-xl border border-rose-300/30 bg-rose-500/5 p-3">
-                    <p className="text-xs font-medium uppercase tracking-wide text-rose-700 dark:text-rose-200">
-                      Weak candidates ({weakOrRejectedCandidates.length})
-                    </p>
-                    <div className="grid gap-3">
-                      {weakOrRejectedCandidates.map((candidate, index) => (
-                        <CandidateCard
-                          key={`${candidate.student_id}-${candidate.rank}-${index}`}
-                          candidate={candidate}
-                          isTopCandidate={candidate.rank === topCandidateRank}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
-                {!strongCandidates.length && !possibleCandidates.length && !weakOrRejectedCandidates.length ? (
-                  <div className="grid gap-3">
-                    <p className="text-sm text-muted-foreground">No candidates available in this result.</p>
+                {paginatedCandidates.length > 0 ? (
+                  <div className="grid gap-4">
+                    {paginatedCandidates.map((candidate, index) => (
+                      <CandidateCard
+                        key={`${candidate.student_id}-${candidate.rank}-${index}`}
+                        candidate={candidate}
+                        isTopCandidate={candidate.rank === topCandidateRank}
+                      />
+                    ))}
                   </div>
-                ) : null}
+                ) : (
+                  <div className="grid gap-3">
+                    <p className="text-[0.85rem] text-slate-500">No candidates available in this result.</p>
+                  </div>
+                )}
+
+                {totalPages > 1 && (
+                  <div className="mt-6 flex items-center justify-between rounded-xl border border-white/[0.05] bg-white/[0.01] px-4 py-3">
+                    <span className="text-[0.75rem] text-slate-400">
+                      Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, allCandidates.length)} of {allCandidates.length} results
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="admin-btn-ghost px-3 py-1.5 text-[0.75rem]"
+                      >
+                        Previous
+                      </button>
+                      <span className="px-2 text-[0.75rem] font-medium text-slate-300">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="admin-btn-ghost px-3 py-1.5 text-[0.75rem]"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : null}
 
             {!isMatching && results ? (
-              <details className="rounded-xl border border-border bg-muted/20 p-3">
-                <summary className="cursor-pointer text-xs text-muted-foreground">
-                  Show debug response
-                </summary>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Match found: <span className="text-foreground">{results.match_found ? 'Yes' : 'No'}</span>
-                  {' '}| Candidates: <span className="text-foreground">{results.candidates.length}</span>
+              <details className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <summary className="cursor-pointer text-[0.75rem] text-slate-500">Show debug response</summary>
+                <p className="mt-2 text-[0.75rem] text-slate-500">
+                  Match found: <span className="text-slate-300">{results.match_found ? 'Yes' : 'No'}</span>
+                  {' '}| Candidates: <span className="text-slate-300">{results.candidates.length}</span>
                 </p>
-                <pre className="mt-2 max-h-72 overflow-auto rounded-lg border border-border/70 bg-background/80 p-2 text-[11px] leading-4 text-foreground">
+                <pre className="mt-2 max-h-72 overflow-auto rounded-lg border border-white/[0.05] bg-black/30 p-3 text-[11px] leading-4 text-slate-400">
                   {JSON.stringify(results, null, 2)}
                 </pre>
               </details>
             ) : null}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </section>
+
+      {/* Suppress unused import */}
+      {false && <Loader2 />}
     </div>
   );
 }
