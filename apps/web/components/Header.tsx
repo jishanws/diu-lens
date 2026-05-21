@@ -41,6 +41,12 @@ export function Header() {
           >
             How It Works
           </Link>
+          <Link
+            href="#contact"
+            className="rounded-full px-4 py-1.5 text-[0.85rem] font-medium text-slate-400 transition-colors duration-200 hover:bg-white/[0.06] hover:text-slate-100 active:bg-white/[0.04]"
+          >
+            Contact
+          </Link>
         </nav>
 
         <div className="flex items-center gap-2 pr-1">
@@ -83,6 +89,13 @@ export function Header() {
               className="rounded-xl px-4 py-3 text-[0.95rem] font-medium text-slate-300 hover:bg-white/[0.06] hover:text-slate-100"
             >
               How It Works
+            </Link>
+            <Link
+              href="#contact"
+              onClick={() => setMobileMenuOpen(false)}
+              className="rounded-xl px-4 py-3 text-[0.95rem] font-medium text-slate-300 hover:bg-white/[0.06] hover:text-slate-100"
+            >
+              Contact
             </Link>
           </div>
         )}

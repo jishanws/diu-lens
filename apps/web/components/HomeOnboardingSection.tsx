@@ -12,6 +12,7 @@ import {
   UserRound,
 } from 'lucide-react';
 
+import { ContactSection } from '@/components/ContactSection';
 import { HeroSection } from '@/components/HeroSection';
 import { RegistrationCard } from '@/components/RegistrationCard';
 import { cn } from '@/lib/utils';
@@ -97,6 +98,8 @@ export function HomeOnboardingSection() {
           </div>
         </div>
       </section>
+
+      <ContactSection />
     </>
   );
 }
