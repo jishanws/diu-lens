@@ -39,31 +39,31 @@ class TestValidateStudentId:
     ) -> None:
         response = client.post(
             "/enroll/validate-id",
-            json={"student_id": "221-15-0001"},
+            json={"student_id": "221150001"},
         )
         assert response.status_code == 200
         data = response.json()
         assert data["valid"] is True
         assert data["reason"] is None
 
-    def test_invalid_format_too_short_returns_invalid_format(
+    def test_invalid_format_contains_letters_returns_invalid_format(
         self, client: TestClient
     ) -> None:
         response = client.post(
             "/enroll/validate-id",
-            json={"student_id": "221-15"},
+            json={"student_id": "221150001A"},
         )
         assert response.status_code == 200
         data = response.json()
         assert data["valid"] is False
         assert data["reason"] == "invalid_format"
 
-    def test_invalid_format_no_dashes_returns_invalid_format(
+    def test_invalid_format_contains_dashes_returns_invalid_format(
         self, client: TestClient
     ) -> None:
         response = client.post(
             "/enroll/validate-id",
-            json={"student_id": "221150001"},
+            json={"student_id": "221-15-0001"},
         )
         assert response.status_code == 200
         data = response.json()
@@ -97,18 +97,18 @@ class TestValidateStudentId:
     def test_already_enrolled_student_returns_already_registered(
         self, client: TestClient, db_session_factory: sessionmaker[Session]
     ) -> None:
-        _seed_student(db_session_factory, "221-15-9999")
+        _seed_student(db_session_factory, "221159999")
 
         response = client.post(
             "/enroll/validate-id",
-            json={"student_id": "221-15-9999"},
+            json={"student_id": "221159999"},
         )
         assert response.status_code == 200
         data = response.json()
         assert data["valid"] is False
         assert data["reason"] == "already_registered"
         assert data["student"] is not None
-        assert data["student"]["student_id"] == "221-15-9999"
+        assert data["student"]["student_id"] == "221159999"
         assert data["student"]["name"] == "Test Student"
 
     def test_valid_id_with_leading_trailing_whitespace_is_normalised(
@@ -116,7 +116,7 @@ class TestValidateStudentId:
     ) -> None:
         response = client.post(
             "/enroll/validate-id",
-            json={"student_id": "  221-15-0002  "},
+            json={"student_id": "  221150002  "},
         )
         assert response.status_code == 200
         data = response.json()
@@ -137,12 +137,12 @@ class TestValidateStudentId:
         """Endpoint must be read-only — no Student or Enrollment rows created."""
         response = client.post(
             "/enroll/validate-id",
-            json={"student_id": "999-99-0000"},
+            json={"student_id": "999990000"},
         )
         assert response.status_code == 200
         assert response.json()["valid"] is True
 
         with db_session_factory() as db:
             from sqlalchemy import select
-            student = db.scalar(select(Student).where(Student.student_id == "999-99-0000"))
+            student = db.scalar(select(Student).where(Student.student_id == "999990000"))
             assert student is None, "validate-id must not write any Student rows"

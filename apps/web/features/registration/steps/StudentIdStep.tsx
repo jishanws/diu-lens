@@ -54,7 +54,7 @@ export function StudentIdStep({
           <Input
             id="student-id"
             name="student-id"
-            placeholder="e.g. 221-15-0001"
+            placeholder="e.g. 221150001"
             autoComplete="off"
             inputMode="numeric"
             value={studentId}

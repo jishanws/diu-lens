@@ -23,7 +23,7 @@ export type StudentIdValidationResult =
 
 const REASON_MESSAGES: Record<string, string> = {
   already_registered: 'This student ID is already enrolled.',
-  invalid_format: 'Invalid student ID format. Expected format: 221-15-0001.',
+  invalid_format: 'Invalid student ID. Only numbers are allowed.',
 };
 
 /**
