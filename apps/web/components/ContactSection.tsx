@@ -1,189 +1,292 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Clock, Mail, MapPin } from 'lucide-react';
+import { Clock, Mail, MapPin, Send } from 'lucide-react';
 import { useState } from 'react';
-
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 const CONTACT_INFO = [
   {
     icon: Mail,
-    title: 'Email',
-    content: 'support@diulens.app',
+    label: 'Email',
+    value: 'support@diulens.app',
   },
   {
     icon: MapPin,
-    title: 'Location',
-    content: 'Daffodil International University',
+    label: 'Location',
+    value: 'Daffodil International University',
   },
   {
     icon: Clock,
-    title: 'Response Time',
-    content: 'Usually responds within 24 hours',
+    label: 'Response Time',
+    value: 'Usually within 24 hours',
   },
 ] as const;
 
+const FADE_UP = {
+  hidden: { opacity: 0, y: 18 },
+  show: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.1,
+      duration: 0.6,
+      ease: [0.32, 0.72, 0, 1] as const,
+    },
+  }),
+};
+
 export function ContactSection() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Simulate submission
     setTimeout(() => {
       setIsSubmitting(false);
+      setSubmitted(true);
       (e.target as HTMLFormElement).reset();
-    }, 1500);
+      setTimeout(() => setSubmitted(false), 4000);
+    }, 1400);
   };
 
   return (
-    <section className="relative pt-44 sm:pt-48 lg:pt-56 pb-24 lg:pb-32 overflow-hidden">
-      {/* Background Atmosphere */}
-      <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 -translate-x-1/2 h-[700px] w-[700px] rounded-full bg-cyan-900/10 blur-[140px]" />
-        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 translate-x-1/2 h-[600px] w-[600px] rounded-full bg-blue-900/10 blur-[120px]" />
-      </div>
+    <>
+      {/* ── Hero header ─────────────────────────────────────── */}
+      <motion.section
+        className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 pt-24 pb-4 text-center sm:pt-32 sm:pb-8 lg:pt-36 lg:pb-10"
+        initial="hidden"
+        animate="show"
+      >
+        <motion.p
+          variants={FADE_UP}
+          custom={0}
+          className="mb-3 text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase sm:mb-4"
+        >
+          Support &amp; Contact
+        </motion.p>
 
-      <div className="relative mx-auto w-full max-w-[1500px] px-6 sm:px-12 lg:px-20">
-        <div className="grid gap-16 lg:grid-cols-2 lg:gap-24 xl:gap-32 items-center">
-          
-          {/* Left Column: Heading & Info */}
-          <motion.div 
-            className="flex flex-col justify-center space-y-8 lg:space-y-12"
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+        <motion.h1
+          variants={FADE_UP}
+          custom={1}
+          className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl lg:text-[4rem] lg:leading-[1.05]"
+        >
+          Need help with{' '}
+          <span className="bg-gradient-to-b from-cyan-300 to-blue-500 bg-clip-text text-transparent">
+            DIU&nbsp;Lens?
+          </span>
+        </motion.h1>
+
+        <motion.p
+          variants={FADE_UP}
+          custom={2}
+          className="mx-auto mt-4 max-w-[22rem] text-[0.9rem] leading-relaxed text-slate-400 sm:max-w-xl sm:text-base sm:mt-5"
+        >
+          Reach out to the DIU Lens support team for help with biometric
+          registration, identity verification, or campus access.
+        </motion.p>
+      </motion.section>
+
+      {/* ── Two-column body ─────────────────────────────────── */}
+      <section className="relative mx-auto w-full max-w-5xl px-4 pt-10 pb-16 sm:px-6 sm:pt-12 sm:pb-20 lg:pt-14 lg:pb-24">
+
+        <div className="grid items-start gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
+
+          {/* Left: contact info */}
+          <motion.div
+            className="flex flex-col gap-6 lg:sticky lg:top-32"
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
           >
-            <div className="space-y-6 lg:space-y-8">
-              <h2 className="text-[2.25rem] leading-[1.1] font-semibold tracking-tight text-white sm:text-[3rem] lg:text-[3.5rem]">
-                Need help with <br className="hidden lg:block" />
-                <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent drop-shadow-[0_0_15px_rgba(34,211,238,0.2)]">DIU Lens access?</span>
-              </h2>
-              <p className="max-w-lg text-[1.1rem] leading-relaxed text-slate-400 sm:text-[1.15rem]">
-                Our team is here to help you with biometric registration and identity verification support.
+            <motion.div variants={FADE_UP} custom={0} className="space-y-2">
+              <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase">
+                Contact Info
               </p>
-            </div>
+              <h2 className="text-[1.4rem] font-semibold leading-snug tracking-tight text-white sm:text-[1.6rem]">
+                We&rsquo;re here to help.
+              </h2>
+              <p className="text-[0.9rem] leading-relaxed text-slate-400">
+                Whether you&rsquo;re facing a registration issue or need access
+                support, our team is ready.
+              </p>
+            </motion.div>
 
-            <div className="flex flex-col gap-8 pt-8 lg:pt-12">
-              {CONTACT_INFO.map((info, idx) => (
-                <motion.div 
-                  key={info.title}
-                  className="group flex items-start gap-5"
-                  initial={{ opacity: 0, y: 15 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: 0.3 + idx * 0.15, duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+            <div className="flex flex-col gap-5">
+              {CONTACT_INFO.map((item, i) => (
+                <motion.div
+                  key={item.label}
+                  variants={FADE_UP}
+                  custom={i + 1}
+                  className="group flex items-start gap-4"
                 >
-                  <div className="flex size-14 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-colors duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/10 shadow-[0_0_15px_-3px_rgba(6,182,212,0.1)] group-hover:shadow-[0_0_20px_-3px_rgba(6,182,212,0.25)]">
-                    <info.icon className="size-6 text-cyan-400 transition-transform duration-300 group-hover:scale-110" aria-hidden="true" />
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.04] shadow-[0_0_12px_-4px_rgba(6,182,212,0.15)] transition-all duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/[0.08] group-hover:shadow-[0_0_18px_-4px_rgba(6,182,212,0.3)]">
+                    <item.icon
+                      className="size-[1.05rem] text-cyan-400/80 transition-colors duration-300 group-hover:text-cyan-300"
+                      aria-hidden="true"
+                    />
                   </div>
-                  <div className="flex flex-col pt-1.5">
-                    <span className="text-[0.85rem] font-medium uppercase tracking-wider text-slate-500">
-                      {info.title}
-                    </span>
-                    <span className="mt-1.5 text-[1.05rem] font-medium text-slate-200">
-                      {info.content}
-                    </span>
+                  <div className="pt-0.5">
+                    <p className="text-[0.72rem] font-medium uppercase tracking-wider text-slate-500">
+                      {item.label}
+                    </p>
+                    <p className="mt-0.5 text-[0.9rem] font-medium text-slate-200">
+                      {item.value}
+                    </p>
                   </div>
                 </motion.div>
               ))}
             </div>
           </motion.div>
 
-          {/* Right Column: Form */}
+          {/* Right: contact form */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true, margin: "-100px" }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.32, 0.72, 0, 1] }}
-            className="relative lg:ml-auto w-full max-w-2xl"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-60px' }}
+            transition={{ duration: 0.65, delay: 0.15, ease: [0.32, 0.72, 0, 1] }}
           >
-            <div className="landing-card-surface relative rounded-[2rem] sm:rounded-[2.5rem] border border-white/10 bg-[#0a1120]/60 p-8 sm:p-10 lg:p-12 backdrop-blur-xl shadow-[0_8px_40px_-12px_rgba(0,0,0,0.6)]">
-              {/* Subtle top glow line */}
-              <div aria-hidden="true" className="absolute top-0 inset-x-12 h-px bg-gradient-to-r from-transparent via-cyan-500/30 to-transparent" />
-              
-              <form onSubmit={handleSubmit} className="flex flex-col gap-6 sm:gap-8">
-                <div className="grid gap-6 sm:grid-cols-2 sm:gap-8">
-                  <div className="space-y-2">
-                    <label htmlFor="name" className="text-[0.85rem] font-medium tracking-wide text-slate-300">
-                      Full Name
-                    </label>
-                    <Input 
-                      id="name" 
-                      required 
-                      className="bg-black/20 hover:bg-black/30 focus:bg-black/30 border-white/5 focus:border-cyan-500/50 focus:ring-cyan-500/20 h-10 sm:h-11 text-[1rem]"
-                      placeholder="Jane Doe"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label htmlFor="student-id" className="text-[0.85rem] font-medium tracking-wide text-slate-300">
-                      Student ID <span className="text-slate-500 font-normal">(Optional)</span>
-                    </label>
-                    <Input 
-                      id="student-id" 
-                      className="bg-black/20 hover:bg-black/30 focus:bg-black/30 border-white/5 focus:border-cyan-500/50 focus:ring-cyan-500/20 h-10 sm:h-11 text-[1rem]"
-                      placeholder="222-15-6001"
-                    />
-                  </div>
-                </div>
+            <div className="landing-card-surface relative overflow-hidden rounded-[1.75rem] border p-7 sm:p-9">
+              {/* top glow line */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/25 to-transparent"
+              />
 
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-[0.85rem] font-medium tracking-wide text-slate-300">
-                    Email Address
-                  </label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    required 
-                    className="bg-black/20 hover:bg-black/30 focus:bg-black/30 border-white/5 focus:border-cyan-500/50 focus:ring-cyan-500/20 h-10 sm:h-11 text-[1rem]"
-                    placeholder="student@diu.edu.bd"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="subject" className="text-[0.85rem] font-medium tracking-wide text-slate-300">
-                    Subject
-                  </label>
-                  <Input 
-                    id="subject" 
-                    required 
-                    className="bg-black/20 hover:bg-black/30 focus:bg-black/30 border-white/5 focus:border-cyan-500/50 focus:ring-cyan-500/20 h-10 sm:h-11 text-[1rem]"
-                    placeholder="How can we help?"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label htmlFor="message" className="text-[0.85rem] font-medium tracking-wide text-slate-300">
-                    Message
-                  </label>
-                  <textarea 
-                    id="message" 
-                    required 
-                    rows={6}
-                    className="flex w-full min-w-0 rounded-lg sm:rounded-xl border border-white/5 bg-black/20 hover:bg-black/30 focus:bg-black/30 px-3 py-3 sm:px-4 sm:py-3.5 text-[1rem] text-slate-100 placeholder:text-slate-500 transition-all duration-200 outline-none focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/20 resize-none"
-                    placeholder="Provide details about your inquiry..."
-                  />
-                </div>
-
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className="mt-2 sm:mt-4 group relative w-full overflow-hidden rounded-xl bg-gradient-to-b from-[#3b76e3] to-[#255ac2] hover:from-[#4381f0] hover:to-[#2b65d6] text-white shadow-[0_4px_12px_-2px_rgba(37,99,235,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-300 h-[3.25rem] sm:h-[3.5rem]"
+              {submitted ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex min-h-[20rem] flex-col items-center justify-center gap-4 text-center"
                 >
-                  <div aria-hidden="true" className="absolute inset-0 bg-white/20 opacity-0 transition-opacity duration-300 group-hover:opacity-10" />
-                  <span className="relative font-medium tracking-wide text-[1rem]">
-                    {isSubmitting ? 'Sending...' : 'Send Message'}
-                  </span>
-                </Button>
-              </form>
+                  <div className="flex size-14 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/10 shadow-[0_0_24px_-6px_rgba(6,182,212,0.4)]">
+                    <Send className="size-6 text-cyan-400" />
+                  </div>
+                  <p className="text-[1.1rem] font-semibold text-white">
+                    Message Sent
+                  </p>
+                  <p className="max-w-xs text-[0.88rem] text-slate-400">
+                    We&rsquo;ve received your message and will respond within 24
+                    hours.
+                  </p>
+                </motion.div>
+              ) : (
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+                  {/* Row 1: Name + Student ID */}
+                  <div className="grid gap-5 sm:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="contact-name"
+                        className="block text-[0.82rem] font-medium text-slate-300"
+                      >
+                        Full Name
+                      </label>
+                      <input
+                        id="contact-name"
+                        type="text"
+                        required
+                        autoComplete="name"
+                        placeholder="Jane Doe"
+                        className="landing-form-input w-full placeholder:text-white/30 placeholder:font-light"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label
+                        htmlFor="contact-student-id"
+                        className="block text-[0.82rem] font-medium text-slate-300"
+                      >
+                        Student ID{' '}
+                        <span className="font-normal text-slate-500">
+                          (optional)
+                        </span>
+                      </label>
+                      <input
+                        id="contact-student-id"
+                        type="text"
+                        inputMode="text"
+                        autoComplete="off"
+                        placeholder="222-15-6001"
+                        className="landing-form-input w-full placeholder:text-white/30 placeholder:font-light"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: Email */}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="contact-email"
+                      className="block text-[0.82rem] font-medium text-slate-300"
+                    >
+                      Email Address
+                    </label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="student@diu.edu.bd"
+                      className="landing-form-input w-full placeholder:text-white/30 placeholder:font-light"
+                    />
+                  </div>
+
+                  {/* Row 3: Subject */}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="contact-subject"
+                      className="block text-[0.82rem] font-medium text-slate-300"
+                    >
+                      Subject
+                    </label>
+                    <input
+                      id="contact-subject"
+                      type="text"
+                      required
+                      autoComplete="off"
+                      placeholder="How can we help?"
+                      className="landing-form-input w-full placeholder:text-white/30 placeholder:font-light"
+                    />
+                  </div>
+
+                  {/* Row 4: Message */}
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="contact-message"
+                      className="block text-[0.82rem] font-medium text-slate-300"
+                    >
+                      Message
+                    </label>
+                    <textarea
+                      id="contact-message"
+                      required
+                      rows={5}
+                      placeholder="Tell us what you need help with…"
+                      className="landing-form-input w-full resize-none py-3 leading-relaxed"
+                      style={{ height: 'auto' }}
+                    />
+                  </div>
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="landing-cta group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden bg-gradient-to-b from-[#3b76e3] to-[#255ac2] text-white shadow-[0_4px_14px_-4px_rgba(37,99,235,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-[#4381f0] hover:to-[#2b65d6] hover:shadow-[0_6px_18px_-4px_rgba(37,99,235,0.5)] disabled:opacity-60 disabled:pointer-events-none"
+                  >
+                    <div
+                      aria-hidden="true"
+                      className="absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                    />
+                    <Send className="relative size-[0.9rem] opacity-80" />
+                    <span className="relative">
+                      {isSubmitting ? 'Sending…' : 'Send Message'}
+                    </span>
+                  </button>
+                </form>
+              )}
             </div>
           </motion.div>
-          
+
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
