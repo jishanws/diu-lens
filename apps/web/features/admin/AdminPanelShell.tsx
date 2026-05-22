@@ -63,22 +63,22 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="landing-page relative h-screen w-full overflow-hidden">
-      {/* Background atmosphere exactly matching homepage */}
-      <div aria-hidden="true" className="landing-vignette pointer-events-none absolute inset-0" />
-      <div aria-hidden="true" className="landing-glow-top-left pointer-events-none absolute inset-0" />
-      <div aria-hidden="true" className="landing-glow-bottom-right pointer-events-none absolute inset-0" />
+    <div className="landing-page relative h-screen w-full overflow-hidden bg-[#040810]">
+      {/* Background atmosphere exactly matching homepage, but toned down for admin readability */}
+      <div aria-hidden="true" className="landing-vignette pointer-events-none absolute inset-0 opacity-80" />
+      <div aria-hidden="true" className="landing-glow-top-left pointer-events-none absolute inset-0 opacity-[0.25]" />
+      <div aria-hidden="true" className="landing-glow-bottom-right pointer-events-none absolute inset-0 opacity-[0.25]" />
 
       <div className="relative z-10 mx-auto flex h-full w-full max-w-[1720px]">
         
         {/* ── Sidebar ──────────────────────────────────────────────── */}
-        <aside className="hidden w-[17.5rem] shrink-0 flex-col border-r border-white/[0.04] bg-[#040810]/40 backdrop-blur-2xl lg:flex">
+        <aside className="hidden w-[17.5rem] shrink-0 flex-col border-r border-white/[0.03] bg-[#03060c]/40 backdrop-blur-2xl lg:flex">
           <div className="flex h-full flex-col p-6">
             
             {/* Brand */}
             <div className="mb-10 flex items-center gap-3.5 px-2 pt-2">
-              <div className="flex size-9 items-center justify-center rounded-[0.7rem] border border-white/[0.08] bg-white/[0.02] shadow-[0_2px_12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.05)]">
-                <div className="size-[0.4rem] rounded-full bg-cyan-400 shadow-[0_0_12px_2px_rgba(34,211,238,0.6)]" />
+              <div className="flex size-9 items-center justify-center rounded-[0.7rem] border border-white/[0.04] bg-white/[0.01] shadow-[0_2px_12px_rgba(0,0,0,0.2)]">
+                <div className="size-[0.4rem] rounded-full bg-cyan-400/80 shadow-[0_0_8px_1px_rgba(34,211,238,0.4)]" />
               </div>
               <div>
                 <p className="text-[0.62rem] font-bold uppercase tracking-[0.25em] text-slate-500">
@@ -104,14 +104,14 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                     className={cn(
                       'group relative flex items-center gap-3.5 rounded-[1.1rem] px-4 py-3.5 text-[0.9rem] font-medium transition-all duration-300',
                       isActive
-                        ? 'border border-cyan-500/20 bg-cyan-500/[0.06] text-cyan-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]'
-                        : 'border border-transparent text-slate-400 hover:bg-white/[0.03] hover:text-slate-200'
+                        ? 'border border-cyan-500/10 bg-cyan-500/[0.04] text-cyan-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]'
+                        : 'border border-transparent text-slate-400 hover:bg-white/[0.02] hover:text-slate-200'
                     )}
                   >
                     {isActive && (
-                      <div className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-cyan-400 shadow-[0_0_14px_2px_rgba(34,211,238,0.5)]" />
+                      <div className="absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-cyan-500/80 shadow-[0_0_10px_1px_rgba(34,211,238,0.3)]" />
                     )}
-                    <span className={cn('transition-colors', isActive ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]' : 'text-slate-500 group-hover:text-slate-400')}>
+                    <span className={cn('transition-colors', isActive ? 'text-cyan-400 drop-shadow-[0_0_6px_rgba(34,211,238,0.2)]' : 'text-slate-500 group-hover:text-slate-400')}>
                       {item.icon}
                     </span>
                     {item.label}
@@ -124,35 +124,41 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
             <div className="flex-1" />
 
             {/* Admin info */}
-            <div className="mt-6 rounded-[1.25rem] border border-white/[0.05] bg-white/[0.01] p-4 transition-colors hover:bg-white/[0.02]">
-              <div className="flex items-center gap-3.5">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/[0.06] bg-black/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                  <UserCircle2 className="size-5 text-slate-400" />
+            <div className="mt-6 rounded-[1.25rem] border border-white/[0.04] bg-white/[0.01] p-4 transition-colors hover:bg-white/[0.02]">
+              <div className="flex items-center gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-full border border-white/[0.05] bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                  <UserCircle2 className="size-4.5 text-slate-400" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[0.88rem] font-medium text-slate-100">
+                  <p className="truncate text-[0.85rem] font-medium text-slate-200">
                     {admin?.full_name || 'Admin User'}
-                  </p>
-                  <p className="truncate text-[0.72rem] text-slate-500">
-                    {admin?.email || '-'}
                   </p>
                 </div>
               </div>
-              <div className="mt-4 flex items-center justify-between border-t border-white/[0.04] pt-4">
-                <span className={cn(
-                  'admin-badge',
-                  isSuperAdmin ? 'admin-badge-approved' : 'admin-badge-info'
-                )}>
-                  {roleLabel}
-                </span>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex size-8 items-center justify-center rounded-[0.55rem] text-slate-500 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
-                  aria-label="Logout"
-                >
-                  <LogOut className="size-[1.1rem]" />
-                </button>
+              
+              <div className="mt-3.5 space-y-1.5 px-0.5">
+                <p className="truncate text-[0.7rem] text-slate-500">
+                  {admin?.email || '-'}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className={cn(
+                    'inline-flex items-center rounded-full border px-2 py-0.5 text-[0.65rem] font-medium tracking-wide',
+                    isSuperAdmin 
+                      ? 'border-emerald-500/20 bg-emerald-500/[0.04] text-emerald-400/80' 
+                      : 'border-cyan-500/20 bg-cyan-500/[0.04] text-cyan-400/80'
+                  )}>
+                    {roleLabel}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex size-7 items-center justify-center rounded-lg text-slate-500/70 transition-all hover:bg-rose-500/10 hover:text-rose-400"
+                    aria-label="Logout"
+                    title="Logout"
+                  >
+                    <LogOut className="size-[0.95rem]" />
+                  </button>
+                </div>
               </div>
             </div>
             
@@ -169,31 +175,9 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                 <p className="text-[0.62rem] font-medium uppercase tracking-[0.24em] text-slate-500">
                   Administration
                 </p>
-                <h1 className="mt-0.5 text-[1.3rem] font-medium tracking-tight text-white">
+                <h1 className="mt-0.5 text-[1.3rem] font-medium tracking-tight text-slate-100">
                   {pageTitle}
                 </h1>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="hidden items-center gap-2 rounded-full border border-white/[0.05] bg-black/20 px-3 py-1.5 text-[0.8rem] font-medium text-slate-300 sm:inline-flex">
-                  <UserCircle2 className="size-4 text-slate-500" />
-                  {admin?.email || 'admin'}
-                </span>
-                <span className={cn(
-                  'admin-badge',
-                  isSuperAdmin ? 'admin-badge-approved' : 'admin-badge-info'
-                )}>
-                  {roleLabel}
-                </span>
-                <div className="mx-1 h-5 w-px bg-white/[0.06]" />
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="admin-btn-ghost group text-slate-400 hover:text-slate-200"
-                >
-                  <LogOut className="size-4 opacity-70 transition-transform group-hover:scale-110" />
-                  Logout
-                </button>
               </div>
             </div>
 
