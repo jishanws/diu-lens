@@ -36,12 +36,13 @@ export const perAngleHint: Record<VerificationAngle, string> = {
   natural_front: 'No strict pose needed. Keep one face visible.',
 };
 
-export const STABILITY_WINDOW_MS = 380;
+export const STABILITY_WINDOW_MS = 500;
 export const POST_CAPTURE_COOLDOWN_MS = 420;
 export const STABILITY_GRACE_MS = 280;
-export const GUIDANCE_STICK_MS = 320;
+export const GUIDANCE_STICK_MS = 800; // Updated for debounce
 
-export const MIN_FACE_AREA_RATIO = 0.09;
+export const MIN_FACE_AREA_RATIO = 0.08;
+export const MAX_FACE_AREA_RATIO = 0.35;
 export const MAX_CENTER_OFFSET = 0.24;
 export const HARD_MAX_CENTER_OFFSET = 0.32;
 export const MIN_BLUR_VARIANCE = 45;

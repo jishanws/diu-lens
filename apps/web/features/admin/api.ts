@@ -44,7 +44,7 @@ export type RecognitionMatchCandidate = {
   matched_angles_count: number;
   rank_gap_to_next: number | null;
   decision_reasons: string[];
-  classification: 'strong_match' | 'possible_match' | 'rejected';
+  classification: 'high_confidence' | 'likely_match' | 'possible_match' | 'low_confidence';
   representative_crop_path: string | null;
   representative_source_image_path: string | null;
   is_likely_match: boolean;
@@ -155,11 +155,12 @@ function parseRecognitionCandidate(value: unknown): RecognitionMatchCandidate | 
       ? row.decision_reasons.filter((item): item is string => typeof item === 'string')
       : [],
     classification:
-      row.classification === 'strong_match' ||
+      row.classification === 'high_confidence' ||
+      row.classification === 'likely_match' ||
       row.classification === 'possible_match' ||
-      row.classification === 'rejected'
+      row.classification === 'low_confidence'
         ? row.classification
-        : 'rejected',
+        : 'low_confidence',
     representative_crop_path:
       typeof row.representative_crop_path === 'string' ? row.representative_crop_path : null,
     representative_source_image_path:
@@ -572,4 +573,112 @@ export async function checkApiHealth(): Promise<boolean> {
     console.error('[admin-api] health check failed', error);
     return false;
   }
+}
+
+export type EnrollmentDetailsResponse = {
+  student: {
+    student_id: string;
+    full_name: string;
+    phone: string;
+    university_email: string;
+  };
+  enrollment: {
+    id: number;
+    status: string;
+    verification_completed: boolean;
+    validation_passed: boolean;
+    rejection_reason: string | null;
+    created_at: string | null;
+  };
+  biometric_diagnostics: {
+    consistency_score: number;
+    angle_coverage: number;
+    blur_free_frame_count: number;
+    total_frames: number;
+    overall_capture_quality: number;
+    overall_quality_label: string;
+  };
+  prioritized_images: Array<{
+    id: number;
+    angle: string;
+    file_path: string;
+    blur_score: number | null;
+    brightness: number | null;
+    detection_confidence: number | null;
+    is_best: boolean;
+  }>;
+  supplementary_images: Array<{
+    id: number;
+    angle: string;
+    file_path: string;
+    blur_score: number | null;
+    brightness: number | null;
+    detection_confidence: number | null;
+    is_best: boolean;
+  }>;
+  duplicate_candidates: Array<{
+    student_id: string;
+    best_distance: number;
+    support_count: number;
+  }>;
+  timeline: Array<{
+    id: number;
+    event_type: string;
+    message: string;
+    created_at: string | null;
+  }>;
+};
+
+export async function fetchEnrollmentDetails(
+  token: string,
+  studentId: string
+): Promise<EnrollmentDetailsResponse> {
+  const response = await request(`/admin/enrollments/${studentId}`, {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    throw new AdminApiAuthError();
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch enrollment details.');
+  }
+
+  return response.json() as Promise<EnrollmentDetailsResponse>;
+}
+
+export type EnrollmentsMetricsResponse = {
+  pending_review: number;
+  approved_today: number;
+  rejected_today: number;
+  avg_recognition_confidence: number;
+};
+
+export async function fetchEnrollmentMetrics(
+  token: string
+): Promise<EnrollmentsMetricsResponse> {
+  const response = await request('/admin/enrollments-metrics', {
+    method: 'GET',
+    headers: {
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    cache: 'no-store',
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    throw new AdminApiAuthError();
+  }
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch metrics.');
+  }
+
+  return response.json() as Promise<EnrollmentsMetricsResponse>;
 }

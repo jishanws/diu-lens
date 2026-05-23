@@ -26,10 +26,14 @@ async def admin_match_face(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
     admin_user = require_admin(credentials)
-    admin_id = admin_user["id"] if admin_user else None
+    admin_id = admin_user.id if admin_user else None
     
     start_time = time.monotonic()
     request_id = str(uuid.uuid4())
+    
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info("[recognition] Request received request_id=%s admin_id=%s", request_id, admin_id)
 
     content_type = (image.content_type or "").lower()
     if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
@@ -41,8 +45,15 @@ async def admin_match_face(
             },
         )
 
-    probe_bytes = await image.read(MAX_UPLOAD_IMAGE_SIZE_BYTES + 1)
-    await image.close()
+    try:
+        probe_bytes = await image.read(MAX_UPLOAD_IMAGE_SIZE_BYTES + 1)
+        await image.close()
+    except Exception as exc:
+        logger.error("[recognition] Failed to read image request_id=%s exc=%s", request_id, exc)
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "message": "Failed to read image upload."},
+        )
 
     if not probe_bytes:
         return JSONResponse(
@@ -56,6 +67,8 @@ async def admin_match_face(
             content={"success": False, "message": "Probe image exceeds size limit."},
         )
 
+    logger.info("[recognition] Image parsed and ready for processing request_id=%s size=%s bytes", request_id, len(probe_bytes))
+
     try:
         result = await run_in_threadpool(
             match_face_probe,
@@ -66,10 +79,18 @@ async def admin_match_face(
             debug=debug,
             probe_label=probe_label,
         )
+        logger.info("[recognition] Pipeline completed successfully request_id=%s matches=%s", request_id, len(result.get("candidates", [])))
     except FaceMatchingError as exc:
+        logger.warning("[recognition] Face matching error request_id=%s exc=%s", request_id, exc)
         return JSONResponse(
             status_code=400,
             content={"success": False, "message": str(exc)},
+        )
+    except Exception as exc:
+        logger.exception("[recognition] Unexpected pipeline crash request_id=%s exc=%s", request_id, exc)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": "Recognition pipeline failed to process image."},
         )
 
     processing_duration_ms = (time.monotonic() - start_time) * 1000

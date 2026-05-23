@@ -21,8 +21,13 @@ class ImageValidationConfig:
     max_center_offset_non_front: float = 0.28
     min_face_area_ratio: float = 0.09
 
+from app.core.config import settings
 
-_CONFIG = ImageValidationConfig()
+_CONFIG = ImageValidationConfig(
+    min_blur_variance=settings.enrollment_min_blur_variance,
+    min_brightness=settings.enrollment_min_brightness,
+    min_face_area_ratio=settings.enrollment_min_face_area_ratio,
+)
 _FACE_CASCADE = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )

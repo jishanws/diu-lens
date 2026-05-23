@@ -96,12 +96,12 @@
   );
   --landing-glow-top-left: radial-gradient(
     circle at 50% 0%,
-    rgba(36, 109, 182, 0.1),
+    rgba(36, 109, 182, 0.05),
     transparent 48%
   );
   --landing-glow-bottom-right: radial-gradient(
     circle at 90% 96%,
-    rgba(22, 71, 122, 0.065),
+    rgba(22, 71, 122, 0.03),
     transparent 48%
   );
   --landing-card-bg: linear-gradient(
@@ -173,21 +173,21 @@
 
   .landing-grid-overlay {
     background-image:
-      linear-gradient(rgba(120, 160, 255, 0.09) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(120, 160, 255, 0.09) 1px, transparent 1px);
+      linear-gradient(rgba(120, 160, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(120, 160, 255, 0.02) 1px, transparent 1px);
     background-size: 82px 82px;
-    mask-image: radial-gradient(circle at center, black 50%, transparent 100%);
-    opacity: 0.8;
+    mask-image: radial-gradient(circle at center, rgba(0,0,0,0.6) 15%, transparent 70%);
+    opacity: 0.25;
   }
 
   .landing-glow-top-left {
     background-image: var(--landing-glow-top-left);
-    filter: saturate(0.72) brightness(0.88);
+    filter: saturate(0.5) brightness(0.7);
   }
 
   .landing-glow-bottom-right {
     background-image: var(--landing-glow-bottom-right);
-    filter: saturate(0.7) brightness(0.86);
+    filter: saturate(0.5) brightness(0.7);
   }
 
   .landing-card-surface {
@@ -530,32 +530,33 @@
 /* ── Admin Panel Design Tokens ─────────────────────────────────────── */
 @layer utilities {
   .admin-surface {
-    background: var(--landing-card-bg);
-    border: 1px solid var(--landing-card-border);
+    background: linear-gradient(180deg, rgba(12, 18, 28, 0.5) 0%, rgba(8, 14, 22, 0.55) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.03);
     border-radius: 1.5rem;
-    backdrop-filter: blur(var(--landing-card-blur));
-    box-shadow: var(--landing-card-shadow);
+    backdrop-filter: blur(24px);
+    box-shadow: 
+      0 8px 32px -8px rgba(0, 0, 0, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.02);
   }
 
   .admin-surface-elevated {
-    background: var(--landing-card-bg);
-    border: 1px solid var(--landing-card-border);
+    background: linear-gradient(180deg, rgba(18, 25, 38, 0.7) 0%, rgba(12, 18, 28, 0.75) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 1.75rem;
-    backdrop-filter: blur(var(--landing-card-blur));
+    backdrop-filter: blur(32px);
     box-shadow:
       0 24px 64px -12px rgba(0, 0, 0, 0.6),
-      0 0 20px rgba(40, 121, 214, 0.08),
-      inset 0 1px 0 rgba(160, 197, 235, 0.08);
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
   }
 
   .admin-input {
     height: 2.75rem;
     width: 100%;
-    border-radius: 1rem;
-    border: 1px solid var(--landing-input-border);
-    background: var(--landing-input-bg);
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
     color: var(--landing-input-text);
-    box-shadow: var(--landing-input-inset-shadow);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
     padding-left: 1rem;
     padding-right: 1rem;
     font-size: 0.9rem;
@@ -564,14 +565,14 @@
   }
 
   .admin-input::placeholder {
-    color: var(--landing-input-placeholder);
+    color: rgba(255, 255, 255, 0.25);
     font-weight: 400;
   }
 
   .admin-input:focus {
-    border-color: var(--landing-accent);
-    box-shadow: 0 0 0 2px var(--landing-focus-ring);
-    background: rgba(20, 32, 48, 0.95);
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05), inset 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   .admin-input:disabled {
@@ -584,25 +585,26 @@
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    height: 2rem;
+    height: 2.125rem;
     padding-left: 1rem;
     padding-right: 1rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
-    color: #67e8f9; /* cyan-300 */
-    background: rgba(6, 182, 212, 0.06); /* cyan-500 */
-    border: 1px solid rgba(6, 182, 212, 0.15);
+    letter-spacing: 0.01em;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     transition: all 250ms ease;
     cursor: pointer;
     white-space: nowrap;
   }
 
   .admin-btn-primary:hover:not(:disabled) {
-    background: rgba(6, 182, 212, 0.12);
-    border-color: rgba(6, 182, 212, 0.35);
-    box-shadow: 0 0 14px -3px rgba(6, 182, 212, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.2);
   }
 
   .admin-btn-primary:disabled {
@@ -615,14 +617,14 @@
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    height: 2rem;
+    height: 2.125rem;
     padding-left: 1rem;
     padding-right: 1rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
-    color: var(--landing-text-muted);
+    letter-spacing: 0.01em;
+    color: #94a3b8;
     background: transparent;
     border: 1px solid transparent;
     transition: all 250ms ease;
@@ -632,8 +634,7 @@
 
   .admin-btn-ghost:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.03);
-    color: var(--landing-text-primary);
-    border-color: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
   }
 
   .admin-btn-ghost:disabled {
@@ -646,16 +647,16 @@
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
-    height: 2rem;
+    height: 2.125rem;
     padding-left: 1rem;
     padding-right: 1rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
+    border-radius: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 500;
-    letter-spacing: 0.02em;
-    color: #fca5a5; /* red-300 */
-    background: rgba(244, 63, 94, 0.04); /* rose-500 */
-    border: 1px solid rgba(244, 63, 94, 0.12);
+    letter-spacing: 0.01em;
+    color: #fca5a5;
+    background: rgba(244, 63, 94, 0.04);
+    border: 1px solid rgba(244, 63, 94, 0.08);
     transition: all 250ms ease;
     cursor: pointer;
     white-space: nowrap;
@@ -663,8 +664,9 @@
 
   .admin-btn-danger:hover:not(:disabled) {
     background: rgba(244, 63, 94, 0.08);
-    border-color: rgba(244, 63, 94, 0.25);
-    box-shadow: 0 0 14px -3px rgba(244, 63, 94, 0.15);
+    border-color: rgba(244, 63, 94, 0.15);
+    color: #fecdd3;
+    box-shadow: 0 4px 12px -2px rgba(244, 63, 94, 0.1);
   }
 
   .admin-btn-danger:disabled {
@@ -685,34 +687,26 @@
   }
 
   .admin-badge-pending {
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.15);
+    background: rgba(251, 191, 36, 0.05);
     color: #fcd34d;
   }
 
   .admin-badge-approved {
-    border: 1px solid rgba(52, 211, 153, 0.3);
-    background: rgba(52, 211, 153, 0.08);
+    border: 1px solid rgba(52, 211, 153, 0.15);
+    background: rgba(52, 211, 153, 0.05);
     color: #6ee7b7;
   }
 
   .admin-badge-rejected {
-    border: 1px solid rgba(248, 113, 113, 0.3);
-    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.15);
+    background: rgba(248, 113, 113, 0.05);
     color: #fca5a5;
   }
 
   .admin-badge-info {
-    border: 1px solid rgba(99, 179, 237, 0.3);
-    background: rgba(99, 179, 237, 0.08);
+    border: 1px solid rgba(99, 179, 237, 0.15);
+    background: rgba(99, 179, 237, 0.05);
     color: #90cdf4;
-  }
-
-  .admin-table-row {
-    transition: background-color 150ms ease;
-  }
-
-  .admin-table-row:hover {
-    background: rgba(40, 121, 214, 0.04);
   }
 }

@@ -37,6 +37,20 @@ function getAngleLabel(angle: VerificationAngle) {
   return angle.charAt(0).toUpperCase() + angle.slice(1);
 }
 
+function HealthBadge({ label, active }: { label: string; active: boolean }) {
+  return (
+    <div className={cn(
+      "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.65rem] font-medium border transition-colors",
+      active 
+        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+        : "bg-white/5 border-white/10 text-slate-500"
+    )}>
+      <div className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-emerald-400" : "bg-slate-600")} />
+      {label}
+    </div>
+  );
+}
+
 
 export function GuidedEnrollmentCapture({
   studentId,
@@ -484,12 +498,22 @@ export function GuidedEnrollmentCapture({
           {/* STATUS MESSAGE */}
           <div className="min-h-[2.2rem] px-1 text-center">
             <p
-              className="text-[0.8rem] leading-[1.5]"
-              style={{ color: 'rgba(148,163,184,0.82)' }}
+              className="text-[0.85rem] leading-[1.5] font-medium transition-colors duration-300"
+              style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(56, 189, 248, 0.9)' : 'rgba(148,163,184,0.9)' }}
             >
               {statusText}
             </p>
           </div>
+
+          {/* LIVE HEALTH INDICATORS */}
+          {streamActive && !permissionBlocked && !state.canSubmit && (
+            <div className="flex justify-center flex-wrap gap-2 mt-2 px-2">
+              <HealthBadge label="Visibility" active={state.feedback.readiness.faceDetected && state.feedback.readiness.singleFace} />
+              <HealthBadge label="Framing" active={state.feedback.readiness.faceLargeEnough && state.feedback.readiness.centered} />
+              <HealthBadge label="Lighting" active={state.feedback.readiness.brightnessOk} />
+              <HealthBadge label="Angle" active={state.feedback.readiness.angleMatch} />
+            </div>
+          )}
 
           {/* CAMERA PERMISSION BUTTON */}
           {permissionBlocked ? (

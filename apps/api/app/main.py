@@ -68,6 +68,7 @@ def create_app() -> FastAPI:
 
     from app.core.middleware import TracingMiddleware
 
+    app.add_middleware(TracingMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.allowed_origins,
@@ -75,7 +76,6 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.add_middleware(TracingMiddleware)
 
     @app.on_event("startup")
     def create_tables() -> None:

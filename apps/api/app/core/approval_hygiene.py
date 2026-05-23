@@ -19,7 +19,7 @@ from app.core.storage import (
 from app.db.models import Enrollment, EnrollmentImage
 
 
-NEAR_DUPLICATE_DHASH_MAX_DISTANCE = 4
+NEAR_DUPLICATE_DHASH_MAX_DISTANCE = 2
 DHASH_BITS = 64
 logger = logging.getLogger(__name__)
 
@@ -44,6 +44,7 @@ class _OtherImageEvidence:
     path: str
     student_id: str
     enrollment_id: int
+    status: str
 
 
 def _read_file_bytes(relative_path: str) -> bytes | None:
@@ -182,19 +183,20 @@ def _iter_other_student_enrollment_images(
     current_student_id: str,
 ) -> list[_OtherImageEvidence]:
     rows = db.execute(
-        select(EnrollmentImage, Enrollment.student_id, Enrollment.id)
+        select(EnrollmentImage, Enrollment.student_id, Enrollment.id, Enrollment.status)
         .join(Enrollment, Enrollment.id == EnrollmentImage.enrollment_id)
         .where(Enrollment.student_id != current_student_id)
     ).all()
 
     evidence: list[_OtherImageEvidence] = []
-    for image_row, student_id, enrollment_id in rows:
+    for image_row, student_id, enrollment_id, status in rows:
         evidence.append(
             _OtherImageEvidence(
                 angle=str(image_row.angle),
                 path=str(image_row.file_path),
                 student_id=str(student_id),
                 enrollment_id=int(enrollment_id),
+                status=str(status),
             )
         )
 
@@ -221,6 +223,8 @@ def assert_approval_hygiene(
         if not other_bytes:
             continue
 
+        is_trusted = other.status in {"approved", "approved_pending_processing", "processing", "processed"}
+
         other_sha = _compute_sha256(other_bytes)
         if other_sha in current_by_sha:
             blocked = current_by_sha[other_sha]
@@ -235,12 +239,20 @@ def assert_approval_hygiene(
                 matched_existing_enrollment_id=other.enrollment_id,
                 dhash_distance=0,
             )
+            if not is_trusted:
+                logger.info(
+                    "Approval hygiene warning: byte-identical evidence detected with non-trusted enrollment (status=%s) details=%s",
+                    other.status,
+                    details,
+                )
+                continue
+
             logger.warning(
                 "Approval hygiene blocked: duplicate enrollment evidence detected details=%s",
                 details,
             )
             raise ApprovalEvidenceIssue(
-                "duplicate enrollment evidence detected",
+                "Duplicate enrollment detected: This face is already enrolled under a different student ID.",
                 debug_details=details,
             )
 
@@ -262,11 +274,19 @@ def assert_approval_hygiene(
                     matched_existing_enrollment_id=other.enrollment_id,
                     dhash_distance=distance,
                 )
+                if not is_trusted:
+                    logger.info(
+                        "Approval hygiene warning: near-duplicate evidence detected with non-trusted enrollment (status=%s) details=%s",
+                        other.status,
+                        details,
+                    )
+                    continue
+
                 logger.warning(
                     "Approval hygiene blocked: near-duplicate evidence detected details=%s",
                     details,
                 )
                 raise ApprovalEvidenceIssue(
-                    "near-duplicate evidence detected",
+                    "Captured images are too similar to an existing enrollment. Try moving your head naturally between frames, or ensure you are not testing with the same person.",
                     debug_details=details,
                 )

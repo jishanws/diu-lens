@@ -5,7 +5,10 @@ import {
   captureAngles,
   getRequiredFramesForAngle,
   MIN_FACE_AREA_RATIO,
+  MAX_FACE_AREA_RATIO,
   POST_CAPTURE_COOLDOWN_MS,
+  STABILITY_WINDOW_MS,
+  GUIDANCE_STICK_MS,
   captureStorageVersion,
   naturalFrontAngle,
   perAngleInstruction,
@@ -52,7 +55,7 @@ type FaceLandmarker = {
 
 const detectionIntervalMs = 90;
 const MIN_CAPTURE_FILE_SIZE_BYTES = 10 * 1024;
-const BURST_CAPTURE_GAP_MS = 60;
+const BURST_CAPTURE_GAP_MS = 500;
 
 let faceLandmarkerPromise: Promise<FaceLandmarker> | null = null;
 
@@ -216,11 +219,12 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): {
 function isRoughAngleMatch(
   angle: VerificationAngle,
   yaw: number,
-  pitch: number
+  pitch: number,
+  marginBoost: number = 0
 ) {
   if (angle === naturalFrontAngle) return true;
-  const yawMargin = 8;
-  const pitchMargin = 8;
+  const yawMargin = 8 + marginBoost;
+  const pitchMargin = 8 + marginBoost;
 
   if (angle === 'front') {
     return (
@@ -250,6 +254,52 @@ function isRoughAngleMatch(
     pitch >= ANGLE_THRESHOLDS.downPitch - pitchMargin &&
     Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin
   );
+}
+
+function getDynamicAngleGuidance(
+  angle: VerificationAngle,
+  yaw: number,
+  pitch: number,
+  faceAreaRatio: number
+): { instruction: string; liveMessage: string } {
+  if (faceAreaRatio < MIN_FACE_AREA_RATIO) {
+    return { instruction: 'Move closer', liveMessage: 'Face too far away' };
+  }
+  if (faceAreaRatio > MAX_FACE_AREA_RATIO) {
+    return { instruction: 'Move back', liveMessage: 'Face too close' };
+  }
+
+  if (angle === naturalFrontAngle) return { instruction: 'Look naturally', liveMessage: 'Look at the camera naturally' };
+  
+  if (angle === 'front') {
+    if (yaw < -15) return { instruction: 'Look right', liveMessage: 'Turn slightly right' };
+    if (yaw > 15) return { instruction: 'Look left', liveMessage: 'Turn slightly left' };
+    if (pitch < -15) return { instruction: 'Look down', liveMessage: 'Look slightly down' };
+    if (pitch > 15) return { instruction: 'Look up', liveMessage: 'Look slightly up' };
+    return { instruction: 'Look forward', liveMessage: 'Look forward' };
+  }
+  if (angle === 'left') {
+    if (yaw < ANGLE_THRESHOLDS.leftYaw - 8) return { instruction: 'Look left', liveMessage: 'Turn more left' };
+    if (pitch < -15 || pitch > 15) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
+    return { instruction: 'Look left', liveMessage: 'Look left' };
+  }
+  if (angle === 'right') {
+    if (yaw > ANGLE_THRESHOLDS.rightYaw + 8) return { instruction: 'Look right', liveMessage: 'Turn more right' };
+    if (pitch < -15 || pitch > 15) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
+    return { instruction: 'Look right', liveMessage: 'Look right' };
+  }
+  if (angle === 'up') {
+    if (pitch > ANGLE_THRESHOLDS.upPitch + 8) return { instruction: 'Look up', liveMessage: 'Look higher' };
+    if (yaw < -15 || yaw > 15) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
+    return { instruction: 'Look up', liveMessage: 'Look up' };
+  }
+  if (angle === 'down') {
+    if (pitch < ANGLE_THRESHOLDS.downPitch - 8) return { instruction: 'Look down', liveMessage: 'Look lower' };
+    if (yaw < -15 || yaw > 15) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
+    return { instruction: 'Look down', liveMessage: 'Look down' };
+  }
+
+  return { instruction: getAngleGuidance(angle), liveMessage: getAngleGuidance(angle) };
 }
 
 function getAngleGuidance(angle: VerificationAngle) {
@@ -316,6 +366,13 @@ export function useFaceCapture({
   const latestShotsRef = useRef<CapturedShotsByAngle>(emptyCapturedShots());
   const finalizedRef = useRef(false);
   const persistenceEnabledRef = useRef(true);
+  const consecutiveFailuresRef = useRef<number>(0);
+  const stableSinceRef = useRef<number>(0);
+  const lastGuidanceRef = useRef<{ instruction: string; liveMessage: string; timestamp: number }>({
+    instruction: '',
+    liveMessage: '',
+    timestamp: 0,
+  });
 
   const [modelReady, setModelReady] = useState(false);
   const [modelErrorMessage, setModelErrorMessage] = useState<string | null>(
@@ -525,10 +582,11 @@ export function useFaceCapture({
             pitch = pose.pitch;
           }
 
+          const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
           const angleOk =
             force || targetAngle === naturalFrontAngle
               ? true
-              : isRoughAngleMatch(targetAngle, yaw, pitch);
+              : isRoughAngleMatch(targetAngle, yaw, pitch, marginBoost);
           const sizeOk =
             force || targetAngle === naturalFrontAngle
               ? true
@@ -746,47 +804,61 @@ export function useFaceCapture({
         (box.maxX - box.minX) * (box.maxY - box.minY)
       );
       const pose = estimateYawPitch(landmarks);
-      const nearAngle = isRoughAngleMatch(angle, pose.yaw, pose.pitch);
+      const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
+      const nearAngle = isRoughAngleMatch(angle, pose.yaw, pose.pitch, marginBoost);
+      const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
 
-      if (angle !== naturalFrontAngle && faceAreaRatio < MIN_FACE_AREA_RATIO) {
-        setFeedback({
-          guidanceState: 'face_too_small',
-          instruction: getAngleGuidance(angle),
-          liveMessage: 'Move closer',
-          holdProgress: 0,
-          readiness: {
-            faceDetected: true,
-            singleFace: true,
-            faceLargeEnough: false,
-            centered: true,
-            sharpEnough: true,
-            brightnessOk: true,
-            angleMatch: nearAngle,
-          },
-        });
-        scheduleNext();
-        return;
+      if (nearAngle && sizeOk) {
+        if (stableSinceRef.current === 0) {
+          stableSinceRef.current = now;
+        }
+      } else {
+        stableSinceRef.current = 0;
+        consecutiveFailuresRef.current += 1;
+      }
+
+      const stableFor = stableSinceRef.current > 0 ? now - stableSinceRef.current : 0;
+      const isStable = stableFor >= STABILITY_WINDOW_MS;
+
+      let { instruction, liveMessage } = getDynamicAngleGuidance(angle, pose.yaw, pose.pitch, faceAreaRatio);
+      const lastG = lastGuidanceRef.current;
+      
+      // Debounce logic for guidance text
+      if (now - lastG.timestamp < GUIDANCE_STICK_MS && lastG.instruction && (!nearAngle || !sizeOk)) {
+        instruction = lastG.instruction;
+        liveMessage = lastG.liveMessage;
+      } else if (!nearAngle || !sizeOk) {
+        lastGuidanceRef.current = { instruction, liveMessage, timestamp: now };
+      } else {
+        lastGuidanceRef.current = { instruction: '', liveMessage: '', timestamp: 0 };
+      }
+
+      let guidanceState: CaptureFeedback['guidanceState'] = 'wrong_angle';
+      if (nearAngle && sizeOk) {
+        guidanceState = isStable ? 'ready' : 'hold_steady';
+      } else if (faceAreaRatio < MIN_FACE_AREA_RATIO) {
+        guidanceState = 'face_too_small';
       }
 
       setFeedback({
-        guidanceState: nearAngle ? 'ready' : 'wrong_angle',
-        instruction: getAngleGuidance(angle),
-        liveMessage: nearAngle
+        guidanceState,
+        instruction,
+        liveMessage: nearAngle && sizeOk
           ? `Capturing ${angle === naturalFrontAngle ? 'natural front' : angle}...`
-          : getAngleGuidance(angle),
-        holdProgress: nearAngle ? 1 : 0,
+          : liveMessage,
+        holdProgress: nearAngle && sizeOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
         readiness: {
           faceDetected: true,
           singleFace: true,
-          faceLargeEnough: true,
+          faceLargeEnough: sizeOk,
           centered: true,
-          sharpEnough: true,
+          sharpEnough: true, // We can evaluate blur here if needed
           brightnessOk: true,
           angleMatch: nearAngle,
         },
       });
 
-      if (!nearAngle || autoCaptureLockRef.current) {
+      if (!nearAngle || !sizeOk || !isStable || autoCaptureLockRef.current) {
         scheduleNext();
         return;
       }

@@ -117,9 +117,16 @@ async def approve_enrollment_admin(
     try:
         result = approve_enrollment(student_id)
     except EnrollmentPersistenceError as exc:
+        logger.exception("Persistence error during enrollment approval.")
         return JSONResponse(
             status_code=500,
-            content={"success": False, "message": str(exc)},
+            content={"success": False, "message": f"Database error: {exc}"},
+        )
+    except Exception as exc:
+        logger.exception("Unexpected error during enrollment approval.")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Unexpected error: {exc}"},
         )
 
     payload: dict[str, object] = {
@@ -138,9 +145,15 @@ async def approve_enrollment_admin(
         return payload
 
     if result.was_updated:
-        process_student_enrollment_task.delay(student_id)
-        payload["processing_attempted"] = True
-        payload["message"] = "Enrollment approved and queued for background processing."
+        try:
+            process_student_enrollment_task.delay(student_id)
+            payload["processing_attempted"] = True
+            payload["message"] = "Enrollment approved and queued for background processing."
+        except Exception as exc:
+            logger.exception("Failed to queue background processing task.")
+            payload["processing_attempted"] = False
+            payload["processing_error"] = f"Queuing failed: {exc}"
+            payload["message"] = "Enrollment approved, but failed to queue biometric processing."
     else:
         payload["processing_attempted"] = False
         payload["message"] = "Enrollment was already approved."
@@ -367,4 +380,79 @@ async def get_system_health(
                 }
                 for i in recent_incidents
             ]
+        }
+
+from typing import Any
+from fastapi import HTTPException
+from fastapi.responses import FileResponse
+from datetime import datetime, timezone
+from app.core.enrollment_db import get_enrollment_details_by_student_id
+from app.db.models.enrollments import Enrollment
+from app.db.models.audit_logs import AuditLog
+
+@router.get("/enrollments/{student_id}")
+async def get_admin_enrollment_details(
+    student_id: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, Any]:
+    require_admin(credentials)
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        try:
+            return get_enrollment_details_by_student_id(db, student_id)
+        except EnrollmentNotFoundError as e:
+            raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/storage/{path:path}")
+async def get_admin_storage_file(
+    path: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> FileResponse:
+    require_admin(credentials)
+    storage = get_storage_service()
+    absolute_path = storage.resolve_relative_path(path)
+    if not absolute_path.exists() or not absolute_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    return FileResponse(absolute_path)
+
+@router.get("/enrollments-metrics")
+async def get_enrollments_metrics(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        now = datetime.now(timezone.utc)
+        today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        pending_review = db.scalar(
+            select(func.count(Enrollment.id))
+            .where(Enrollment.status == "validated")
+        ) or 0
+        
+        approved_today = db.scalar(
+            select(func.count(AuditLog.id))
+            .where(
+                AuditLog.event_type == "enrollment_approved",
+                AuditLog.created_at >= today_start
+            )
+        ) or 0
+        
+        rejected_today = db.scalar(
+            select(func.count(AuditLog.id))
+            .where(
+                AuditLog.event_type == "enrollment_rejected",
+                AuditLog.created_at >= today_start
+            )
+        ) or 0
+        
+        avg_recognition_confidence = db.scalar(
+            select(func.avg(RecognitionAuditLog.confidence_score))
+        ) or 0.0
+
+        return {
+            "pending_review": pending_review,
+            "approved_today": approved_today,
+            "rejected_today": rejected_today,
+            "avg_recognition_confidence": avg_recognition_confidence
         }

@@ -82,6 +82,7 @@ def test_development_localhost_origins_are_always_allowed(
         "https://www.diulens.app",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "https://diulens.app",
     ]
 
 

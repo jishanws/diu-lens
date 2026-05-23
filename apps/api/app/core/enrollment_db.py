@@ -951,3 +951,134 @@ def get_enrollments_snapshot_from_db() -> dict[str, Any]:
             }
         except SQLAlchemyError as exc:
             raise EnrollmentPersistenceError(str(exc)) from exc
+
+def get_enrollment_details_by_student_id(db: Session, student_id: str) -> dict[str, Any]:
+    from app.core.face_matching import match_face_probe
+    from app.core.storage import get_storage_service
+
+    student = db.scalar(select(Student).where(Student.student_id == student_id))
+    if not student:
+        raise EnrollmentNotFoundError("Student not found")
+
+    enrollment = _latest_enrollment_for_student(db, student_id)
+    if not enrollment:
+        raise EnrollmentNotFoundError("Enrollment not found")
+
+    images = db.scalars(
+        select(EnrollmentImage).where(EnrollmentImage.enrollment_id == enrollment.id)
+    ).all()
+
+    audit_logs = db.scalars(
+        select(AuditLog)
+        .where(AuditLog.enrollment_id == enrollment.id)
+        .order_by(AuditLog.created_at.desc())
+    ).all()
+
+    # Calculate Biometric Diagnostics
+    unique_angles = len({img.angle for img in images if img.angle})
+    angle_coverage = (unique_angles / len(ALLOWED_ANGLES)) * 100 if ALLOWED_ANGLES else 0.0
+    
+    blur_free_frame_count = sum(1 for img in images if img.blur_score is not None and img.blur_score > 0.4)
+    avg_detection_confidence = sum((img.detection_confidence or 0.0) for img in images) / max(len(images), 1)
+
+    consistency_score = avg_detection_confidence * 100
+    blur_ratio = (blur_free_frame_count / max(len(images), 1)) * 100
+    overall_capture_quality = round((angle_coverage * 0.4) + (consistency_score * 0.4) + (blur_ratio * 0.2))
+
+    if overall_capture_quality >= 90:
+        overall_quality_label = "Excellent"
+    elif overall_capture_quality >= 75:
+        overall_quality_label = "Good"
+    elif overall_capture_quality >= 60:
+        overall_quality_label = "Acceptable"
+    else:
+        overall_quality_label = "Needs Improvement"
+
+    # Frame Prioritization: group by angle, pick highest detection_confidence
+    best_frames = []
+    supplementary_frames = []
+    
+    frames_by_angle = {}
+    for img in images:
+        frames_by_angle.setdefault(img.angle, []).append(img)
+        
+    for angle, angle_images in frames_by_angle.items():
+        sorted_images = sorted(angle_images, key=lambda x: x.detection_confidence or 0.0, reverse=True)
+        if sorted_images:
+            best_frames.append(sorted_images[0])
+            supplementary_frames.extend(sorted_images[1:])
+
+    # Side-by-Side Duplicate Check
+    closest_matches = []
+    best_frontal = next((img for img in best_frames if img.angle == "frontal"), None)
+    if best_frontal and best_frontal.file_path:
+        storage = get_storage_service()
+        absolute_path = storage.resolve_relative_path(best_frontal.file_path)
+        if absolute_path.exists() and absolute_path.is_file():
+            try:
+                image_bytes = absolute_path.read_bytes()
+                # Run similarity search to find duplicates
+                probe_result = match_face_probe(image_bytes, top_k=3)
+                # Filter out the student themselves if they already have embeddings
+                closest_matches = [
+                    cand for cand in probe_result.get("candidates", [])
+                    if str(cand.get("student_id")) != str(student_id)
+                ]
+            except Exception as e:
+                logger.warning(f"Duplicate check failed for {student_id}: {e}")
+
+    return {
+        "student": {
+            "student_id": student.student_id,
+            "full_name": student.full_name,
+            "phone": student.phone,
+            "university_email": student.university_email,
+        },
+        "enrollment": {
+            "id": enrollment.id,
+            "status": enrollment.status,
+            "verification_completed": enrollment.verification_completed,
+            "validation_passed": enrollment.validation_passed,
+            "rejection_reason": enrollment.rejection_reason,
+            "created_at": enrollment.created_at.isoformat() if enrollment.created_at else None,
+        },
+        "biometric_diagnostics": {
+            "consistency_score": consistency_score,
+            "angle_coverage": angle_coverage,
+            "blur_free_frame_count": blur_free_frame_count,
+            "total_frames": len(images),
+            "overall_capture_quality": overall_capture_quality,
+            "overall_quality_label": overall_quality_label,
+        },
+        "prioritized_images": [
+            {
+                "id": img.id,
+                "angle": img.angle,
+                "file_path": img.file_path,
+                "blur_score": img.blur_score,
+                "brightness": img.brightness,
+                "detection_confidence": img.detection_confidence,
+                "is_best": True
+            } for img in best_frames
+        ],
+        "supplementary_images": [
+            {
+                "id": img.id,
+                "angle": img.angle,
+                "file_path": img.file_path,
+                "blur_score": img.blur_score,
+                "brightness": img.brightness,
+                "detection_confidence": img.detection_confidence,
+                "is_best": False
+            } for img in supplementary_frames
+        ],
+        "duplicate_candidates": closest_matches,
+        "timeline": [
+            {
+                "id": log.id,
+                "event_type": log.event_type,
+                "message": log.message,
+                "created_at": log.created_at.isoformat() if log.created_at else None,
+            } for log in audit_logs
+        ]
+    }

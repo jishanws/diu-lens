@@ -1,23 +1,21 @@
 'use client';
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, RefreshCw, ShieldCheck, XCircle } from 'lucide-react';
+import { Loader2, RefreshCw, Eye } from 'lucide-react';
 import {
   AdminApiAuthError,
   approveEnrollment,
   fetchEnrollments,
   rejectEnrollment,
+  fetchEnrollmentMetrics,
+  EnrollmentsMetricsResponse
 } from '@/features/admin/api';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
 import { EnrollmentRecord } from '@/features/admin/auth/types';
 import { useAdminToast } from '@/features/admin/ui/AdminToastProvider';
 import { cn } from '@/lib/utils';
-
-type RejectDialogState = {
-  studentId: string;
-  fullName: string;
-};
+import { EnrollmentDetailsPanel } from './EnrollmentDetailsPanel';
 
 function formatDate(value: string | null) {
   if (!value) return '-';
@@ -35,16 +33,15 @@ export function EnrollmentsView() {
   const { showToast } = useAdminToast();
 
   const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
+  const [metrics, setMetrics] = useState<EnrollmentsMetricsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
   const [actionKey, setActionKey] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const itemsPerPage = 10;
-
-  const [rejectDialog, setRejectDialog] = useState<RejectDialogState | null>(null);
-  const [rejectReason, setRejectReason] = useState('');
-  const [rejectError, setRejectError] = useState<string | null>(null);
 
   const handleAuthFailure = useCallback(
     (errorValue: unknown): boolean => {
@@ -59,17 +56,23 @@ export function EnrollmentsView() {
     [clearSession, showToast, router]
   );
 
-  const loadEnrollments = useCallback(
+  const loadData = useCallback(
     async (showLoading: boolean) => {
       if (!token) return;
       if (showLoading) { setIsLoading(true); } else { setIsRefreshing(true); }
       setError(null);
       try {
-        const rows = await fetchEnrollments(token);
+        const [rows, metricsData] = await Promise.all([
+          fetchEnrollments(token),
+          fetchEnrollmentMetrics(token).catch(() => null)
+        ]);
         setEnrollments(rows.filter((item) => item.status === 'validated'));
+        if (metricsData) {
+          setMetrics(metricsData);
+        }
       } catch (errorValue) {
         if (handleAuthFailure(errorValue)) return;
-        setError(errorValue instanceof Error ? errorValue.message : 'Failed to load enrollments.');
+        setError(errorValue instanceof Error ? errorValue.message : 'Failed to load data.');
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -80,10 +83,8 @@ export function EnrollmentsView() {
 
   useEffect(() => {
     if (!token) return;
-    void loadEnrollments(true);
-  }, [token, loadEnrollments]);
-
-  const validatedCount = useMemo(() => enrollments.length, [enrollments]);
+    void loadData(true);
+  }, [token, loadData]);
 
   const totalPages = Math.max(1, Math.ceil(enrollments.length / itemsPerPage));
   const paginatedEnrollments = useMemo(() => {
@@ -96,36 +97,6 @@ export function EnrollmentsView() {
     }
   }, [currentPage, totalPages]);
 
-  const runAction = async (
-    key: string,
-    action: () => Promise<{ success: boolean; message: string }>,
-    successTitle: string,
-    onSuccess?: () => void
-  ): Promise<boolean> => {
-    setActionKey(key);
-    try {
-      const result = await action();
-      if (!result.success) {
-        showToast({ title: 'Action failed', message: result.message, variant: 'error' });
-        return false;
-      }
-      if (onSuccess) onSuccess();
-      showToast({ title: successTitle, message: result.message, variant: 'success' });
-      await loadEnrollments(false);
-      return true;
-    } catch (errorValue) {
-      if (handleAuthFailure(errorValue)) return false;
-      showToast({
-        title: 'Request failed',
-        message: errorValue instanceof Error ? errorValue.message : 'Unexpected error occurred.',
-        variant: 'error',
-      });
-      return false;
-    } finally {
-      setActionKey(null);
-    }
-  };
-
   const onApprove = async (studentId: string) => {
     if (!token) return;
     setActionKey(`approve:${studentId}`);
@@ -135,16 +106,57 @@ export function EnrollmentsView() {
         showToast({ title: 'Approval failed', message: result.message, variant: 'error' });
         return;
       }
-      if (result.processing_passed && result.embeddings_generated_count > 0) {
-        showToast({ title: 'Approved and processed', message: `Generated ${result.embeddings_generated_count} embeddings.`, variant: 'success' });
-      } else {
+      if (result.processing_attempted && !result.processing_error) {
+        showToast({ 
+          title: 'Enrollment Approved', 
+          message: 'Enrollment approved and queued for biometric extraction.', 
+          variant: 'success' 
+        });
+      } else if (result.processing_passed) {
+        showToast({ 
+          title: 'Approved and processed', 
+          message: `Generated ${result.embeddings_generated_count} embeddings.`, 
+          variant: 'success' 
+        });
+      } else if (result.processing_error) {
         showToast({
           title: 'Approved, but processing failed',
-          message: result.processing_error || result.message || 'Approval succeeded but processing failed. Use Process to retry.',
+          message: result.processing_error,
           variant: 'error',
         });
+      } else {
+        showToast({
+          title: 'Success',
+          message: result.message || 'Enrollment approved.',
+          variant: 'success',
+        });
       }
-      await loadEnrollments(false);
+      setSelectedStudentId(null);
+      await loadData(false);
+    } catch (errorValue) {
+      if (handleAuthFailure(errorValue)) return;
+      showToast({
+        title: 'Approval failed',
+        message: errorValue instanceof Error ? errorValue.message : 'Unexpected error occurred.',
+        variant: 'error',
+      });
+    } finally {
+      setActionKey(null);
+    }
+  };
+
+  const onReject = async (studentId: string, reason: string) => {
+    if (!token) return;
+    setActionKey(`reject:${studentId}`);
+    try {
+      const result = await rejectEnrollment(token, studentId, reason);
+      if (!result.success) {
+        showToast({ title: 'Reject failed', message: result.message, variant: 'error' });
+        return;
+      }
+      showToast({ title: 'Enrollment rejected', message: result.message, variant: 'success' });
+      setSelectedStudentId(null);
+      await loadData(false);
     } catch (errorValue) {
       if (handleAuthFailure(errorValue)) return;
       showToast({
@@ -157,70 +169,38 @@ export function EnrollmentsView() {
     }
   };
 
-  const onRejectSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!token || !rejectDialog) return;
-
-    const targetStudentId = rejectDialog.studentId;
-    const isStillReviewable = enrollments.some((item) => item.student_id === targetStudentId);
-    if (!isStillReviewable) {
-      setRejectDialog(null);
-      setRejectReason('');
-      setRejectError(null);
-      showToast({ title: 'Already updated', message: 'This enrollment is no longer in the review queue. Refreshing list.', variant: 'error' });
-      await loadEnrollments(false);
-      return;
-    }
-
-    const reason = rejectReason.trim();
-    if (reason.length < 3) {
-      setRejectError('Please enter a rejection reason (at least 3 characters).');
-      return;
-    }
-    setRejectError(null);
-
-    const wasRejected = await runAction(
-      `reject:${targetStudentId}`,
-      () => rejectEnrollment(token, targetStudentId, reason),
-      'Enrollment rejected',
-      () => { setEnrollments((current) => current.filter((item) => item.student_id !== targetStudentId)); }
-    );
-
-    if (wasRejected) {
-      setRejectDialog(null);
-      setRejectReason('');
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-slate-500">
         <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400/60" />
-        Loading enrollments…
+        Loading operations data…
       </div>
     );
   }
 
   return (
     <div className="grid gap-5">
-      {/* Metric */}
-      <MetricCard title="Validated Enrollments" value={validatedCount} tone="pending" />
+      {/* Metrics Dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard title="Pending Review" value={metrics?.pending_review ?? 0} tone="pending" />
+        <MetricCard title="Approved Today" value={metrics?.approved_today ?? 0} tone="approved" />
+        <MetricCard title="Rejected Today" value={metrics?.rejected_today ?? 0} tone="rejected" />
+        <MetricCard title="Avg Confidence" value={`${(metrics?.avg_recognition_confidence ?? 0).toFixed(1)}%`} tone="default" />
+      </div>
 
       {/* Queue card */}
       <div className="admin-surface relative overflow-hidden">
-        <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-
-        <div className="flex flex-col gap-4 border-b border-white/[0.05] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-white/[0.03] px-7 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-[0.95rem] font-semibold text-white">Enrollment Queue</h2>
+            <h2 className="text-[0.95rem] font-semibold text-white">Verification Queue</h2>
             <p className="mt-0.5 text-[0.82rem] text-slate-400">
-              Review validated submissions and either approve or reject.
+              Inspect biometric data before final approval.
             </p>
           </div>
           <button
             type="button"
             className="admin-btn-ghost w-full sm:w-auto"
-            onClick={() => loadEnrollments(false)}
+            onClick={() => loadData(false)}
             disabled={isRefreshing || actionKey !== null}
           >
             <RefreshCw className={cn('size-3.5', isRefreshing ? 'animate-spin' : '')} />
@@ -232,101 +212,66 @@ export function EnrollmentsView() {
           {error ? (
             <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] p-4 text-[0.85rem] text-rose-300">
               <p>{error}</p>
-              <button type="button" className="admin-btn-ghost mt-3" onClick={() => loadEnrollments(true)}>
+              <button type="button" className="admin-btn-ghost mt-3" onClick={() => loadData(true)}>
                 Retry
               </button>
             </div>
           ) : null}
 
           {!error && enrollments.length === 0 ? (
-            <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-8 text-center text-[0.85rem] text-slate-500">
-              No validated enrollments found.
+            <div className="rounded-2xl border border-white/[0.03] bg-white/[0.01] p-12 text-center text-[0.85rem] text-slate-500">
+              No pending enrollments in the queue.
             </div>
           ) : null}
 
           {!error && enrollments.length > 0 ? (
             <>
-              <div className="overflow-x-auto rounded-2xl border border-white/[0.05] bg-[#040810]/40">
-                <table className="min-w-full text-left text-sm border-collapse">
-                  <thead className="border-b border-white/[0.04]">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-[0.65rem] font-bold uppercase tracking-widest text-slate-500">Student</th>
-                      <th className="px-6 py-4 text-left text-[0.65rem] font-bold uppercase tracking-widest text-slate-500">Contact</th>
-                      <th className="px-6 py-4 text-left text-[0.65rem] font-bold uppercase tracking-widest text-slate-500">Verification</th>
-                      <th className="px-6 py-4 text-left text-[0.65rem] font-bold uppercase tracking-widest text-slate-500">Updated</th>
-                      <th className="px-6 py-4 text-right text-[0.65rem] font-bold uppercase tracking-widest text-slate-500">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/[0.02]">
-                    {paginatedEnrollments.map((item) => {
-                      const approveKey = `approve:${item.student_id}`;
-                      const rejectKey = `reject:${item.student_id}`;
-                      const rowBusy = actionKey === approveKey || actionKey === rejectKey;
+              <div className="flex flex-col gap-3">
+                {paginatedEnrollments.map((item) => {
+                  return (
+                    <div key={item.student_id} className="group relative flex flex-col gap-5 rounded-[1.25rem] border border-white/[0.03] bg-white/[0.01] p-5 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
+                      
+                      {/* Identity Block */}
+                      <div className="flex flex-col gap-1.5 sm:w-1/3">
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <p className="text-[0.95rem] font-semibold tracking-tight text-slate-100">{item.full_name || 'Unknown User'}</p>
+                          <span className="rounded-full border border-white/[0.05] bg-white/[0.03] px-2 py-0.5 text-[0.65rem] font-mono tracking-wide text-slate-400">
+                            {item.student_id}
+                          </span>
+                        </div>
+                        <p className="text-[0.8rem] text-slate-400">{item.university_email || 'No email provided'}</p>
+                      </div>
 
-                      return (
-                        <tr key={item.student_id} className="admin-table-row align-middle group">
-                          <td className="px-6 py-5">
-                            <p className="text-[0.9rem] font-medium text-slate-200">{item.full_name || '-'}</p>
-                            <p className="mt-0.5 text-[0.75rem] font-mono tracking-wide text-slate-500">ID: {item.student_id}</p>
-                          </td>
-                          <td className="px-6 py-5 text-[0.8rem] text-slate-400">
-                            <p className="text-slate-300">{item.university_email || '-'}</p>
-                            <p className="mt-0.5">{item.phone || '-'}</p>
-                          </td>
-                          <td className="px-6 py-5 text-[0.8rem]">
-                            <div className="flex flex-col items-start gap-1.5">
-                              <span className={cn(
-                                "inline-flex items-center rounded-full border px-2 py-0.5 text-[0.7rem] font-medium",
-                                item.verification_completed 
-                                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400" 
-                                  : "border-amber-500/20 bg-amber-500/10 text-amber-400"
-                              )}>
-                                {item.verification_completed ? 'Completed' : 'Pending'}
-                              </span>
-                              {typeof item.total_accepted_shots === 'number' && typeof item.total_required_shots === 'number' ? (
-                                <p className="text-[0.75rem] text-slate-500">{item.total_accepted_shots}/{item.total_required_shots} shots accepted</p>
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="px-6 py-5 text-[0.8rem] text-slate-500">
-                            <p className="text-slate-300">{formatDate(item.updated_at || item.created_at)}</p>
-                            <p className="mt-0.5 text-[0.7rem]">Created: {formatDate(item.created_at)}</p>
-                          </td>
-                          <td className="px-6 py-5">
-                            <div className="flex flex-wrap items-center justify-end gap-2.5 opacity-90 transition-opacity group-hover:opacity-100">
-                            <button
-                              type="button"
-                              className="admin-btn-primary"
-                              onClick={() => onApprove(item.student_id)}
-                              disabled={rowBusy}
-                            >
-                              {actionKey === approveKey ? (
-                                <div className="size-3.5 animate-spin rounded-full border-2 border-white/10 border-t-white/70" />
-                              ) : (
-                                <ShieldCheck className="size-3.5" />
-                              )}
-                              Approve
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-btn-danger"
-                              onClick={() => {
-                                setRejectError(null);
-                                setRejectReason('');
-                                setRejectDialog({ studentId: item.student_id, fullName: item.full_name });
-                              }}
-                              disabled={rowBusy}
-                            >
-                              <XCircle className="size-3.5" />
-                              Reject
-                            </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                      {/* Verification Summary */}
+                      <div className="flex flex-col gap-2.5 sm:w-1/3">
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-medium tracking-wide",
+                            item.verification_completed 
+                              ? "border-emerald-500/10 bg-emerald-500/[0.05] text-emerald-400" 
+                              : "border-amber-500/10 bg-amber-500/[0.05] text-amber-400"
+                          )}>
+                            <span className={cn("size-1.5 rounded-full", item.verification_completed ? "bg-emerald-400" : "bg-amber-400 animate-pulse")} />
+                            {item.verification_completed ? 'Ready for Review' : 'Incomplete'}
+                          </span>
+                        </div>
+                        <p className="text-[0.7rem] text-slate-500">Submitted: {formatDate(item.updated_at || item.created_at)}</p>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+                        <button
+                          type="button"
+                          className="admin-btn-primary"
+                          onClick={() => setSelectedStudentId(item.student_id)}
+                        >
+                          <Eye className="size-3.5" />
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Pagination */}
@@ -335,7 +280,7 @@ export function EnrollmentsView() {
                   <p className="text-[0.8rem] text-slate-500">
                     Showing <span className="font-medium text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-300">{Math.min(currentPage * itemsPerPage, enrollments.length)}</span> of <span className="font-medium text-slate-300">{enrollments.length}</span> entries
                   </p>
-                  <div className="flex items-center gap-1.5 rounded-full border border-white/[0.04] bg-[#0a1120]/40 p-1 backdrop-blur-md">
+                  <div className="flex items-center gap-1.5 rounded-full border border-white/[0.04] bg-[#0a1120]/20 p-1 backdrop-blur-md">
                     <button
                       type="button"
                       disabled={currentPage === 1}
@@ -374,72 +319,16 @@ export function EnrollmentsView() {
               )}
             </>
           ) : null}
-
-          <p className="text-[0.78rem] text-slate-600">
-            Reset actions for approved students are available in the approved management page.
-          </p>
         </div>
       </div>
 
-      {/* Reject Dialog */}
-      {rejectDialog ? (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 backdrop-blur-md">
-          <div className="admin-surface-elevated relative w-full max-w-lg overflow-hidden p-7">
-            <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-rose-500/25 to-transparent" />
-            <h2 className="text-[1rem] font-semibold text-white">Reject Enrollment</h2>
-            <p className="mt-1 text-[0.82rem] text-slate-400">
-              Provide a reason for rejecting{' '}
-              <strong className="text-slate-200">{rejectDialog.fullName || rejectDialog.studentId}</strong>.
-            </p>
-            <form className="mt-5 space-y-4" onSubmit={onRejectSubmit}>
-              <div>
-                <label htmlFor="reject-reason" className="mb-1.5 block text-[0.8rem] font-medium text-slate-300">
-                  Reason
-                </label>
-                <input
-                  id="reject-reason"
-                  className="admin-input"
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Example: Face verification images are incomplete"
-                  required
-                />
-              </div>
-
-              {rejectError ? (
-                <p className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] px-3 py-2 text-[0.82rem] text-rose-300">
-                  {rejectError}
-                </p>
-              ) : null}
-
-              <div className="mt-2 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  className="admin-btn-ghost"
-                  onClick={() => setRejectDialog(null)}
-                  disabled={actionKey === `reject:${rejectDialog.studentId}`}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="admin-btn-danger"
-                  disabled={actionKey === `reject:${rejectDialog.studentId}`}
-                >
-                  {actionKey === `reject:${rejectDialog.studentId}` ? (
-                    <>
-                      <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-rose-400/60" />
-                      Rejecting…
-                    </>
-                  ) : (
-                    'Confirm Reject'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <EnrollmentDetailsPanel
+        studentId={selectedStudentId}
+        onClose={() => setSelectedStudentId(null)}
+        onApprove={onApprove}
+        onReject={onReject}
+        isProcessing={actionKey !== null}
+      />
     </div>
   );
 }
@@ -450,7 +339,7 @@ function MetricCard({
   tone = 'default',
 }: {
   title: string;
-  value: number;
+  value: number | string;
   tone?: 'default' | 'pending' | 'approved' | 'rejected';
 }) {
   const valueClass =
@@ -460,7 +349,7 @@ function MetricCard({
     'text-white';
 
   return (
-    <div className="admin-surface px-6 py-5">
+    <div className="admin-surface px-6 py-5 border border-slate-800">
       <p className="text-[0.78rem] font-medium uppercase tracking-widest text-slate-500">{title}</p>
       <p className={cn('mt-1.5 text-3xl font-semibold tracking-tight', valueClass)}>{value}</p>
     </div>

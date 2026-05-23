@@ -157,9 +157,7 @@ export function ApprovedEnrollmentsView() {
     <div className="grid gap-5">
       {/* Main card */}
       <div className="admin-surface relative overflow-hidden">
-        <div aria-hidden="true" className="pointer-events-none absolute top-0 inset-x-8 h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-
-        <div className="flex flex-col gap-4 border-b border-white/[0.05] px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-white/[0.03] px-7 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-[0.95rem] font-semibold text-white">Approved Enrollment Management</h2>
             <p className="mt-0.5 text-[0.82rem] text-slate-400">
@@ -194,101 +192,93 @@ export function ApprovedEnrollmentsView() {
           ) : null}
 
           {!error && rows.length === 0 ? (
-            <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-8 text-center text-[0.85rem] text-slate-500">
+            <div className="rounded-2xl border border-white/[0.03] bg-white/[0.01] p-12 text-center text-[0.85rem] text-slate-500">
               No approved or processed enrollments found.
             </div>
           ) : null}
 
           {!error && rows.length > 0 ? (
-            <div className="overflow-x-auto rounded-xl border border-white/[0.07]">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-white/[0.05] bg-white/[0.02]">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-[0.7rem] font-medium uppercase tracking-widest text-slate-500">Student</th>
-                    <th className="px-4 py-3 text-left text-[0.7rem] font-medium uppercase tracking-widest text-slate-500">Contact</th>
-                    <th className="px-4 py-3 text-left text-[0.7rem] font-medium uppercase tracking-widest text-slate-500">Updated</th>
-                    <th className="px-4 py-3 text-left text-[0.7rem] font-medium uppercase tracking-widest text-slate-500">Processing</th>
-                    <th className="px-4 py-3 text-left text-[0.7rem] font-medium uppercase tracking-widest text-slate-500">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((item) => {
-                    const resetKey = `reset:${item.student_id}`;
-                    const processKey = `process:${item.student_id}`;
-                    const rowBusy = actionKey === resetKey || actionKey === processKey;
-                    const processingState = item.processing_state;
-                    const isProcessed = processingState === 'processed';
-                    const isProcessingFailed = processingState === 'processing_failed';
-                    const needsProcessing = processingState === 'needs_processing';
-                    const canProcess = needsProcessing || isProcessingFailed;
+            <div className="flex flex-col gap-3">
+              {rows.map((item) => {
+                const resetKey = `reset:${item.student_id}`;
+                const processKey = `process:${item.student_id}`;
+                const rowBusy = actionKey === resetKey || actionKey === processKey;
+                const processingState = item.processing_state;
+                const isProcessed = processingState === 'processed';
+                const isProcessingFailed = processingState === 'processing_failed';
+                const needsProcessing = processingState === 'needs_processing';
+                const canProcess = needsProcessing || isProcessingFailed;
 
-                    return (
-                      <tr key={item.student_id} className="admin-table-row border-b border-white/[0.04] align-top last:border-0">
-                        <td className="px-4 py-3.5">
-                          <p className="font-medium text-slate-100">{item.full_name || '-'}</p>
-                          <p className="text-[0.75rem] text-slate-500">ID: {item.student_id}</p>
-                        </td>
-                        <td className="px-4 py-3.5 text-[0.8rem] text-slate-500">
-                          <p>{item.university_email || '-'}</p>
-                          <p>{item.phone || '-'}</p>
-                        </td>
-                        <td className="px-4 py-3.5 text-[0.8rem] text-slate-500">
-                          <p>{formatDate(item.updated_at || item.created_at)}</p>
-                          <p>{item.updated_at ? `Created: ${formatDate(item.created_at)}` : ''}</p>
-                        </td>
-                        <td className="px-4 py-3.5">
-                          {isProcessed ? (
-                            <span className="admin-badge admin-badge-approved">
-                              <CheckCircle2 className="size-3" />
-                              Processed
-                            </span>
-                          ) : isProcessingFailed ? (
-                            <span className="admin-badge admin-badge-rejected">Processing failed</span>
-                          ) : needsProcessing ? (
-                            <span className="admin-badge admin-badge-pending">Needs processing</span>
-                          ) : (
-                            <span className="text-[0.75rem] text-slate-600">Not applicable</span>
-                          )}
-                          {item.last_processing_message ? (
-                            <p className="mt-1.5 max-w-xs text-[0.72rem] text-slate-500">
-                              {item.last_processing_message}
-                            </p>
-                          ) : null}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <button
-                              type="button"
-                              className="admin-btn-primary"
-                              onClick={() => onProcess(item)}
-                              disabled={rowBusy || !canProcess}
-                            >
-                              {actionKey === processKey ? (
-                                <div className="size-3.5 animate-spin rounded-full border-2 border-white/10 border-t-white/60" />
-                              ) : null}
-                              {isProcessingFailed ? 'Retry Process' : isProcessed ? 'Processed' : 'Process'}
-                            </button>
+                return (
+                  <div key={item.student_id} className="group relative flex flex-col gap-5 rounded-[1.25rem] border border-white/[0.03] bg-white/[0.01] p-5 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
+                    
+                    {/* Identity Block */}
+                    <div className="flex flex-col gap-1.5 sm:w-1/3">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <p className="text-[0.95rem] font-semibold tracking-tight text-slate-100">{item.full_name || 'Unknown User'}</p>
+                        <span className="rounded-full border border-white/[0.05] bg-white/[0.03] px-2 py-0.5 text-[0.65rem] font-mono tracking-wide text-slate-400">
+                          {item.student_id}
+                        </span>
+                      </div>
+                      <p className="text-[0.8rem] text-slate-400">{item.university_email || 'No email provided'}</p>
+                      {item.phone && <p className="text-[0.75rem] text-slate-500">{item.phone}</p>}
+                    </div>
 
-                            {isSuperAdmin ? (
-                              <button
-                                type="button"
-                                className="admin-btn-danger"
-                                onClick={() => setResetDialog({ studentId: item.student_id, fullName: item.full_name })}
-                                disabled={rowBusy}
-                              >
-                                <Undo2 className="size-3.5" />
-                                Reset
-                              </button>
-                            ) : (
-                              <span className="text-[0.75rem] text-slate-600">Reset not allowed</span>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    {/* Processing Summary */}
+                    <div className="flex flex-col gap-2.5 sm:w-1/3">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-medium tracking-wide",
+                          isProcessed
+                            ? "border-emerald-500/10 bg-emerald-500/[0.05] text-emerald-400"
+                            : isProcessingFailed
+                            ? "border-rose-500/10 bg-rose-500/[0.05] text-rose-400"
+                            : needsProcessing
+                            ? "border-amber-500/10 bg-amber-500/[0.05] text-amber-400"
+                            : "border-slate-500/10 bg-slate-500/[0.05] text-slate-400"
+                        )}>
+                          {isProcessed && <CheckCircle2 className="size-3" />}
+                          {isProcessingFailed && <ShieldAlert className="size-3" />}
+                          {needsProcessing && <span className="size-1.5 animate-pulse rounded-full bg-amber-400" />}
+                          {isProcessed ? 'Processed' : isProcessingFailed ? 'Processing Failed' : needsProcessing ? 'Needs Processing' : 'Not Applicable'}
+                        </span>
+                      </div>
+                      {item.last_processing_message ? (
+                        <p className="max-w-xs text-[0.72rem] text-slate-500">{item.last_processing_message}</p>
+                      ) : null}
+                      <p className="text-[0.7rem] text-slate-500">Updated: {formatDate(item.updated_at || item.created_at)}</p>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+                      {isSuperAdmin ? (
+                        <button
+                          type="button"
+                          className="admin-btn-ghost hover:text-rose-300"
+                          onClick={() => setResetDialog({ studentId: item.student_id, fullName: item.full_name })}
+                          disabled={rowBusy}
+                        >
+                          <Undo2 className="size-3.5" />
+                          Reset
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="admin-btn-primary"
+                        onClick={() => onProcess(item)}
+                        disabled={rowBusy || !canProcess}
+                      >
+                        {actionKey === processKey ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCw className="size-3.5" />
+                        )}
+                        {isProcessingFailed ? 'Retry Process' : isProcessed ? 'Processed' : 'Process'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
         </div>
@@ -327,7 +317,7 @@ export function ApprovedEnrollmentsView() {
               >
                 {actionKey === `reset:${resetDialog.studentId}` ? (
                   <>
-                    <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-rose-400/60" />
+                    <Loader2 className="size-4 animate-spin" />
                     Resetting…
                   </>
                 ) : (

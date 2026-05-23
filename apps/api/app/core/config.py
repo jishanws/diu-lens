@@ -120,7 +120,11 @@ def _get_env(name: str, default: str) -> str:
 
 def _get_allowed_origins(environment: str) -> list[str]:
     origins = _parse_origins(os.getenv("ALLOWED_ORIGINS", ""))
-    origins = [*origins, *_LOCAL_FRONTEND_ORIGINS, *_PRODUCTION_FRONTEND_ORIGINS]
+    
+    if environment == "development":
+        origins = [*origins, *_LOCAL_FRONTEND_ORIGINS, *_PRODUCTION_FRONTEND_ORIGINS]
+    else:
+        origins = [*origins, *_PRODUCTION_FRONTEND_ORIGINS]
 
     unique_origins = list(dict.fromkeys(origins))
     if unique_origins:
@@ -153,6 +157,9 @@ class Settings:
     bootstrap_admin_password: str | None
     bootstrap_admin_full_name: str | None
     redis_url: str
+    enrollment_min_blur_variance: float
+    enrollment_min_brightness: float
+    enrollment_min_face_area_ratio: float
 
 
 _environment = _get_env("APP_ENV", "development").lower()
@@ -217,4 +224,7 @@ settings = Settings(
     bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD"),
     bootstrap_admin_full_name=os.getenv("BOOTSTRAP_ADMIN_FULL_NAME"),
     redis_url=_redis_url,
+    enrollment_min_blur_variance=float(os.getenv("ENROLLMENT_MIN_BLUR_VARIANCE", "30.0")),
+    enrollment_min_brightness=float(os.getenv("ENROLLMENT_MIN_BRIGHTNESS", "40.0")),
+    enrollment_min_face_area_ratio=float(os.getenv("ENROLLMENT_MIN_FACE_AREA_RATIO", "0.08")),
 )

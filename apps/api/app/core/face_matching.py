@@ -98,20 +98,25 @@ def generate_query_features(
 ) -> dict[str, Any]:
     """Generate query embedding and optional probe diagnostics."""
     try:
+        logger.info("[recognition] Extracting query face features (size: %d bytes)", len(image_bytes))
         features = extract_query_face_features(
             image_bytes,
             storage=get_storage_service() if debug else None,
             save_debug_crop=debug,
             probe_label=probe_label,
         )
+        logger.info("[recognition] Feature extraction successful, face_detection_confidence: %s", features.get("face_detection_confidence"))
     except FacePipelineError as exc:
+        logger.error("[recognition] Feature extraction failed: %s", exc)
         raise FaceMatchingError(str(exc)) from exc
 
     embedding = features.get("embedding")
     if not isinstance(embedding, list):
+        logger.error("[recognition] Embedding is not a list.")
         raise FaceMatchingError("Query embedding generation failed.")
 
     if len(embedding) != EMBEDDING_DIMENSION:
+        logger.error("[recognition] Embedding dimension mismatch. Expected %d, got %d", EMBEDDING_DIMENSION, len(embedding))
         raise FaceMatchingError(
             f"Query embedding dimension mismatch: expected {EMBEDDING_DIMENSION}, got {len(embedding)}."
         )
@@ -360,8 +365,23 @@ def aggregate_student_candidates(
         )
         row["rank_gap_to_next"] = rank_gap
 
+    valid_scored = []
+    for row in scored:
+        similarity = max(0.0, min(100.0, (1.0 - float(row["best_distance"])) * 100.0))
+        if similarity >= 25.0:
+            valid_scored.append((similarity, row))
+
+    if len(valid_scored) > 1:
+        top1_sim = valid_scored[0][0]
+        top2_sim = valid_scored[1][0]
+        if top1_sim - top2_sim > 15.0:
+            valid_scored = [valid_scored[0]]
+
+    resolved_limit = min(top_k, 3)
+    valid_scored = valid_scored[:resolved_limit]
+
     candidates: list[dict[str, Any]] = []
-    for index, row in enumerate(scored[:top_k], start=1):
+    for index, (similarity, row) in enumerate(valid_scored, start=1):
         best_distance = float(row["best_distance"])
         top_avg_distance = float(row["top_avg_distance"])
         best_compatible_distance_raw = row.get("best_compatible_distance")
@@ -389,35 +409,24 @@ def aggregate_student_candidates(
             float(rank_gap_to_next_raw) if rank_gap_to_next_raw is not None else None
         )
 
-        best_distance_ok = best_distance <= STRICT_BEST_DISTANCE_MAX
-        top_avg_distance_ok = top_avg_distance <= STRICT_TOP_AVG_DISTANCE_MAX
-        support_count_ok = support_count >= STRICT_SUPPORT_COUNT_MIN
-        is_likely_match = best_distance_ok and top_avg_distance_ok and support_count_ok
+        similarity = max(0.0, min(100.0, (1.0 - best_distance) * 100.0))
 
-        classification = "rejected"
-        if is_likely_match:
-            classification = "strong_match"
-        elif best_distance_ok:
+        if similarity >= 75.0:
+            classification = "high_confidence"
+        elif similarity >= 55.0:
+            classification = "likely_match"
+        elif similarity >= 35.0:
             classification = "possible_match"
+        else:
+            classification = "low_confidence"
 
-        decision_reasons: list[str] = []
-        if not best_distance_ok:
+        is_likely_match = classification in ("high_confidence", "likely_match")
+
+        decision_reasons: list[str] = [f"similarity_score={similarity:.1f}%"]
+        if support_count < STRICT_SUPPORT_COUNT_MIN:
             decision_reasons.append(
-                "best_distance_above_limit"
-                f"({best_distance:.4f}>{STRICT_BEST_DISTANCE_MAX:.4f})"
+                f"support_count_below_min({support_count}<{STRICT_SUPPORT_COUNT_MIN})"
             )
-        if not top_avg_distance_ok:
-            decision_reasons.append(
-                "top_avg_distance_above_limit"
-                f"({top_avg_distance:.4f}>{STRICT_TOP_AVG_DISTANCE_MAX:.4f})"
-            )
-        if not support_count_ok:
-            decision_reasons.append(
-                "support_count_below_min"
-                f"({support_count}<{STRICT_SUPPORT_COUNT_MIN})"
-            )
-        if not decision_reasons:
-            decision_reasons.append("all_strict_conditions_satisfied")
 
         candidates.append(
             {
@@ -510,12 +519,12 @@ def match_face_probe(
     strong_candidates = [
         candidate
         for candidate in ranked_candidates
-        if str(candidate.get("classification")) == "strong_match"
+        if candidate.get("is_likely_match")
     ]
     weak_candidates = [
         candidate
         for candidate in ranked_candidates
-        if str(candidate.get("classification")) != "strong_match"
+        if not candidate.get("is_likely_match")
     ]
     match_found = len(strong_candidates) > 0
 
