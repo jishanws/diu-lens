@@ -85,7 +85,7 @@ export default function AdminLoginPage() {
                   placeholder="admin@diulens.app"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-4 text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
+                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-4 text-[16px] sm:text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
                 />
               </div>
             </div>
@@ -105,7 +105,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-12 text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
+                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-12 text-[16px] sm:text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
                 />
                 <button
                   type="button"

@@ -56,7 +56,7 @@ export function StudentIdStep({
             name="student-id"
             placeholder="222-15-6001"
             autoComplete="off"
-            inputMode="text"
+            inputMode="tel"
             value={studentId}
             onChange={(event) => onStudentIdChange(event.target.value)}
             disabled={isValidating}

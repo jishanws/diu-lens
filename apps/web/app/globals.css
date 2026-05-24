@@ -144,10 +144,12 @@
     @apply font-sans;
     color-scheme: dark;
     scroll-behavior: smooth;
+    overscroll-behavior-y: none;
   }
 
   body {
     @apply bg-background text-foreground selection:bg-primary/20 transition-colors duration-150;
+    min-height: 100dvh;
   }
   h1,
   h2,
@@ -380,20 +382,27 @@
   }
 
   .landing-form-input {
-    height: 2.72rem;
+    height: 3rem;
     border-radius: 0.75rem;
     border-color: var(--landing-input-border);
     background: var(--landing-input-bg);
     color: var(--landing-input-text);
     padding-left: 1rem;
     padding-right: 1rem;
-    font-size: 0.9rem;
-    line-height: 1.22rem;
+    font-size: 16px;
+    line-height: 1.25rem;
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease,
       background-color 180ms ease;
     box-shadow: var(--landing-input-inset-shadow);
+  }
+
+  @media (min-width: 640px) {
+    .landing-form-input {
+      height: 2.75rem;
+      font-size: 0.9rem;
+    }
   }
 
   .landing-form-input::placeholder {

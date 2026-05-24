@@ -446,7 +446,7 @@ export function RecognitionView() {
                 <label htmlFor="top-k" className="mb-1.5 block text-[0.65rem] font-medium uppercase tracking-wider text-slate-500">top_k matches</label>
                 <input
                   id="top-k"
-                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
+                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
                   type="number"
                   min={1}
                   step={1}
@@ -459,7 +459,7 @@ export function RecognitionView() {
                 <label htmlFor="threshold" className="mb-1.5 block text-[0.65rem] font-medium uppercase tracking-wider text-slate-500">distance threshold</label>
                 <input
                   id="threshold"
-                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
+                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
                   type="number"
                   min={0.0001}
                   step={0.01}
