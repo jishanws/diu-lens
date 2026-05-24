@@ -166,7 +166,7 @@ export function ApprovedEnrollmentsView() {
           </div>
           <button
             type="button"
-            className="admin-btn-ghost w-full sm:w-auto"
+            className="admin-btn-ghost w-full sm:w-auto min-h-[44px]"
             onClick={() => loadApproved(false)}
             disabled={isRefreshing || actionKey !== null}
           >
@@ -220,8 +220,8 @@ export function ApprovedEnrollmentsView() {
                           {item.student_id}
                         </span>
                       </div>
-                      <p className="text-[0.8rem] text-slate-400">{item.university_email || 'No email provided'}</p>
-                      {item.phone && <p className="text-[0.75rem] text-slate-500">{item.phone}</p>}
+                      <p className="text-[0.8rem] text-slate-400 hidden sm:block">{item.university_email || 'No email provided'}</p>
+                      {item.phone && <p className="text-[0.75rem] text-slate-500 hidden sm:block">{item.phone}</p>}
                     </div>
 
                     {/* Processing Summary */}
@@ -254,7 +254,7 @@ export function ApprovedEnrollmentsView() {
                       {isSuperAdmin ? (
                         <button
                           type="button"
-                          className="admin-btn-ghost hover:text-rose-300"
+                          className="admin-btn-ghost hover:text-rose-300 min-h-[44px] flex-1 sm:flex-none justify-center"
                           onClick={() => setResetDialog({ studentId: item.student_id, fullName: item.full_name })}
                           disabled={rowBusy}
                         >
@@ -264,7 +264,7 @@ export function ApprovedEnrollmentsView() {
                       ) : null}
                       <button
                         type="button"
-                        className="admin-btn-primary"
+                        className="admin-btn-primary min-h-[44px] flex-[2] sm:flex-none justify-center"
                         onClick={() => onProcess(item)}
                         disabled={rowBusy || !canProcess}
                       >
@@ -303,7 +303,7 @@ export function ApprovedEnrollmentsView() {
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button
                 type="button"
-                className="admin-btn-ghost"
+                className="admin-btn-ghost min-h-[44px]"
                 onClick={() => setResetDialog(null)}
                 disabled={actionKey === `reset:${resetDialog.studentId}`}
               >
@@ -311,7 +311,7 @@ export function ApprovedEnrollmentsView() {
               </button>
               <button
                 type="button"
-                className="admin-btn-danger"
+                className="admin-btn-danger min-h-[44px]"
                 onClick={onResetConfirm}
                 disabled={actionKey === `reset:${resetDialog.studentId}`}
               >

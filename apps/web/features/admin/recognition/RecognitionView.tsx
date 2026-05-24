@@ -104,26 +104,26 @@ function CandidateCard({
           <span className="font-mono text-slate-400">{candidate.student_id}</span>
           {candidate.university_email && (
             <>
-              <span className="size-1 rounded-full bg-white/10" />
-              <span>{candidate.university_email}</span>
+              <span className="hidden sm:block size-1 rounded-full bg-white/10" />
+              <span className="hidden sm:block">{candidate.university_email}</span>
             </>
           )}
           {candidate.phone && (
             <>
-              <span className="size-1 rounded-full bg-white/10" />
-              <span>{candidate.phone}</span>
+              <span className="hidden sm:block size-1 rounded-full bg-white/10" />
+              <span className="hidden sm:block">{candidate.phone}</span>
             </>
           )}
         </div>
         <div className={cn("mt-1 flex flex-wrap items-center gap-2 text-[0.65rem] text-slate-500", isOnlyCandidate && "justify-center")}>
-           <span className="uppercase tracking-widest">Support:</span>
+           <span className="uppercase tracking-widest hidden sm:inline">Support:</span>
            <span className="font-medium text-slate-400">{candidate.support_count} frames</span>
            <span className="size-1 rounded-full bg-white/10" />
-           <span className="uppercase tracking-widest">Angles:</span>
-           <span className="font-medium text-slate-400">{candidate.matched_angles.length}</span>
-           <span className="size-1 rounded-full bg-white/10" />
-           <span className="uppercase tracking-widest">Top-3 Dist:</span>
-           <span className="font-medium text-slate-400">{formatDistance(candidate.top_avg_distance)}</span>
+           <span className="uppercase tracking-widest hidden sm:inline">Angles:</span>
+           <span className="font-medium text-slate-400">{candidate.matched_angles.length} <span className="sm:hidden">angles</span></span>
+           <span className="size-1 rounded-full bg-white/10 hidden sm:block" />
+           <span className="uppercase tracking-widest hidden sm:inline">Top-3 Dist:</span>
+           <span className="font-medium text-slate-400 hidden sm:inline">{formatDistance(candidate.top_avg_distance)}</span>
         </div>
       </div>
 
@@ -308,7 +308,7 @@ export function RecognitionView() {
   }, [allCandidates, currentPage, pageSize]);
 
   return (
-    <div className="flex min-h-[calc(100vh-10rem)] flex-col gap-8 lg:flex-row">
+    <div className="flex flex-col gap-6 lg:flex-row lg:gap-8 pb-[env(safe-area-inset-bottom)]">
       
       {/* ── Left Column: Upload Hero & Actions ─────────────────────────────────── */}
       <div className="flex w-full shrink-0 flex-col gap-6 lg:w-[360px] xl:w-[400px]">
@@ -411,23 +411,23 @@ export function RecognitionView() {
             disabled={!hasImage || isMatching}
             onClick={() => { void runMatch(); }}
             className={cn(
-              "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl p-4 transition-all duration-300",
+              "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl p-4 min-h-[56px] transition-all duration-300",
               !hasImage 
                 ? "cursor-not-allowed border border-white/[0.04] bg-white/[0.02] text-slate-500" 
                 : isMatching
                 ? "cursor-wait border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_-5px_rgba(34,211,238,0.2)]"
-                : "border border-cyan-500/30 bg-gradient-to-b from-cyan-600 to-cyan-800 text-white shadow-[0_0_25px_-5px_rgba(34,211,238,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] hover:from-cyan-500 hover:to-cyan-700 hover:shadow-[0_0_35px_-5px_rgba(34,211,238,0.4)]"
+                : "border border-cyan-500/30 bg-gradient-to-b from-cyan-600 to-cyan-800 text-white shadow-[0_0_25px_-5px_rgba(34,211,238,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] hover:from-cyan-500 hover:to-cyan-700 hover:shadow-[0_0_35px_-5px_rgba(34,211,238,0.4)] active:scale-[0.98]"
             )}
           >
             {isMatching ? (
               <>
-                <Loader2 className="size-4 animate-spin" />
-                <span className="text-[0.95rem] font-medium tracking-wide">Scanning Identity Database...</span>
+                <Loader2 className="size-5 animate-spin" />
+                <span className="text-[1rem] font-medium tracking-wide">Scanning Identity Database...</span>
               </>
             ) : (
               <>
-                <Search className="size-4" />
-                <span className="text-[0.95rem] font-medium tracking-wide">Initiate Recognition</span>
+                <Search className="size-5" />
+                <span className="text-[1rem] font-medium tracking-wide">Initiate Recognition</span>
                 {hasImage && (
                   <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 ease-in-out group-hover:translate-x-full" />
                 )}
@@ -474,10 +474,10 @@ export function RecognitionView() {
       </div>
 
       {/* ── Right Column: Live Results Workspace ───────────────────────────────── */}
-      <div className="flex min-h-[600px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.75rem] border border-white/[0.03] bg-white/[0.01] lg:min-w-[500px]">
+      <div className="flex min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.5rem] lg:rounded-[1.75rem] border border-white/[0.03] bg-white/[0.01] lg:min-w-[500px]">
         
         {/* Workspace Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-white/[0.03] bg-white/[0.01] px-7 py-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.03] bg-white/[0.01] px-5 sm:px-7 py-4 sm:py-5">
           <h3 className="text-[0.9rem] font-medium text-slate-200">Intelligence Workspace</h3>
           <div className="flex items-center gap-2 rounded-full border border-cyan-500/10 bg-cyan-500/[0.02] px-3 py-1.5">
             <ShieldAlert className="size-3.5 text-cyan-500/70" />
@@ -607,18 +607,18 @@ export function RecognitionView() {
                   <span className="text-[0.75rem] text-slate-500">
                     Showing <strong className="text-slate-300">{((currentPage - 1) * pageSize) + 1}</strong> to <strong className="text-slate-300">{Math.min(currentPage * pageSize, allCandidates.length)}</strong> of <strong className="text-slate-300">{allCandidates.length}</strong>
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="admin-btn-ghost px-4 py-2 text-[0.75rem]"
+                      className="admin-btn-ghost px-4 py-2 text-[0.75rem] min-h-[44px]"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
-                      className="admin-btn-ghost px-4 py-2 text-[0.75rem]"
+                      className="admin-btn-ghost px-4 py-2 text-[0.75rem] min-h-[44px]"
                     >
                       Next
                     </button>

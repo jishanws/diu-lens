@@ -199,7 +199,7 @@ export function EnrollmentsView() {
           </div>
           <button
             type="button"
-            className="admin-btn-ghost w-full sm:w-auto"
+            className="admin-btn-ghost w-full sm:w-auto min-h-[44px]"
             onClick={() => loadData(false)}
             disabled={isRefreshing || actionKey !== null}
           >
@@ -239,7 +239,7 @@ export function EnrollmentsView() {
                             {item.student_id}
                           </span>
                         </div>
-                        <p className="text-[0.8rem] text-slate-400">{item.university_email || 'No email provided'}</p>
+                        <p className="text-[0.8rem] text-slate-400 hidden sm:block">{item.university_email || 'No email provided'}</p>
                       </div>
 
                       {/* Verification Summary */}
@@ -262,7 +262,7 @@ export function EnrollmentsView() {
                       <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
                         <button
                           type="button"
-                          className="admin-btn-primary"
+                          className="admin-btn-primary min-h-[44px] w-full sm:w-auto justify-center"
                           onClick={() => setSelectedStudentId(item.student_id)}
                         >
                           <Eye className="size-3.5" />
@@ -285,7 +285,7 @@ export function EnrollmentsView() {
                       type="button"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className="admin-btn-ghost h-8 rounded-full px-3 text-[0.75rem] disabled:opacity-30"
+                      className="admin-btn-ghost h-11 rounded-full px-4 text-[0.75rem] disabled:opacity-30"
                     >
                       Prev
                     </button>
@@ -296,7 +296,7 @@ export function EnrollmentsView() {
                           type="button"
                           onClick={() => setCurrentPage(page)}
                           className={cn(
-                            'flex size-8 items-center justify-center rounded-full text-[0.75rem] font-medium transition-all',
+                            'flex size-11 sm:size-8 items-center justify-center rounded-full text-[0.75rem] font-medium transition-all',
                             currentPage === page
                               ? 'bg-cyan-500/[0.15] text-cyan-300 shadow-[0_0_12px_-3px_rgba(34,211,238,0.4)] border border-cyan-500/30'
                               : 'text-slate-500 hover:bg-white/[0.06] hover:text-slate-300'
@@ -310,7 +310,7 @@ export function EnrollmentsView() {
                       type="button"
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      className="admin-btn-ghost h-8 rounded-full px-3 text-[0.75rem] disabled:opacity-30"
+                      className="admin-btn-ghost h-11 rounded-full px-4 text-[0.75rem] disabled:opacity-30"
                     >
                       Next
                     </button>
