@@ -19,6 +19,7 @@ import type {
   CapturedShot,
   CapturedShotsByAngle,
   FaceCaptureState,
+  CaptureFeedback,
 } from '@/features/registration/capture/types';
 import type {
   VerificationAngle,
