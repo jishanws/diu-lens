@@ -17,7 +17,7 @@ RUN pnpm install --filter web...
 
 # Copy source
 COPY apps/web ./apps/web
-COPY packages ./packages
+RUN mkdir -p ./packages
 
 # Build
 ENV NEXT_TELEMETRY_DISABLED=1
