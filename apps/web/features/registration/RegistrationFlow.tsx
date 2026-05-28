@@ -10,6 +10,7 @@ import {
   submitEnrollment,
   submitEnrollmentCompletion,
   validateStudentId,
+  normalizeStudentId,
 } from '@/features/registration/api';
 import { RegistrationShell } from '@/features/registration/RegistrationShell';
 import { AlreadyRegisteredPanel } from '@/features/registration/steps/AlreadyRegisteredPanel';
@@ -120,8 +121,21 @@ export function RegistrationFlow({
    * Step 1 — Validate student ID before advancing.
    * Prevents users from wasting time on Basic Info if the ID is invalid.
    */
+  // Reset validation state when student ID changes.
+  const handleStudentIdChange = useCallback(
+    (value: string) => {
+      setValues((prev) => ({ ...prev, studentId: value }));
+      // If the user edits the ID, clear previous validation result.
+      if (validationState.status !== 'idle' && validationState.status !== 'validating') {
+        setValidationState({ status: 'idle' });
+        validatedStudentIdRef.current = null;
+      }
+    },
+    [validationState.status]
+  );
+
   const handleStudentIdContinue = useCallback(async () => {
-    const rawId = values.studentId.trim();
+    const rawId = normalizeStudentId(values.studentId);
     if (!rawId) return;
 
     // Already validated this exact ID — skip the round-trip.
@@ -129,30 +143,25 @@ export function RegistrationFlow({
       validationState.status === 'valid' &&
       validatedStudentIdRef.current === rawId
     ) {
-      console.log('[validate-id] already valid, advancing', { studentId: rawId });
       setActiveStep(1);
       return;
     }
 
     setValidationState({ status: 'validating' });
-    console.log('[validate-id] starting validation', { studentId: rawId });
 
     const result = await validateStudentId(rawId);
 
     if (result.valid) {
-      console.log('[validate-id] passed — advancing to basic info');
       validatedStudentIdRef.current = rawId;
       setValidationState({ status: 'valid' });
       // Brief delay so the user sees the green check before the step animates.
       window.setTimeout(() => setActiveStep(1), 220);
     } else if (result.reason === 'already_registered') {
       // Don't treat this as an error — show the premium already-enrolled state.
-      console.log('[validate-id] already_registered — showing AlreadyRegisteredPanel', { studentId: rawId, name: result.studentName });
       setValidationState({ status: 'idle' });
       setAlreadyRegistered(true);
       setAlreadyRegisteredName(result.studentName);
     } else {
-      console.warn('[validate-id] failed', { reason: result.reason });
       validatedStudentIdRef.current = null;
       setValidationState({ status: 'invalid', reason: result.message });
     }
@@ -321,15 +330,7 @@ export function RegistrationFlow({
       return (
         <StudentIdStep
           studentId={values.studentId}
-          onStudentIdChange={(value) => {
-              // Reset validation state whenever the user edits the ID.
-              setValidationState({ status: 'idle' });
-              validatedStudentIdRef.current = null;
-              setValues((current) => ({
-                ...current,
-                studentId: value.replace(/[^0-9-]/g, ''),
-              }));
-            }}
+          onStudentIdChange={handleStudentIdChange}
           onContinue={() => { void handleStudentIdContinue(); }}
           validationState={validationState}
         />
@@ -373,6 +374,7 @@ export function RegistrationFlow({
     alreadyRegisteredName,
     basicInfoError,
     handleDone,
+    handleStudentIdChange,
     handleStudentIdContinue,
     handleVerificationComplete,
     handleBasicInfoContinue,

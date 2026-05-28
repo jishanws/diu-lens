@@ -5,10 +5,9 @@ import type {
 } from '@/features/registration/verification/types';
 import {
   guidedAngles,
-  captureAngles,
   getRequiredFramesForAngle,
 } from '@/features/registration/capture/constants';
-import { request } from '@/lib/api';
+import { request, ApiConfigError } from '@/lib/api';
 
 // ─── Student ID Validation ─────────────────────────────────────────────────
 
@@ -16,33 +15,72 @@ export type StudentIdValidationResult =
   | { valid: true }
   | {
       valid: false;
-      reason: 'already_registered' | 'invalid_format' | 'network_error' | 'unknown';
+      reason: 'already_registered' | 'invalid_format' | 'service_unavailable' | 'network_error' | 'unknown';
       message: string;
       studentName?: string;
     };
 
 const REASON_MESSAGES: Record<string, string> = {
   already_registered: 'This student ID is already enrolled.',
-  invalid_format: 'Invalid student ID. Only numbers are allowed.',
+  invalid_format: 'Invalid student ID format. Please use your numeric university ID (e.g. 222-15-6001).',
 };
+
+/**
+ * Student ID format: digits and hyphens only (e.g., "222-15-6001").
+ * Matches the backend pattern `^[\d-]+$` with a minimum length of 3.
+ */
+const STUDENT_ID_FORMAT = /^[\d-]+$/;
+const STUDENT_ID_MIN_LENGTH = 3;
+
+/**
+ * Normalize a student ID by trimming whitespace.
+ * Hyphens are preserved — the backend pattern allows `[\d-]+`.
+ */
+export function normalizeStudentId(raw: string): string {
+  return raw.trim();
+}
+
+/**
+ * Quick client-side format check that mirrors the backend regex.
+ * Returns a user-friendly message on failure, or `null` when valid.
+ */
+export function checkStudentIdFormat(id: string): string | null {
+  if (id.length < STUDENT_ID_MIN_LENGTH) {
+    return 'Student ID is too short.';
+  }
+  if (!STUDENT_ID_FORMAT.test(id)) {
+    return 'Invalid student ID format. Only numbers and hyphens are allowed.';
+  }
+  return null;
+}
 
 /**
  * Validates a student ID against the backend before the user advances to
  * Basic Info. Read-only probe — no data is written to the DB.
+ *
+ * The function performs a local format check first to avoid unnecessary
+ * network round-trips, then confirms against the backend.
  */
 export async function validateStudentId(
   studentId: string
 ): Promise<StudentIdValidationResult> {
-  console.log('[validate-id] calling POST /enroll/validate-id', { studentId });
+  const normalized = normalizeStudentId(studentId);
+
+  // ── Client-side pre-validation ────────────────────────────────────────
+  const formatError = checkStudentIdFormat(normalized);
+  if (formatError) {
+    return { valid: false, reason: 'invalid_format', message: formatError };
+  }
+
+  // ── Backend validation ────────────────────────────────────────────────
   try {
     const response = await request('/enroll/validate-id', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ student_id: studentId }),
+      body: JSON.stringify({ student_id: normalized }),
     });
 
     const rawText = await response.text();
-    console.log('[validate-id] raw response', { status: response.status, body: rawText });
 
     let parsed: unknown;
     try {
@@ -51,19 +89,38 @@ export async function validateStudentId(
       parsed = null;
     }
 
-    if (response.status >= 500) {
-      console.error('[validate-id] server error', { status: response.status });
+    // ── 404: endpoint unreachable (route mismatch or deployment issue) ──
+    if (response.status === 404) {
       return {
         valid: false,
-        reason: 'network_error',
-        message: 'Server error. Please try again.',
+        reason: 'service_unavailable',
+        message: 'Verification service is temporarily unavailable. Please try again later.',
       };
     }
 
+    // ── 5xx: server error ──────────────────────────────────────────────
+    if (response.status >= 500) {
+      console.error('[validate-id] server error', response.status);
+      return {
+        valid: false,
+        reason: 'service_unavailable',
+        message: 'Something went wrong on our end. Please try again in a moment.',
+      };
+    }
+
+    // ── 429: rate limited ──────────────────────────────────────────────
+    if (response.status === 429) {
+      return {
+        valid: false,
+        reason: 'service_unavailable',
+        message: 'Too many attempts. Please wait a moment and try again.',
+      };
+    }
+
+    // ── Structured JSON response ───────────────────────────────────────
     if (parsed && typeof parsed === 'object') {
       const data = parsed as Record<string, unknown>;
       if (data.valid === true) {
-        console.log('[validate-id] valid');
         return { valid: true };
       }
       if (data.valid === false) {
@@ -77,22 +134,33 @@ export async function validateStudentId(
           studentName = (data.student as Record<string, string>).name;
         }
 
-        console.warn('[validate-id] invalid', { reason, message, studentName });
         return { valid: false, reason: knownReason, message, studentName };
       }
     }
 
+    // ── Unparseable or unexpected response shape ───────────────────────
     return {
       valid: false,
-      reason: 'unknown',
-      message: 'Unexpected response from server. Please try again.',
+      reason: 'service_unavailable',
+      message: 'Verification service returned an unexpected response. Please try again.',
     };
   } catch (error) {
+    // ── API config error (env var missing) ─────────────────────────────
+    if (error instanceof ApiConfigError) {
+      console.error('[validate-id] API configuration error:', error.message);
+      return {
+        valid: false,
+        reason: 'service_unavailable',
+        message: error.message,
+      };
+    }
+
+    // ── Network / fetch failure ────────────────────────────────────────
     console.error('[validate-id] network error', error);
     return {
       valid: false,
       reason: 'network_error',
-      message: 'Unable to reach the server. Check your connection and try again.',
+      message: 'Unable to connect. Please check your internet connection and try again.',
     };
   }
 }
