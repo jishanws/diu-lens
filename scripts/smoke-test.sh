@@ -43,6 +43,20 @@ check_admin_login_wrong_creds() {
   fi
 }
 
+check_validate_id() {
+  echo "Checking /enroll/validate-id..."
+  local status
+  status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API_URL/enroll/validate-id" \
+    -H "Content-Type: application/json" \
+    -d '{"student_id": "000-00-0000"}')
+  if [[ "$status" == "200" ]]; then
+    echo "✅ /enroll/validate-id OK"
+  else
+    echo "❌ /enroll/validate-id failed (expected 200, got $status)"
+    return 1
+  fi
+}
+
 check_rate_limit() {
   echo "Checking rate limiting on /auth/admin/login..."
   for i in {1..6}; do
@@ -62,6 +76,7 @@ check_rate_limit() {
 check_health
 check_root
 check_enroll_start
+check_validate_id
 check_admin_login_wrong_creds
 check_rate_limit
 
