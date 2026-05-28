@@ -36,7 +36,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN groupadd --system --gid 1001 nodejs
-RUN useradd --system --uid 1001 nextjs
+RUN useradd --system --uid 1001 -m nextjs
 
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next ./apps/web/.next
@@ -50,4 +50,4 @@ EXPOSE 3000
 ENV PORT=3000
 
 WORKDIR /app/apps/web
-CMD ["npx", "next", "start"]
+CMD ["../node_modules/.bin/next", "start"]
