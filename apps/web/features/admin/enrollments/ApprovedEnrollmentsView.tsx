@@ -147,7 +147,7 @@ export function ApprovedEnrollmentsView() {
   if (isLoading) {
     return (
       <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-slate-500">
-        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400/60" />
+        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-[#8BB8D0]/60" />
         Loading approved enrollments…
       </div>
     );
@@ -230,7 +230,7 @@ export function ApprovedEnrollmentsView() {
                         <span className={cn(
                           "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-medium tracking-wide",
                           isProcessed
-                            ? "border-emerald-500/10 bg-emerald-500/[0.05] text-emerald-400"
+                            ? "border-[#8BB8D0]/10 bg-[#8BB8D0]/[0.05] text-[#8BB8D0]"
                             : isProcessingFailed
                             ? "border-rose-500/10 bg-rose-500/[0.05] text-rose-400"
                             : needsProcessing

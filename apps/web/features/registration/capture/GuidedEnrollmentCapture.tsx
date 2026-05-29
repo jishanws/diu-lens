@@ -42,10 +42,10 @@ function HealthBadge({ label, active }: { label: string; active: boolean }) {
     <div className={cn(
       "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.65rem] font-medium border transition-colors",
       active 
-        ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400" 
+        ? "bg-[#8BB8D0]/10 border-[#8BB8D0]/20 text-[#8BB8D0]" 
         : "bg-white/5 border-white/10 text-slate-500"
     )}>
-      <div className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-emerald-400" : "bg-slate-600")} />
+      <div className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-[#8BB8D0]" : "bg-slate-600")} />
       {label}
     </div>
   );
@@ -391,7 +391,7 @@ export function GuidedEnrollmentCapture({
   return (
     <section className="space-y-3">
       {/* ── Main scan card ──────────────────────────────────────── */}
-      <div className="rounded-[1.15rem] border border-white/[0.07] bg-[#040a14]/95 px-4 py-5 shadow-[0_24px_56px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.2rem] sm:px-5 sm:py-6">
+      <div className="rounded-[1.15rem] border border-white/[0.07] bg-[#14171f]/95 px-4 py-5 shadow-[0_24px_56px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.2rem] sm:px-5 sm:py-6">
         <div className="space-y-5">
 
           {/* STATUS HEADER */}
@@ -399,7 +399,7 @@ export function GuidedEnrollmentCapture({
             <div>
               <p
                 className="mb-[0.2rem] text-[0.63rem] font-semibold tracking-[0.12em] uppercase"
-                style={{ color: 'rgba(59,130,246,0.6)' }}
+                style={{ color: 'rgba(139, 184, 208, 0.7)' }}
               >
                 Face Verification
               </p>
@@ -423,9 +423,9 @@ export function GuidedEnrollmentCapture({
                     className={cn(
                       'rounded-full transition-all duration-300',
                       isDone
-                        ? 'h-[5px] w-[5px] bg-blue-400'
+                        ? 'h-[5px] w-[5px] bg-[#8BB8D0]'
                         : isCurrent
-                          ? 'biometric-dot-active h-[6px] w-[6px] bg-blue-500'
+                          ? 'biometric-dot-active h-[6px] w-[6px] bg-[#7BA8C0]'
                           : 'h-[4px] w-[4px] bg-white/[0.18]'
                     )}
                   />
@@ -443,7 +443,7 @@ export function GuidedEnrollmentCapture({
               className="pointer-events-none absolute -inset-8 rounded-full"
               style={{
                 background:
-                  'radial-gradient(circle, rgba(37,99,235,0.09) 0%, transparent 65%)',
+                  'radial-gradient(circle, rgba(139,184,208,0.09) 0%, transparent 65%)',
               }}
             />
 
@@ -452,7 +452,7 @@ export function GuidedEnrollmentCapture({
               videoRef={mergedVideoRef}
               streamActive={streamActive}
               fallbackMessage={permissionBlocked ? statusText : undefined}
-              className="aspect-square rounded-full shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(37,99,235,0.07),inset_0_0_32px_rgba(0,0,0,0.55)]"
+              className="aspect-square rounded-full shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(139,184,208,0.08),inset_0_0_32px_rgba(0,0,0,0.55)]"
             />
 
             {/* Inner biometric guide ring */}
@@ -472,7 +472,7 @@ export function GuidedEnrollmentCapture({
                   className="biometric-scan-line absolute left-[10%] right-[10%] h-px"
                   style={{
                     background:
-                      'linear-gradient(90deg, transparent 0%, rgba(59,130,246,0.4) 35%, rgba(96,165,250,0.65) 50%, rgba(59,130,246,0.4) 65%, transparent 100%)',
+                      'linear-gradient(90deg, transparent 0%, rgba(139,184,208,0.4) 35%, rgba(160,195,215,0.65) 50%, rgba(139,184,208,0.4) 65%, transparent 100%)',
                   }}
                 />
               </div>
@@ -499,7 +499,7 @@ export function GuidedEnrollmentCapture({
           <div className="min-h-[2.2rem] px-1 text-center">
             <p
               className="text-[0.85rem] leading-[1.5] font-medium transition-colors duration-300"
-              style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(56, 189, 248, 0.9)' : 'rgba(148,163,184,0.9)' }}
+              style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(139, 184, 208, 0.9)' : 'rgba(148,163,184,0.9)' }}
             >
               {statusText}
             </p>
@@ -534,7 +534,7 @@ export function GuidedEnrollmentCapture({
       </div>
 
       {/* ── Submit button row ────────────────────────────────────── */}
-      <div className="flex items-center justify-end rounded-xl border border-white/[0.06] bg-[#04080f]/80 px-4 py-3">
+      <div className="flex items-center justify-end rounded-xl border border-white/[0.06] bg-[#111318]/80 px-4 py-3">
         <Button
           type="button"
           onClick={() => void handleSubmit()}

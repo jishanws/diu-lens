@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useMemo } from 'react';
 import { CheckCircle2, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,11 +33,15 @@ export function MatchDetailView({ candidate }: MatchDetailViewProps) {
           </CardHeader>
           <CardContent>
             {queryImage ? (
-              <img
-                src={queryImage}
-                alt="Query face"
-                className="h-96 w-full rounded-xl border border-border object-cover"
-              />
+              <div className="relative h-96 w-full overflow-hidden rounded-xl border border-border">
+                <Image
+                  src={queryImage}
+                  alt="Query face"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="grid h-96 place-items-center rounded-xl border border-dashed border-border bg-muted/40 text-center text-sm text-muted-foreground">
                 Query image is unavailable in this session.
@@ -51,11 +56,15 @@ export function MatchDetailView({ candidate }: MatchDetailViewProps) {
             <CardDescription className="text-muted-foreground">Top mock candidate details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <img
-              src={candidate.studentImage}
-              alt={candidate.fullName}
-              className="h-64 w-full rounded-xl border border-border object-cover"
-            />
+            <div className="relative h-64 w-full overflow-hidden rounded-xl border border-border">
+              <Image
+                src={candidate.studentImage}
+                alt={candidate.fullName}
+                fill
+                unoptimized
+                className="object-cover"
+              />
+            </div>
 
             <div className="grid gap-2 rounded-xl border border-border bg-muted/35 p-4 text-sm">
               <p><span className="text-muted-foreground">Full Name:</span> {candidate.fullName}</p>
@@ -63,7 +72,7 @@ export function MatchDetailView({ candidate }: MatchDetailViewProps) {
               <p><span className="text-muted-foreground">Department:</span> {candidate.department}</p>
               <p>
                 <span className="text-muted-foreground">Confidence:</span>{' '}
-                <span className="font-medium text-emerald-200">{candidate.confidence.toFixed(1)}%</span>
+                <span className="font-medium text-[#8BB8D0]">{candidate.confidence.toFixed(1)}%</span>
               </p>
               <p><span className="text-muted-foreground">Review Note:</span> {candidate.notes}</p>
             </div>

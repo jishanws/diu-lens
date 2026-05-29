@@ -53,8 +53,7 @@ export default function AdminLoginPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
       >
-        {/* Registration Card Style Floating Panel */}
-        <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/5 bg-[#0a1120]/60 p-10 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-12">
+        <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/5 bg-[#16191f]/65 p-10 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.8)] backdrop-blur-xl sm:p-12">
           {/* Subtle Top Glow */}
           <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-white/[0.12] to-transparent" />
 
@@ -85,7 +84,7 @@ export default function AdminLoginPage() {
                   placeholder="admin@diulens.app"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-4 text-[16px] sm:text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
+                  className="w-full rounded-2xl border border-white/5 bg-[#111318]/40 py-4 pl-12 pr-4 text-[16px] sm:text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#111318]/60 focus:ring-1 focus:ring-white/20"
                 />
               </div>
             </div>
@@ -105,7 +104,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-white/5 bg-[#040810]/40 py-4 pl-12 pr-12 text-[16px] sm:text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#040810]/60 focus:ring-1 focus:ring-white/20"
+                  className="w-full rounded-2xl border border-white/5 bg-[#111318]/40 py-4 pl-12 pr-12 text-[16px] sm:text-[0.95rem] text-slate-200 placeholder:text-slate-600 outline-none transition-all focus:border-white/20 focus:bg-[#111318]/60 focus:ring-1 focus:ring-white/20"
                 />
                 <button
                   type="button"
@@ -133,7 +132,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoggingIn || status === 'loading'}
-              className="mt-4 flex w-full h-[3.25rem] items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-gradient-to-b from-[#3b76e3] to-[#255ac2] px-6 text-[0.95rem] font-medium text-white shadow-[0_2px_6px_-2px_rgba(37,99,235,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 hover:from-[#4381f0] hover:to-[#2b65d6] hover:shadow-[0_4px_10px_-2px_rgba(37,99,235,0.25),inset_0_1px_0_rgba(255,255,255,0.15)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
+              className="mt-4 flex w-full h-[3.25rem] items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-gradient-to-b from-[#6a9ab8] to-[#5a8aa8] px-6 text-[0.95rem] font-medium text-white shadow-[0_2px_6px_-2px_rgba(90,140,175,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 hover:from-[#78a8c4] hover:to-[#6898b2] hover:shadow-[0_4px_10px_-2px_rgba(90,140,175,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {isLoggingIn ? (
                 <>

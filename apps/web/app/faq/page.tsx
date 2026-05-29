@@ -42,9 +42,9 @@ export default function FaqPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-linear-to-br from-[#0b121d] via-[#0d1526] to-[#0b121d]">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-linear-to-br from-[#111318] via-[#14171f] to-[#111318]">
       <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 px-4 py-3 sm:px-6 sm:py-4 lg:px-8 lg:py-3">
-        <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-white/8 bg-[#0f1626] shadow-[0_10px_26px_rgba(0,0,0,0.36)]">
+        <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-2xl border border-white/8 bg-[#14171f] shadow-[0_10px_26px_rgba(0,0,0,0.4)]">
           <div className="relative z-10 shrink-0">
             <Header />
           </div>

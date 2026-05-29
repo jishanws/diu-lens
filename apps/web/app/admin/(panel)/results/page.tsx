@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,11 +23,15 @@ export default function AdminResultsPage() {
           </CardHeader>
           <CardContent>
             {queryImage ? (
-              <img
-                src={queryImage}
-                alt="Query face"
-                className="h-80 w-full rounded-xl border border-border object-cover"
-              />
+              <div className="relative h-80 w-full overflow-hidden rounded-xl border border-border">
+                <Image
+                  src={queryImage}
+                  alt="Query face"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="grid h-80 place-items-center rounded-xl border border-dashed border-border bg-muted/40 text-center text-sm text-muted-foreground">
                 No uploaded query image found.
@@ -50,17 +55,21 @@ export default function AdminResultsPage() {
                 key={candidate.id}
                 className="grid gap-3 rounded-xl border border-border bg-muted/35 p-3 md:grid-cols-[96px_1fr_auto] md:items-center"
               >
-                <img
-                  src={candidate.studentImage}
-                  alt={candidate.fullName}
-                  className="h-24 w-24 rounded-lg object-cover"
-                />
+                <div className="relative h-24 w-24 overflow-hidden rounded-lg">
+                  <Image
+                    src={candidate.studentImage}
+                    alt={candidate.fullName}
+                    fill
+                    sizes="96px"
+                    className="object-cover"
+                  />
+                </div>
 
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-foreground">{candidate.fullName}</p>
                   <p className="text-xs text-muted-foreground">Student ID: {candidate.studentId}</p>
                   <p className="text-xs text-muted-foreground">Department: {candidate.department}</p>
-                  <p className="inline-flex items-center gap-1 rounded-full border border-emerald-300/35 bg-emerald-500/15 px-2 py-0.5 text-[11px] text-emerald-100">
+                  <p className="inline-flex items-center gap-1 rounded-full border border-[#8BB8D0]/35 bg-[#8BB8D0]/15 px-2 py-0.5 text-[11px] text-[#8BB8D0]">
                     <CheckCircle2 className="size-3.5" />
                     Confidence {candidate.confidence.toFixed(1)}%
                   </p>

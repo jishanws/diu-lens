@@ -30,7 +30,7 @@ export function CaptureProgress({
 }: CaptureProgressProps) {
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center justify-between text-xs font-semibold tracking-[0.03em] text-slate-600 uppercase max-[639px]:text-[#84a0bc]">
+      <div className="flex items-center justify-between text-xs font-semibold tracking-[0.03em] text-slate-600 uppercase max-[639px]:text-slate-500">
         <span>Capture Steps</span>
         <span>{capturedCount} / {captureAngles.length}</span>
       </div>
@@ -48,10 +48,10 @@ export function CaptureProgress({
               className={cn(
                 'flex items-center justify-center rounded-2xl border px-3 py-2 text-xs font-semibold transition-colors',
                 completed
-                  ? 'border-emerald-500/45 bg-emerald-500/15 text-emerald-700 max-[639px]:border-emerald-500/45 max-[639px]:bg-emerald-500/14 max-[639px]:text-emerald-200'
+                  ? 'border-[#8BB8D0]/30 bg-[#8BB8D0]/10 text-[#8BB8D0] max-[639px]:border-[#8BB8D0]/20 max-[639px]:bg-[#8BB8D0]/10 max-[639px]:text-[#8BB8D0]'
                   : active
-                    ? 'border-blue-500/70 bg-blue-50 text-blue-700 max-[639px]:border-[#4c93df] max-[639px]:bg-[#123b64] max-[639px]:text-[#8ec6ff]'
-                    : 'border-slate-300 bg-white text-slate-600 max-[639px]:border-[#2b4562] max-[639px]:bg-[#0d2338] max-[639px]:text-[#7f95ad]'
+                    ? 'border-[#8BB8D0]/50 bg-[#8BB8D0]/5 text-[#8BB8D0] max-[639px]:border-[#8BB8D0]/30 max-[639px]:bg-[#8BB8D0]/5 max-[639px]:text-[#8BB8D0]'
+                    : 'border-white/10 bg-white/5 text-slate-400 max-[639px]:border-white/10 max-[639px]:bg-white/5 max-[639px]:text-slate-500'
               )}
             >
               {completed ? <Check className="mr-1 size-3.5" /> : null}

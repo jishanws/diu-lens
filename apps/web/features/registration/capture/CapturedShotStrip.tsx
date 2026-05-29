@@ -36,7 +36,7 @@ export function CapturedShotStrip({
 }: CapturedShotStripProps) {
   return (
     <div className="space-y-2">
-      <p className="text-xs font-semibold tracking-[0.03em] text-slate-600 uppercase max-[639px]:text-[#84a0bc]">
+      <p className="text-xs font-semibold tracking-[0.03em] text-slate-600 uppercase max-[639px]:text-slate-500">
         Captured Shots
       </p>
 
@@ -54,10 +54,10 @@ export function CapturedShotStrip({
               className={cn(
                 'rounded-3xl border p-1.5 transition-colors',
                 shot
-                  ? 'border-slate-300 bg-white max-[639px]:border-[#385775] max-[639px]:bg-[#11263b]'
+                  ? 'border-white/10 bg-white/5 max-[639px]:border-white/10 max-[639px]:bg-white/5'
                   : active
-                    ? 'border-blue-400/70 bg-blue-50 max-[639px]:border-[#4f94de] max-[639px]:bg-[#123d67]'
-                    : 'border-slate-200/90 bg-slate-100/80 max-[639px]:border-[#2a4360] max-[639px]:bg-[#0d2235]'
+                    ? 'border-[#8BB8D0]/30 bg-[#8BB8D0]/5 max-[639px]:border-[#8BB8D0]/20 max-[639px]:bg-[#8BB8D0]/5'
+                    : 'border-white/5 bg-transparent max-[639px]:border-white/5 max-[639px]:bg-transparent'
               )}
             >
               <button
@@ -65,11 +65,11 @@ export function CapturedShotStrip({
                 onClick={() => onFocus(angle)}
                 className="w-full text-left"
               >
-                <div className="mb-1 text-[10px] font-semibold tracking-[0.02em] text-slate-600 uppercase max-[639px]:text-[#8fa7bf]">
+                <div className="mb-1 text-[10px] font-semibold tracking-[0.02em] text-slate-600 uppercase max-[639px]:text-slate-500">
                   {angleLabel[angle]} {shots.length}/{requiredFrames}
                 </div>
 
-                <div className="relative aspect-square overflow-hidden rounded-full border-2 border-slate-200 bg-slate-900/90 max-[639px]:border-[#2d4764]">
+                <div className="relative aspect-square overflow-hidden rounded-full border-2 border-slate-200 bg-slate-900/90 max-[639px]:border-white/10 max-[639px]:bg-black/40">
                   {shot ? (
                     <Image
                       src={shot.previewUrl}
@@ -80,7 +80,7 @@ export function CapturedShotStrip({
                       className="object-cover"
                     />
                   ) : (
-                    <div className="flex h-full items-center justify-center text-[10px] font-medium text-slate-300 max-[639px]:text-[#6f89a4]">
+                    <div className="flex h-full items-center justify-center text-[10px] font-medium text-slate-300 max-[639px]:text-slate-500">
                       Pending
                     </div>
                   )}
@@ -88,7 +88,7 @@ export function CapturedShotStrip({
               </button>
 
               {completed ? (
-                <p className="mt-1 text-[10px] font-semibold text-emerald-700 max-[639px]:text-emerald-300">
+                <p className="mt-1 text-[10px] font-semibold text-[#8BB8D0]">
                   Ready
                 </p>
               ) : null}
@@ -99,7 +99,7 @@ export function CapturedShotStrip({
                 variant="ghost"
                 onClick={() => onRetake(angle)}
                 disabled={!shots.length}
-                className="mt-1.5 h-7 w-full px-2 text-[10px] text-slate-600 hover:bg-slate-100 max-[639px]:text-[#96adbf] max-[639px]:hover:bg-[#1a3047]"
+                className="mt-1.5 h-7 w-full px-2 text-[10px] text-slate-600 hover:bg-slate-100 max-[639px]:text-slate-400 max-[639px]:hover:bg-white/5"
               >
                 <RefreshCw className="size-3" />
                 Retake

@@ -2,6 +2,7 @@
 
 import { ChangeEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Upload, WandSparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,8 +27,9 @@ export default function AdminSearchPage() {
     setSelectedFileName(file.name);
 
     const fileReader = new FileReader();
-    fileReader.onload = () => {
-      setPreviewUrl(fileReader.result as string);
+    fileReader.onload = (e) => {
+      const result = e.target?.result as string;
+      setPreviewUrl(result);
     };
     fileReader.readAsDataURL(file);
   };
@@ -41,8 +43,9 @@ export default function AdminSearchPage() {
     sessionStorage.setItem(QUERY_IMAGE_KEY, previewUrl);
 
     window.setTimeout(() => {
+      setIsMatching(false);
       router.push('/admin/results');
-    }, 1300);
+    }, 1500);
   };
 
   return (
@@ -57,9 +60,9 @@ export default function AdminSearchPage() {
         <CardContent className="space-y-4">
           <label
             htmlFor="query-image-upload"
-            className="group block cursor-pointer rounded-2xl border border-dashed border-blue-300/45 bg-blue-500/8 p-8 text-center transition-colors hover:border-blue-300/70 hover:bg-blue-500/14"
+            className="group block cursor-pointer rounded-2xl border border-dashed border-[#8BB8D0]/30 bg-[#8BB8D0]/5 p-8 text-center transition-colors hover:border-[#8BB8D0]/50 hover:bg-[#8BB8D0]/10"
           >
-            <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-full border border-blue-300/40 bg-blue-400/15 text-blue-100">
+            <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-full border border-[#8BB8D0]/20 bg-[#8BB8D0]/10 text-[#8BB8D0]">
               <Upload className="size-6" />
             </div>
             <p className="font-medium text-foreground">Drop an image here, or click to browse</p>
@@ -78,11 +81,15 @@ export default function AdminSearchPage() {
           {hasImage ? (
             <div className="rounded-xl border border-border bg-muted/35 p-3">
               <p className="text-xs text-muted-foreground">Preview: {selectedFileName}</p>
-              <img
-                src={previewUrl ?? ''}
-                alt="Uploaded query"
-                className="mt-3 h-72 w-full rounded-lg object-cover"
-              />
+              <div className="relative mt-3 h-72 w-full overflow-hidden rounded-lg">
+                <Image
+                  src={previewUrl ?? ''}
+                  alt="Uploaded query"
+                  fill
+                  unoptimized
+                  className="object-cover"
+                />
+              </div>
             </div>
           ) : (
             <div className="rounded-xl border border-border bg-muted/35 p-4 text-sm text-muted-foreground">

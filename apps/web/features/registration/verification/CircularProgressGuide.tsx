@@ -74,7 +74,7 @@ function ActiveComet({ d }: { d: string }) {
       <motion.path
         d={d}
         fill="none"
-        stroke="rgba(96,165,250,0.18)"
+        stroke="rgba(139, 184, 208, 0.18)"
         strokeWidth={14}
         strokeLinecap="round"
         style={{ pathLength: 0.3, pathOffset }}
@@ -83,7 +83,7 @@ function ActiveComet({ d }: { d: string }) {
       <motion.path
         d={d}
         fill="none"
-        stroke="rgba(147,197,253,0.5)"
+        stroke="rgba(160, 185, 210, 0.5)"
         strokeWidth={10}
         strokeLinecap="round"
         style={{ pathLength: 0.13, pathOffset }}
@@ -92,7 +92,7 @@ function ActiveComet({ d }: { d: string }) {
       <motion.path
         d={d}
         fill="none"
-        stroke="#dbeafe"
+        stroke="#D0DEE8"
         strokeWidth={9}
         strokeLinecap="round"
         filter="url(#cpg-comet-glow)"
@@ -172,7 +172,7 @@ export function CircularProgressGuide({
           cy={cy}
           r={orbitR}
           fill="none"
-          stroke="rgba(59,130,246,0.07)"
+          stroke="rgba(160, 185, 210, 0.07)"
           strokeWidth="1.5"
           strokeDasharray="4 22"
           strokeLinecap="round"
@@ -185,7 +185,7 @@ export function CircularProgressGuide({
         cy={cy}
         r={orbitR + 6}
         fill="none"
-        stroke="rgba(59,130,246,0.025)"
+        stroke="rgba(160, 185, 210, 0.025)"
         strokeWidth="1"
       />
 
@@ -196,7 +196,7 @@ export function CircularProgressGuide({
           cy={cy}
           r={segmentR}
           fill="none"
-          stroke="rgba(59,130,246,0.15)"
+          stroke="rgba(160, 185, 210, 0.15)"
           strokeWidth={6}
           filter="url(#cpg-active-bloom)"
           animate={{ opacity: [0.3, 1, 0.3] }}
@@ -216,7 +216,7 @@ export function CircularProgressGuide({
             <path
               d={d}
               fill="none"
-              stroke="rgba(12,30,58,0.85)"
+              stroke="rgba(22, 25, 32, 0.95)"
               strokeWidth={5}
               strokeLinecap="round"
             />
@@ -228,7 +228,7 @@ export function CircularProgressGuide({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#34d399"
+                  stroke="#8BB8D0"
                   strokeWidth={18}
                   strokeLinecap="round"
                   filter="url(#cpg-bloom-done)"
@@ -240,7 +240,7 @@ export function CircularProgressGuide({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#34d399"
+                  stroke="#8BB8D0"
                   strokeWidth={8}
                   strokeLinecap="round"
                   filter="url(#cpg-glow-done)"
@@ -248,11 +248,11 @@ export function CircularProgressGuide({
                   animate={{ pathLength: 1, opacity: 0.92 }}
                   transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
                 />
-                {/* Cyan specular highlight on top edge */}
+                {/* Ice-blue specular highlight on top edge */}
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#6ee7b7"
+                  stroke="#d0dee8"
                   strokeWidth={3}
                   strokeLinecap="round"
                   initial={{ pathLength: 0, opacity: 0 }}
@@ -273,7 +273,7 @@ export function CircularProgressGuide({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#3b82f6"
+                  stroke="#A0B9D2"
                   strokeWidth={22}
                   strokeLinecap="round"
                   filter="url(#cpg-active-bloom)"
@@ -288,7 +288,7 @@ export function CircularProgressGuide({
                 <path
                   d={d}
                   fill="none"
-                  stroke="rgba(59,130,246,0.2)"
+                  stroke="rgba(139, 184, 208, 0.12)"
                   strokeWidth={6}
                   strokeLinecap="round"
                 />

@@ -2,6 +2,7 @@
 
 import { ChangeEvent, DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   ImagePlus,
   Loader2,
@@ -11,7 +12,6 @@ import {
   ShieldAlert,
   SlidersHorizontal,
   Trash2,
-  Upload,
 } from 'lucide-react';
 import {
   AdminApiAuthError,
@@ -62,21 +62,21 @@ function CandidateCard({
   isOnlyCandidate?: boolean;
 }) {
   const similarity = Math.max(0, Math.min(100, (1 - candidate.best_distance) * 100));
-  const simColor = candidate.classification === 'high_confidence' ? 'bg-emerald-400' 
+  const simColor = candidate.classification === 'high_confidence' ? 'bg-[#8BB8D0]' 
                  : candidate.classification === 'likely_match' ? 'bg-blue-400' 
-                 : candidate.classification === 'possible_match' ? 'bg-cyan-400' 
+                 : candidate.classification === 'possible_match' ? 'bg-[#8BB8D0]' 
                  : 'bg-slate-400';
 
   return (
     <div className={cn(
       "group relative flex flex-col gap-4 overflow-hidden rounded-[1.25rem] border p-5 transition-all duration-300",
-      isOnlyCandidate ? "sm:flex-col sm:items-center sm:text-center p-8 border-cyan-500/40 bg-gradient-to-b from-cyan-500/[0.08] to-transparent shadow-[0_0_35px_-5px_rgba(6,182,212,0.15)]"
+      isOnlyCandidate ? "sm:flex-col sm:items-center sm:text-center p-8 border-[#8BB8D0]/40 bg-gradient-to-b from-[#8BB8D0]/[0.08] to-transparent shadow-[0_0_35px_-5px_rgba(139,184,208,0.15)]"
       : isTopCandidate 
-        ? "sm:flex-row sm:items-stretch sm:justify-between border-cyan-500/30 bg-gradient-to-r from-cyan-500/[0.08] to-transparent shadow-[0_0_25px_-5px_rgba(6,182,212,0.1)]"
+        ? "sm:flex-row sm:items-stretch sm:justify-between border-[#8BB8D0]/30 bg-gradient-to-r from-[#8BB8D0]/[0.08] to-transparent shadow-[0_0_25px_-5px_rgba(139,184,208,0.1)]"
         : "sm:flex-row sm:items-stretch sm:justify-between border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.02]"
     )}>
       {isTopCandidate && (
-         <div className={cn("absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent to-transparent", isOnlyCandidate ? "via-cyan-400" : "via-cyan-400/80")} />
+         <div className={cn("absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent to-transparent", isOnlyCandidate ? "via-[#8BB8D0]" : "via-[#8BB8D0]/80")} />
       )}
       
       {/* Identity Column */}
@@ -87,14 +87,14 @@ function CandidateCard({
               #{candidate.rank}
             </span>
           )}
-          <h4 className={cn("truncate font-semibold tracking-tight", isTopCandidate ? "text-cyan-300" : "text-slate-100", isOnlyCandidate ? "text-2xl" : "text-[0.95rem]")}>
+          <h4 className={cn("truncate font-semibold tracking-tight", isTopCandidate ? "text-[#8BB8D0]" : "text-slate-100", isOnlyCandidate ? "text-2xl" : "text-[0.95rem]")}>
             {candidate.full_name || 'Unknown Candidate'}
           </h4>
           <span className={cn(
             "rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-wider",
-            candidate.classification === 'high_confidence' ? 'bg-emerald-500/10 text-emerald-400' :
+            candidate.classification === 'high_confidence' ? 'bg-[#8BB8D0]/10 text-[#8BB8D0]' :
             candidate.classification === 'likely_match' ? 'bg-blue-500/10 text-blue-400' :
-            candidate.classification === 'possible_match' ? 'bg-cyan-500/10 text-cyan-400' :
+            candidate.classification === 'possible_match' ? 'bg-[#8BB8D0]/10 text-[#8BB8D0]' :
             'bg-slate-500/10 text-slate-400'
           )}>
             {getConfidenceLabel(candidate.classification)}
@@ -133,7 +133,7 @@ function CandidateCard({
         isOnlyCandidate ? "mt-4 items-center border-t-0 pt-0" : "sm:items-end sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"
       )}>
          <span className={cn("font-medium uppercase tracking-widest text-slate-500", isOnlyCandidate ? "text-[0.7rem]" : "text-[0.65rem]")}>Similarity</span>
-         <span className={cn("font-semibold tracking-tighter", isTopCandidate ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]" : "text-slate-200", isOnlyCandidate ? "text-4xl my-1" : "text-2xl")}>
+         <span className={cn("font-semibold tracking-tighter", isTopCandidate ? "text-[#8BB8D0] drop-shadow-[0_0_8px_rgba(139,184,208,0.5)]" : "text-slate-200", isOnlyCandidate ? "text-4xl my-1" : "text-2xl")}>
            {similarity.toFixed(1)}%
          </span>
          <div className={cn("h-1.5 overflow-hidden rounded-full bg-white/[0.05]", isOnlyCandidate ? "w-48" : "w-32")}>
@@ -328,7 +328,7 @@ export function RecognitionView() {
             className={cn(
               'group relative overflow-hidden rounded-[1.5rem] border transition-all duration-500',
               dragActive
-                ? 'border-cyan-500/40 bg-cyan-500/[0.05] shadow-[0_0_40px_-10px_rgba(34,211,238,0.2)]'
+                ? 'border-[#8BB8D0]/40 bg-[#8BB8D0]/[0.05] shadow-[0_0_40px_-10px_rgba(139,184,208,0.2)]'
                 : hasImage 
                 ? 'border-white/[0.06] bg-white/[0.02]' 
                 : 'border-white/[0.04] border-dashed bg-white/[0.01] hover:border-white/[0.1] hover:bg-white/[0.02]'
@@ -347,16 +347,18 @@ export function RecognitionView() {
             
             {/* Drag Active Glow Overlay */}
             <div className={cn(
-              "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.1)_0%,transparent_70%)] opacity-0 transition-opacity duration-500",
+              "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(139,184,208,0.1)_0%,transparent_70%)] opacity-0 transition-opacity duration-500",
               dragActive && "opacity-100"
             )} />
 
             {previewUrl ? (
               <div className="relative aspect-square w-full bg-black/40">
-                <img
+                <Image
                   src={previewUrl}
                   alt="Probe preview"
-                  className="absolute inset-0 h-full w-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
                 
                 {/* Glass overlay controls */}
@@ -375,8 +377,8 @@ export function RecognitionView() {
                 {/* Scanning Animation */}
                 {isMatching && (
                   <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                    <div className="absolute inset-0 bg-cyan-900/20 mix-blend-color" />
-                    <div className="absolute inset-x-0 -top-full h-[3px] w-full bg-cyan-400 shadow-[0_0_20px_2px_rgba(34,211,238,0.8)] animate-[pulse_2s_ease-in-out_infinite]" style={{ animation: "scan 2s linear infinite" }} />
+                  <div className="absolute inset-0 bg-[#8BB8D0]/20 mix-blend-color" />
+                    <div className="absolute inset-x-0 -top-full h-[3px] w-full bg-[#8BB8D0] shadow-[0_0_20px_2px_rgba(139,184,208,0.8)] animate-[pulse_2s_ease-in-out_infinite]" style={{ animation: "scan 2s linear infinite" }} />
                     <style jsx>{`
                       @keyframes scan {
                         0% { top: -10%; opacity: 0; }
@@ -391,8 +393,8 @@ export function RecognitionView() {
             ) : (
               <div className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center p-8 text-center" onClick={() => fileInputRef.current?.click()}>
                 <div className="relative mb-6 flex size-16 items-center justify-center rounded-2xl border border-white/[0.05] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-transform duration-500 group-hover:scale-105 group-hover:bg-white/[0.04]">
-                  <ScanFace className="size-7 text-cyan-500/60 transition-colors duration-500 group-hover:text-cyan-400" />
-                  <div className="absolute -inset-4 rounded-full bg-cyan-500/5 blur-xl transition-opacity duration-500 group-hover:opacity-100 opacity-0 animate-pulse" />
+                  <ScanFace className="size-7 text-[#8BB8D0]/60 transition-colors duration-500 group-hover:text-[#8BB8D0]" />
+                  <div aria-hidden="true" className="absolute -inset-0 bg-[#8BB8D0]/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
                 </div>
                 <h3 className="mb-2 text-[1rem] font-medium text-slate-200">Drop target image</h3>
                 <p className="max-w-[220px] text-[0.8rem] leading-relaxed text-slate-500">
@@ -415,8 +417,8 @@ export function RecognitionView() {
               !hasImage 
                 ? "cursor-not-allowed border border-white/[0.04] bg-white/[0.02] text-slate-500" 
                 : isMatching
-                ? "cursor-wait border border-cyan-500/20 bg-cyan-500/10 text-cyan-400 shadow-[0_0_20px_-5px_rgba(34,211,238,0.2)]"
-                : "border border-cyan-500/30 bg-gradient-to-b from-cyan-600 to-cyan-800 text-white shadow-[0_0_25px_-5px_rgba(34,211,238,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] hover:from-cyan-500 hover:to-cyan-700 hover:shadow-[0_0_35px_-5px_rgba(34,211,238,0.4)] active:scale-[0.98]"
+                ? "cursor-wait border border-[#8BB8D0]/20 bg-[#8BB8D0]/10 text-[#8BB8D0] shadow-[0_0_20px_-5px_rgba(139,184,208,0.2)]"
+                : "border border-[#8BB8D0]/30 bg-gradient-to-b from-[#5C7D8F] to-[#2D3A42] text-white shadow-[0_0_25px_-5px_rgba(139,184,208,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] hover:from-[#6A8E9F] hover:to-[#384A54] hover:shadow-[0_0_35px_-5px_rgba(139,184,208,0.4)] active:scale-[0.98]"
             )}
           >
             {isMatching ? (
@@ -446,7 +448,7 @@ export function RecognitionView() {
                 <label htmlFor="top-k" className="mb-1.5 block text-[0.65rem] font-medium uppercase tracking-wider text-slate-500">top_k matches</label>
                 <input
                   id="top-k"
-                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
+                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-[#8BB8D0]/50 focus:ring-1 focus:ring-[#8BB8D0]/50"
                   type="number"
                   min={1}
                   step={1}
@@ -459,7 +461,7 @@ export function RecognitionView() {
                 <label htmlFor="threshold" className="mb-1.5 block text-[0.65rem] font-medium uppercase tracking-wider text-slate-500">distance threshold</label>
                 <input
                   id="threshold"
-                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-cyan-500/50 focus:ring-1 focus:ring-cyan-500/50"
+                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-[#8BB8D0]/50 focus:ring-1 focus:ring-[#8BB8D0]/50"
                   type="number"
                   min={0.0001}
                   step={0.01}
@@ -479,8 +481,8 @@ export function RecognitionView() {
         {/* Workspace Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.03] bg-white/[0.01] px-5 sm:px-7 py-4 sm:py-5">
           <h3 className="text-[0.9rem] font-medium text-slate-200">Intelligence Workspace</h3>
-          <div className="flex items-center gap-2 rounded-full border border-cyan-500/10 bg-cyan-500/[0.02] px-3 py-1.5">
-            <ShieldAlert className="size-3.5 text-cyan-500/70" />
+          <div className="flex items-center gap-2 rounded-full border border-[#8BB8D0]/10 bg-[#8BB8D0]/[0.02] px-3 py-1.5">
+            <ShieldAlert className="size-3.5 text-[#8BB8D0]/70" />
             <span className="text-[0.65rem] font-medium uppercase tracking-widest text-slate-400">Recognition results are similarity-based suggestions for manual verification</span>
           </div>
         </div>
@@ -504,8 +506,8 @@ export function RecognitionView() {
           {/* Empty State: Pre-Search */}
           {hasImage && !isMatching && !hasSearched && (
             <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-6 flex size-20 items-center justify-center rounded-full border border-cyan-500/20 bg-cyan-500/[0.05]">
-                <Search className="size-8 text-cyan-500/60" />
+              <div className="mb-6 flex size-20 items-center justify-center rounded-full border border-[#8BB8D0]/20 bg-[#8BB8D0]/[0.05]">
+                <Search className="size-8 text-[#8BB8D0]/60" />
               </div>
               <h3 className="text-[1.1rem] font-medium text-slate-200">Target Acquired</h3>
               <p className="mt-2.5 max-w-sm text-[0.85rem] leading-relaxed text-slate-500">
@@ -518,13 +520,13 @@ export function RecognitionView() {
           {isMatching && (
             <div className="flex h-full flex-col items-center justify-center text-center">
               <div className="relative mb-8 flex size-24 items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-2 border-cyan-500/10" />
-                <div className="absolute inset-0 animate-[spin_2s_linear_infinite] rounded-full border-2 border-transparent border-t-cyan-400/80" />
-                <div className="absolute inset-2 animate-[spin_3s_linear_infinite_reverse] rounded-full border border-transparent border-t-cyan-500/30" />
-                <ScanFace className="size-8 text-cyan-400 animate-pulse" />
+                <div className="absolute inset-0 rounded-full border-2 border-[#8BB8D0]/10" />
+                <div className="absolute inset-0 animate-[spin_2s_linear_infinite] rounded-full border-2 border-transparent border-t-[#8BB8D0]/80" />
+                <div className="absolute inset-2 animate-[spin_3s_linear_infinite_reverse] rounded-full border border-transparent border-t-[#8BB8D0]/30" />
+                <ScanFace className="size-8 text-[#8BB8D0] animate-pulse" />
               </div>
-              <h3 className="text-[1.1rem] font-medium text-cyan-300">Processing Intelligence</h3>
-              <p className="mt-2 text-[0.85rem] text-cyan-500/60">
+              <h3 className="text-[1.1rem] font-medium text-[#8BB8D0]">Processing Intelligence</h3>
+              <p className="mt-2 text-[0.85rem] text-[#8BB8D0]/60">
                 Extracting 512-dimensional embeddings and scanning vector space.
               </p>
             </div>
@@ -573,11 +575,11 @@ export function RecognitionView() {
                 <div className="flex flex-wrap items-center gap-4 text-[0.75rem] font-medium text-slate-400">
                   <span>Returned: <strong className="text-slate-200">{allCandidates.length}</strong></span>
                   <div className="h-3 w-px bg-white/10" />
-                  <span>High: <strong className="text-emerald-400">{confidenceCounts.high}</strong></span>
+                  <span>High: <strong className="text-[#8BB8D0]">{confidenceCounts.high}</strong></span>
                   <div className="h-3 w-px bg-white/10" />
                   <span>Likely: <strong className="text-blue-400">{confidenceCounts.likely}</strong></span>
                   <div className="h-3 w-px bg-white/10" />
-                  <span>Possible: <strong className="text-cyan-400">{confidenceCounts.possible}</strong></span>
+                  <span>Possible: <strong className="text-[#8BB8D0]">{confidenceCounts.possible}</strong></span>
                   <div className="h-3 w-px bg-white/10" />
                   <span>Searched Space: <strong className="text-slate-300">{results?.searched_embedding_rows ?? 0} vectors</strong></span>
                 </div>

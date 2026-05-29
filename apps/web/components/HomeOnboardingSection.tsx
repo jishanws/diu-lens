@@ -2,8 +2,6 @@
 
 import { useState } from 'react';
 import {
-  Clock3,
-  Fingerprint,
   IdCard,
   LockKeyhole,
   ScanFace,
@@ -117,7 +115,7 @@ function BenefitsSection() {
         {benefits.map((benefit, index) => (
           <article
             key={benefit.title}
-            className="landing-card-surface flex h-full min-h-[10.5rem] flex-col rounded-[2rem] border border-white/5 bg-[#0a1120]/40 p-5"
+            className="landing-card-surface flex h-full min-h-[10.5rem] flex-col rounded-[2rem] border border-white/5 bg-[#16191f]/50 p-5"
           >
             <div className="mb-5 flex items-center gap-2.5">
               <benefit.Icon
@@ -157,7 +155,7 @@ function HowItWorksSection() {
         {workflowSteps.map((step, index) => (
           <li
             key={step.title}
-            className="landing-card-surface relative flex h-full min-h-[10.5rem] flex-col rounded-[2rem] border border-white/5 bg-[#0a1120]/40 p-5"
+            className="landing-card-surface relative flex h-full min-h-[10.5rem] flex-col rounded-[2rem] border border-white/5 bg-[#16191f]/50 p-5"
           >
             {index < workflowSteps.length - 1 ? (
               <span

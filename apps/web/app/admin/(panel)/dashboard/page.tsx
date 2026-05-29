@@ -7,7 +7,7 @@ import { dashboardStats, quickActions, recentActivity } from '@/features/admin/m
 import { getMockRoleFromCookies } from '@/features/admin/role';
 
 const statusStyles: Record<string, string> = {
-  match_found: 'border-emerald-300/30 bg-emerald-500/20 text-emerald-100',
+  match_found: 'border-[#8BB8D0]/30 bg-[#8BB8D0]/20 text-[#8BB8D0]',
   review_needed: 'border-amber-300/30 bg-amber-500/20 text-amber-100',
   no_match: 'border-rose-300/30 bg-rose-500/20 text-rose-100',
 };
@@ -94,7 +94,7 @@ export default async function AdminDashboardPage() {
               </div>
             ))}
 
-            <div className="rounded-xl border border-emerald-300/20 bg-emerald-500/10 p-3 text-xs text-emerald-100">
+            <div className="rounded-xl border border-[#8BB8D0]/20 bg-[#8BB8D0]/10 p-3 text-xs text-[#8BB8D0]">
               <p className="flex items-center gap-2 font-medium">
                 <CircleCheckBig className="size-4" />
                 System monitor reports healthy services.

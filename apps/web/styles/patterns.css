@@ -5,48 +5,48 @@
 
   .ai-grid {
     background-image:
-      linear-gradient(rgba(37, 99, 235, 0.055) 0.7px, transparent 0.7px),
-      linear-gradient(90deg, rgba(37, 99, 235, 0.055) 0.7px, transparent 0.7px);
+      linear-gradient(rgba(140, 165, 190, 0.04) 0.7px, transparent 0.7px),
+      linear-gradient(90deg, rgba(140, 165, 190, 0.04) 0.7px, transparent 0.7px);
     background-size: 44px 44px;
     mask-image: radial-gradient(circle at 45% 38%, black 22%, transparent 74%);
     animation:
       aiGridDrift 11s linear infinite,
       aiGridPulse 3.8s ease-in-out infinite;
-    opacity: 0.55;
+    opacity: 0.45;
   }
 
   .ai-noise {
     background-image: radial-gradient(
-      rgba(51, 65, 85, 0.26) 0.5px,
+      rgba(51, 65, 85, 0.22) 0.5px,
       transparent 0.5px
     );
     background-size: 4px 4px;
     mix-blend-mode: multiply;
-    opacity: 0.45;
+    opacity: 0.4;
   }
 
   .ai-orbital {
     background: radial-gradient(
       circle at 35% 35%,
-      rgba(96, 165, 250, 0.42),
-      rgba(37, 99, 235, 0.1) 52%,
+      rgba(155, 180, 205, 0.3),
+      rgba(120, 150, 180, 0.08) 52%,
       transparent 72%
     );
     animation: aiOrbitalPulse 13s ease-in-out infinite;
-    opacity: 0.65;
+    opacity: 0.55;
     filter: blur(0.2px);
   }
 
   .ai-scan-beam {
     background: linear-gradient(
       180deg,
-      rgba(96, 165, 250, 0.2),
-      rgba(96, 165, 250, 0)
+      rgba(155, 180, 205, 0.15),
+      rgba(155, 180, 205, 0)
     );
     filter: blur(0.22px);
     mix-blend-mode: soft-light;
     animation: aiScanSweep 8.5s ease-in-out infinite;
-    opacity: 0.45;
+    opacity: 0.35;
   }
 
   .ai-float {
@@ -54,7 +54,7 @@
   }
 
   .ai-pulse-ring {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.6);
+    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.4);
     animation: aiPulseRing 2.3s ease-out infinite;
   }
 
@@ -67,7 +67,7 @@
     background: linear-gradient(
       105deg,
       transparent 22%,
-      rgba(125, 211, 252, 0.22) 46%,
+      rgba(175, 200, 220, 0.15) 46%,
       transparent 70%
     );
     transform: translateX(-110%);
@@ -95,11 +95,11 @@
     background: linear-gradient(
       90deg,
       transparent 2%,
-      rgba(56, 189, 248, 0.3),
-      rgba(99, 102, 241, 0.35),
+      rgba(139, 184, 208, 0.2),
+      rgba(155, 165, 185, 0.22),
       transparent 98%
     );
-    opacity: 0.2;
+    opacity: 0.18;
     z-index: -1;
   }
 
@@ -113,15 +113,15 @@
     transform: translate3d(0, -50%, 0);
     background: linear-gradient(
       90deg,
-      rgba(37, 99, 235, 0),
-      rgba(37, 99, 235, 0.14) 42%,
-      rgba(99, 102, 241, 0.14) 70%,
-      rgba(99, 102, 241, 0)
+      rgba(139, 184, 208, 0),
+      rgba(139, 184, 208, 0.1) 42%,
+      rgba(155, 165, 185, 0.1) 70%,
+      rgba(155, 165, 185, 0)
     );
     border-radius: 999px;
     filter: blur(1px);
-    box-shadow: 0 0 8px rgba(37, 99, 235, 0.12);
-    opacity: 0.12;
+    box-shadow: 0 0 6px rgba(139, 184, 208, 0.08);
+    opacity: 0.1;
     z-index: -1;
     will-change: transform, opacity;
     animation: aiFlowTracer 6.2s ease-in-out infinite;
@@ -143,7 +143,7 @@
   }
 
   .ai-flow-node {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.22);
+    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.15);
     animation: aiFlowNode 2.8s ease-in-out infinite;
   }
 
@@ -187,9 +187,9 @@
       height: 0.52rem;
       background: linear-gradient(
         180deg,
-        rgba(56, 189, 248, 0.15),
-        rgba(56, 189, 248, 0.55),
-        rgba(56, 189, 248, 0.08)
+        rgba(139, 184, 208, 0.1),
+        rgba(139, 184, 208, 0.35),
+        rgba(139, 184, 208, 0.06)
       );
       pointer-events: none;
     }
@@ -197,14 +197,14 @@
 
   .dark .ai-grid {
     background-image:
-      linear-gradient(rgba(56, 189, 248, 0.11) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(56, 189, 248, 0.11) 1px, transparent 1px);
+      linear-gradient(rgba(139, 184, 208, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139, 184, 208, 0.07) 1px, transparent 1px);
     animation: aiGridDrift 20s linear infinite;
   }
 
   .dark .ai-noise {
     background-image: radial-gradient(
-      rgba(148, 163, 184, 0.28) 0.4px,
+      rgba(148, 163, 184, 0.22) 0.4px,
       transparent 0.4px
     );
     mix-blend-mode: screen;
@@ -213,8 +213,8 @@
   .dark .ai-orbital {
     background: radial-gradient(
       circle at 35% 35%,
-      rgba(125, 211, 252, 0.45),
-      rgba(37, 99, 235, 0.08) 55%,
+      rgba(160, 185, 210, 0.35),
+      rgba(120, 150, 180, 0.06) 55%,
       transparent 74%
     );
   }
@@ -222,8 +222,8 @@
   .dark .ai-scan-beam {
     background: linear-gradient(
       180deg,
-      rgba(125, 211, 252, 0.26),
-      rgba(125, 211, 252, 0)
+      rgba(160, 185, 210, 0.18),
+      rgba(160, 185, 210, 0)
     );
   }
 
@@ -234,13 +234,13 @@
   .dark .ai-flow-track::after {
     background: linear-gradient(
       90deg,
-      rgba(56, 189, 248, 0),
-      rgba(56, 189, 248, 0.22) 42%,
-      rgba(129, 140, 248, 0.2) 70%,
-      rgba(129, 140, 248, 0)
+      rgba(139, 184, 208, 0),
+      rgba(139, 184, 208, 0.15) 42%,
+      rgba(155, 165, 185, 0.13) 70%,
+      rgba(155, 165, 185, 0)
     );
-    box-shadow: 0 0 10px rgba(56, 189, 248, 0.16);
-    opacity: 0.14;
+    box-shadow: 0 0 8px rgba(139, 184, 208, 0.1);
+    opacity: 0.1;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -280,21 +280,21 @@
 @keyframes aiGridPulse {
   0%,
   100% {
-    opacity: 0.58;
+    opacity: 0.48;
   }
   50% {
-    opacity: 0.92;
+    opacity: 0.78;
   }
 }
 
 @keyframes aiOrbitalPulse {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: 0.45;
     transform: scale(0.92);
   }
   50% {
-    opacity: 0.9;
+    opacity: 0.75;
     transform: scale(1.08);
   }
 }
@@ -306,10 +306,10 @@
     transform: translateY(-24%);
   }
   20% {
-    opacity: 0.4;
+    opacity: 0.3;
   }
   55% {
-    opacity: 0.26;
+    opacity: 0.2;
   }
   80% {
     opacity: 0;
@@ -329,11 +329,11 @@
 
 @keyframes aiPulseRing {
   0% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.55);
+    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.35);
   }
   75%,
   100% {
-    box-shadow: 0 0 0 12px rgba(56, 189, 248, 0);
+    box-shadow: 0 0 0 10px rgba(139, 184, 208, 0);
   }
 }
 
@@ -353,11 +353,11 @@
 @keyframes aiDataStream {
   0%,
   100% {
-    opacity: 0.38;
+    opacity: 0.32;
     transform: scaleX(0.45);
   }
   50% {
-    opacity: 1;
+    opacity: 0.85;
     transform: scaleX(1);
   }
 }
@@ -365,12 +365,12 @@
 @keyframes aiFlowNode {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.16);
-    filter: brightness(0.92);
+    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.12);
+    filter: brightness(0.94);
   }
   42% {
-    box-shadow: 0 0 0 6px rgba(56, 189, 248, 0);
-    filter: brightness(1.12);
+    box-shadow: 0 0 0 5px rgba(139, 184, 208, 0);
+    filter: brightness(1.08);
   }
 }
 
@@ -381,8 +381,8 @@
     text-shadow: none;
   }
   40% {
-    color: rgb(37 99 235);
-    text-shadow: 0 0 8px rgba(37, 99, 235, 0.16);
+    color: rgb(106 154 184);
+    text-shadow: 0 0 6px rgba(139, 184, 208, 0.1);
   }
 }
 
@@ -393,8 +393,8 @@
     text-shadow: none;
   }
   40% {
-    color: rgb(125 211 252);
-    text-shadow: 0 0 10px rgba(56, 189, 248, 0.16);
+    color: rgb(160 190 215);
+    text-shadow: 0 0 8px rgba(139, 184, 208, 0.1);
   }
 }
 
@@ -405,7 +405,7 @@
     transform: translateX(0);
   }
   50% {
-    opacity: 0.7;
+    opacity: 0.6;
     transform: translateX(2px);
   }
 }
@@ -416,13 +416,13 @@
     opacity: 0;
   }
   18% {
-    opacity: 0.07;
+    opacity: 0.05;
   }
   52% {
-    opacity: 0.14;
+    opacity: 0.1;
   }
   82% {
-    opacity: 0.08;
+    opacity: 0.06;
   }
   100% {
     transform: translate3d(300%, -50%, 0);

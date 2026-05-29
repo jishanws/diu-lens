@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, RefreshCw, Eye } from 'lucide-react';
+import { RefreshCw, Eye } from 'lucide-react';
 import {
   AdminApiAuthError,
   approveEnrollment,
@@ -172,7 +172,7 @@ export function EnrollmentsView() {
   if (isLoading) {
     return (
       <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-slate-500">
-        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-cyan-400/60" />
+        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-[#8BB8D0]/60" />
         Loading operations data…
       </div>
     );
@@ -248,10 +248,10 @@ export function EnrollmentsView() {
                           <span className={cn(
                             "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-medium tracking-wide",
                             item.verification_completed 
-                              ? "border-emerald-500/10 bg-emerald-500/[0.05] text-emerald-400" 
+                              ? "border-[#8BB8D0]/10 bg-[#8BB8D0]/[0.05] text-[#8BB8D0]" 
                               : "border-amber-500/10 bg-amber-500/[0.05] text-amber-400"
                           )}>
-                            <span className={cn("size-1.5 rounded-full", item.verification_completed ? "bg-emerald-400" : "bg-amber-400 animate-pulse")} />
+                            <span className={cn("size-1.5 rounded-full", item.verification_completed ? "bg-[#8BB8D0]" : "bg-amber-400 animate-pulse")} />
                             {item.verification_completed ? 'Ready for Review' : 'Incomplete'}
                           </span>
                         </div>
@@ -280,7 +280,7 @@ export function EnrollmentsView() {
                   <p className="text-[0.8rem] text-slate-500">
                     Showing <span className="font-medium text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-300">{Math.min(currentPage * itemsPerPage, enrollments.length)}</span> of <span className="font-medium text-slate-300">{enrollments.length}</span> entries
                   </p>
-                  <div className="flex items-center gap-1.5 rounded-full border border-white/[0.04] bg-[#0a1120]/20 p-1 backdrop-blur-md">
+                  <div className="flex items-center gap-1.5 rounded-full border border-white/[0.04] bg-[#111318]/20 p-1 backdrop-blur-md">
                     <button
                       type="button"
                       disabled={currentPage === 1}
@@ -298,7 +298,7 @@ export function EnrollmentsView() {
                           className={cn(
                             'flex size-11 sm:size-8 items-center justify-center rounded-full text-[0.75rem] font-medium transition-all',
                             currentPage === page
-                              ? 'bg-cyan-500/[0.15] text-cyan-300 shadow-[0_0_12px_-3px_rgba(34,211,238,0.4)] border border-cyan-500/30'
+                              ? 'bg-[#8BB8D0]/[0.15] text-[#8BB8D0] shadow-[0_0_12px_-3px_rgba(139,184,208,0.4)] border border-[#8BB8D0]/30'
                               : 'text-slate-500 hover:bg-white/[0.06] hover:text-slate-300'
                           )}
                         >
@@ -344,7 +344,7 @@ function MetricCard({
 }) {
   const valueClass =
     tone === 'pending' ? 'text-amber-300' :
-    tone === 'approved' ? 'text-emerald-300' :
+    tone === 'approved' ? 'text-[#8BB8D0]' :
     tone === 'rejected' ? 'text-rose-300' :
     'text-white';
 

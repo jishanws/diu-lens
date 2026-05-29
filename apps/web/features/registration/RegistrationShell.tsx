@@ -71,7 +71,7 @@ export function RegistrationShell({
                       top: '0.75rem',
                       transform: 'translateY(-50%)',
                       height: '1.5px',
-                      background: 'rgba(30, 58, 95, 0.65)',
+                      background: 'rgba(255, 255, 255, 0.06)',
                       borderRadius: '9999px',
                       overflow: 'hidden',
                     }}
@@ -141,7 +141,7 @@ export function RegistrationShell({
                           style={{
                             fontSize: '0.58rem',
                             fontWeight: 500,
-                            color: 'rgba(96,117,139,0.6)',
+                            color: 'rgba(96,110,128,0.55)',
                             lineHeight: 1,
                           }}
                         >
@@ -157,8 +157,8 @@ export function RegistrationShell({
                         color: isActive
                           ? 'var(--landing-text-primary)'
                           : isCompleted
-                            ? 'rgba(147,167,189,0.65)'
-                            : 'rgba(96,117,139,0.5)',
+                            ? 'rgba(160,175,190,0.65)'
+                          : 'rgba(110,120,135,0.5)',
                         opacity: isActive ? 1 : isCompleted ? 0.85 : 0.6,
                       }}
                     >

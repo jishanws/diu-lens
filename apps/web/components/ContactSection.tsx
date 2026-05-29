@@ -72,7 +72,7 @@ export function ContactSection() {
           className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl lg:text-[4rem] lg:leading-[1.05]"
         >
           Need help with{' '}
-          <span className="bg-gradient-to-b from-cyan-300 to-blue-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-b from-slate-200 to-[#8BB8D0] bg-clip-text text-transparent">
             DIU&nbsp;Lens?
           </span>
         </motion.h1>
@@ -120,9 +120,9 @@ export function ContactSection() {
                   custom={i + 1}
                   className="group flex items-start gap-4"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.04] shadow-[0_0_12px_-4px_rgba(6,182,212,0.15)] transition-all duration-300 group-hover:border-cyan-500/30 group-hover:bg-cyan-500/[0.08] group-hover:shadow-[0_0_18px_-4px_rgba(6,182,212,0.3)]">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.04] shadow-[0_0_12px_-4px_rgba(139,184,208,0.1)] transition-all duration-300 group-hover:border-[#8BB8D0]/25 group-hover:bg-[#8BB8D0]/[0.06] group-hover:shadow-[0_0_16px_-4px_rgba(139,184,208,0.2)]">
                     <item.icon
-                      className="size-[1.05rem] text-cyan-400/80 transition-colors duration-300 group-hover:text-cyan-300"
+                      className="size-[1.05rem] text-[#8BB8D0]/80 transition-colors duration-300 group-hover:text-[#9ec6d8]"
                       aria-hidden="true"
                     />
                   </div>
@@ -150,7 +150,7 @@ export function ContactSection() {
               {/* top glow line */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-cyan-500/25 to-transparent"
+                className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#8BB8D0]/15 to-transparent"
               />
 
               {submitted ? (
@@ -159,8 +159,8 @@ export function ContactSection() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex min-h-[20rem] flex-col items-center justify-center gap-4 text-center"
                 >
-                  <div className="flex size-14 items-center justify-center rounded-full border border-cyan-500/30 bg-cyan-500/10 shadow-[0_0_24px_-6px_rgba(6,182,212,0.4)]">
-                    <Send className="size-6 text-cyan-400" />
+                  <div className="flex size-14 items-center justify-center rounded-full border border-[#8BB8D0]/25 bg-[#8BB8D0]/8 shadow-[0_0_20px_-6px_rgba(139,184,208,0.25)]">
+                    <Send className="size-6 text-[#8BB8D0]" />
                   </div>
                   <p className="text-[1.1rem] font-semibold text-white">
                     Message Sent
@@ -269,7 +269,7 @@ export function ContactSection() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="landing-cta group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden bg-gradient-to-b from-[#3b76e3] to-[#255ac2] text-white shadow-[0_4px_14px_-4px_rgba(37,99,235,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] hover:from-[#4381f0] hover:to-[#2b65d6] hover:shadow-[0_6px_18px_-4px_rgba(37,99,235,0.5)] disabled:opacity-60 disabled:pointer-events-none"
+                    className="landing-cta group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden bg-gradient-to-b from-[#6a9ab8] to-[#5a8aa8] text-white shadow-[0_4px_14px_-4px_rgba(90,140,175,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-[#78a8c4] hover:to-[#6898b2] hover:shadow-[0_6px_18px_-4px_rgba(90,140,175,0.35)] disabled:opacity-60 disabled:pointer-events-none"
                   >
                     <div
                       aria-hidden="true"
