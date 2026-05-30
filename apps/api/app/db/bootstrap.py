@@ -24,11 +24,18 @@ def initialize_database() -> None:
     Base.metadata.create_all(bind=engine)
 
     # Optional super-admin bootstrap from environment
-    if all([
+    bootstrap_vars_set = all([
         settings.bootstrap_admin_email,
         settings.bootstrap_admin_password,
         settings.bootstrap_admin_full_name
-    ]):
+    ])
+    if not bootstrap_vars_set:
+        logger.warning(
+            "BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD, and "
+            "BOOTSTRAP_ADMIN_FULL_NAME are not all set. Skipping admin "
+            "bootstrap. Set all three to auto-create an admin user on startup."
+        )
+    if bootstrap_vars_set:
         email = settings.bootstrap_admin_email.strip().lower()
         session_factory = db_session.get_session_factory()
         with session_factory() as db:
