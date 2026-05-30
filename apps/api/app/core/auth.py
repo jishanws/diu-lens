@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import logging
 
 from fastapi import HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+from passlib.exc import InvalidHashError, MalformedHashError, UnknownHashError
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -16,7 +18,8 @@ from app.core.config import settings
 from app.db.models import AdminUser
 from app.db.session import get_session_factory
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+logger = logging.getLogger(__name__)
+pwd_context = CryptContext(schemes=["pbkdf2_sha256", "bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
@@ -29,7 +32,11 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, password_hash: str) -> bool:
-    return pwd_context.verify(plain_password, password_hash)
+    try:
+        return pwd_context.verify(plain_password, password_hash)
+    except (InvalidHashError, MalformedHashError, UnknownHashError) as exc:
+        logger.exception("Password verification failed due to invalid hash format.")
+        raise AuthError("Password verification failed.") from exc
 
 
 def create_access_token(*, admin_id: int, email: str, role: str) -> str:
@@ -61,16 +68,46 @@ def _forbidden() -> HTTPException:
 
 def authenticate_admin_user(email: str, password: str) -> AdminUser | None:
     session_factory = get_session_factory()
+    normalized_email = email.strip().lower()
     with session_factory() as db:
         try:
-            admin = db.scalar(select(AdminUser).where(AdminUser.email == email.strip().lower()))
+            admin = db.scalar(select(AdminUser).where(AdminUser.email == normalized_email))
         except SQLAlchemyError as exc:
+            logger.exception("Admin login failed during lookup email=%s", normalized_email)
             raise AuthError("Authentication lookup failed.") from exc
 
-        if admin is None or not admin.is_active:
+        if admin is None:
+            logger.warning("Admin login failed reason=not_found email=%s", normalized_email)
             return None
-        if not verify_password(password, admin.password_hash):
+        if not admin.is_active:
+            logger.warning(
+                "Admin login failed reason=inactive admin_id=%s email=%s",
+                admin.id,
+                admin.email,
+            )
             return None
+        try:
+            password_ok = verify_password(password, admin.password_hash)
+        except AuthError:
+            logger.exception(
+                "Admin login failed due to password hash error admin_id=%s email=%s",
+                admin.id,
+                admin.email,
+            )
+            raise
+        if not password_ok:
+            logger.warning(
+                "Admin login failed reason=bad_password admin_id=%s email=%s",
+                admin.id,
+                admin.email,
+            )
+            return None
+        logger.info(
+            "Admin login success admin_id=%s email=%s role=%s",
+            admin.id,
+            admin.email,
+            admin.role,
+        )
         return admin
 
 

@@ -96,6 +96,9 @@ def client(
     db_session_factory: sessionmaker[Session],
     storage_service: LocalStorageService,
 ) -> Generator[TestClient, None, None]:
+    from app.core.limiter import limiter
+
+    limiter.reset()
     app = create_app()
     with TestClient(app) as test_client:
         yield test_client
