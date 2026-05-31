@@ -30,7 +30,7 @@ export function Header() {
     <>
       {/* ── DESKTOP NAVBAR ──────────────────────────────────────────────────────── */}
       <header className="fixed inset-x-0 top-6 z-50 mx-auto hidden w-full px-6 md:flex md:justify-center">
-        <div className="flex w-full max-w-[38rem] items-center justify-between rounded-[20px] bg-[#0c121f]/30 px-7 py-3 backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
+        <div className="flex w-full max-w-[42rem] items-center justify-between rounded-[20px] bg-[#0c121f]/30 px-8 py-[0.85rem] backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
           {/* Logo Area */}
           <Link 
             href="/" 
@@ -45,18 +45,18 @@ export function Header() {
               priority
               className="object-contain drop-shadow-sm"
             />
-            <span className="text-[14px] font-semibold tracking-wide text-zinc-50 drop-shadow-sm">
+            <span className="mt-[1px] text-[0.95rem] font-medium tracking-[0.02em] text-white/95 drop-shadow-sm">
               DIU Lens
             </span>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-7" aria-label="Primary navigation">
+          <nav className="flex items-center gap-8" aria-label="Primary navigation">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-[13.5px] font-medium text-zinc-300 outline-none transition-colors duration-300 hover:text-zinc-50 focus-visible:text-zinc-50"
+                className="text-[0.85rem] font-medium tracking-[0.01em] text-slate-300/80 outline-none transition-colors duration-300 hover:text-white focus-visible:text-white"
               >
                 {item.label}
               </Link>
@@ -67,7 +67,7 @@ export function Header() {
 
       {/* ── MOBILE NAVBAR ───────────────────────────────────────────────────────── */}
       <header className="fixed inset-x-0 top-4 z-50 px-4 md:hidden">
-        <div className="mx-auto flex w-full max-w-[38rem] items-center justify-between rounded-[20px] bg-[#0c121f]/35 px-5 py-2.5 backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
+        <div className="mx-auto flex w-full max-w-[42rem] items-center justify-between rounded-[22px] bg-[#0c121f]/40 px-6 py-[0.85rem] backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.04]">
           <Link 
             href="/" 
             className="flex items-center gap-2.5 opacity-95 outline-none transition-opacity duration-300 hover:opacity-100 focus-visible:opacity-100"
@@ -81,7 +81,7 @@ export function Header() {
               priority
               className="object-contain drop-shadow-sm"
             />
-            <span className="text-[14px] font-semibold tracking-wide text-zinc-50 drop-shadow-sm">
+            <span className="mt-[1px] text-[0.95rem] font-medium tracking-[0.02em] text-white/95 drop-shadow-sm">
               DIU Lens
             </span>
           </Link>
@@ -89,7 +89,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.02] text-zinc-200 outline-none transition-colors duration-300 hover:bg-white/[0.06] hover:text-white focus-visible:bg-white/[0.06] focus-visible:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.02] text-blue-100/90 outline-none transition-colors duration-300 hover:bg-white/[0.06] hover:text-blue-50 focus-visible:bg-white/[0.06] focus-visible:text-blue-50"
             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileMenuOpen}
           >
@@ -105,11 +105,11 @@ export function Header() {
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.nav
-              initial={{ opacity: 0, y: -8, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -8, scale: 0.98 }}
-              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-              className="absolute inset-x-4 top-[calc(100%+0.5rem)] flex flex-col gap-1 rounded-[20px] bg-[#0c121f]/85 p-3.5 backdrop-blur-3xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]"
+              initial={{ opacity: 0, y: -12, scale: 0.96, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, y: -8, scale: 0.98, filter: 'blur(4px)' }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-x-2 top-[calc(100%+0.6rem)] flex flex-col gap-2 rounded-[24px] bg-[#0c121f]/90 p-4 backdrop-blur-3xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.04]"
               aria-label="Mobile navigation"
             >
               {navItems.map((item, i) => (
@@ -122,7 +122,7 @@ export function Header() {
                   <Link
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-[14px] px-5 py-3.5 text-[14.5px] font-medium text-zinc-300 outline-none transition-colors duration-300 hover:bg-white/[0.04] hover:text-zinc-50 focus-visible:bg-white/[0.04] focus-visible:text-zinc-50"
+                    className="block w-full rounded-[16px] px-6 py-[1.1rem] text-[1.05rem] font-medium tracking-[0.01em] text-slate-300/90 outline-none transition-colors duration-300 hover:bg-white/[0.04] hover:text-white active:bg-white/[0.06] focus-visible:bg-white/[0.04] focus-visible:text-white"
                   >
                     {item.label}
                   </Link>

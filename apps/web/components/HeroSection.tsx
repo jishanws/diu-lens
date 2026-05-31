@@ -3,34 +3,33 @@ import { ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
   return (
-    <section className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 pt-24 pb-4 text-center sm:pt-32 sm:pb-8 lg:pt-36 lg:pb-10">
-      <div className="space-y-3 sm:space-y-4">
-        <h1 className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[16ch] sm:text-6xl lg:text-[4.5rem] lg:leading-[1.05]">
+    <section className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-5 pt-28 pb-10 text-center sm:px-4 sm:pt-36 sm:pb-12 lg:pt-40 lg:pb-16">
+      <div className="flex flex-col items-center justify-center">
+        <h1 className="mx-auto max-w-[14ch] text-[2.75rem] font-medium leading-[1.05] tracking-[-0.03em] text-white sm:max-w-[16ch] sm:text-6xl sm:leading-[1.08] lg:text-[4.75rem] lg:leading-[1.02] lg:tracking-[-0.04em]">
           Smart{' '}
-          <span className="bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
+          <br className="block sm:hidden" />
+          <span className="bg-gradient-to-b from-white to-slate-400/80 bg-clip-text text-transparent">
             Identification
           </span>{' '}
-          <br className="hidden sm:block" />
+          <br />
           for DIU Campus
         </h1>
 
-        <p className="mx-auto max-w-[21rem] text-[0.9rem] leading-relaxed text-slate-400 sm:max-w-2xl sm:text-base">
-          Secure your campus identity with AI-powered facial verification
-          designed for faster access, safer authentication, and trusted
-          biometric validation across campus systems.
+        <p className="mx-auto mt-6 max-w-[21rem] text-[1rem] leading-[1.65] text-slate-400/90 sm:max-w-[36rem] sm:text-[1.05rem] sm:leading-[1.75]">
+          Secure your campus identity through a modern biometric verification platform built for DIU students. DIU Lens combines intelligent facial authentication with streamlined enrollment to deliver safer access, trusted identity validation, and a more secure digital campus experience.
         </p>
       </div>
 
-      <div className="group relative mt-10 flex flex-col items-center justify-center sm:mt-12">
-        {/* Subtle environmental glow framing the CTA */}
-        <div className="absolute -inset-4 z-0 rounded-full bg-white/[0.01] blur-[20px] transition-all duration-700 group-hover:bg-white/[0.03] group-hover:blur-[24px]" />
+      <div className="group relative mt-12 flex w-full flex-col items-center justify-center sm:mt-14 sm:w-auto">
+        {/* Soft, restrained environmental diffusion */}
+        <div className="absolute -inset-1 z-0 rounded-2xl bg-[#6a9ab8]/10 blur-[8px] transition-all duration-500 ease-out group-hover:bg-[#6a9ab8]/15 group-hover:blur-[12px]" />
         
         <Link
           href="/verify"
-          className="relative z-10 flex h-[3.25rem] items-center justify-center gap-2.5 rounded-full border border-white/[0.05] bg-[#111318]/40 px-8 text-[0.9rem] font-medium tracking-wide text-slate-200 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.04)] backdrop-blur-xl transition-all duration-700 sm:h-[3.5rem] sm:px-10 sm:text-[0.95rem] group-hover:border-white/[0.1] group-hover:bg-white/[0.04] group-hover:text-white group-hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6),inset_0_1px_2px_rgba(255,255,255,0.08)]"
+          className="relative z-10 flex h-[3.2rem] w-[100%] max-w-[20rem] items-center justify-center gap-2 rounded-[16px] bg-gradient-to-b from-[#6a9ab8]/[0.85] to-[#5a8aa8]/[0.85] px-6 pb-[1px] text-[1rem] font-medium tracking-[-0.01em] text-white/95 shadow-[0_2px_8px_-2px_rgba(90,138,168,0.15),inset_0_1px_1px_rgba(255,255,255,0.08)] ring-1 ring-white/[0.04] backdrop-blur-xl transition-all duration-500 ease-out sm:h-[2.8rem] sm:w-auto sm:max-w-none sm:gap-1.5 sm:rounded-[12px] sm:px-[1.85rem] sm:text-[0.88rem] hover:from-[#6a9ab8]/[0.95] hover:to-[#5a8aa8]/[0.95] hover:text-white hover:shadow-[0_4px_12px_-4px_rgba(90,138,168,0.2),inset_0_1px_1px_rgba(255,255,255,0.12)] hover:ring-white/[0.08]"
         >
-          Begin Secure Verification
-          <ArrowRight className="size-[1.1rem] opacity-60 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:opacity-100" />
+          Start Verification
+          <ArrowRight className="h-[0.85rem] w-[0.85rem] stroke-[2px] opacity-70 transition-opacity duration-500 ease-out group-hover:opacity-100" />
         </Link>
       </div>
     </section>

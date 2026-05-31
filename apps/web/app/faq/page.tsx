@@ -9,34 +9,34 @@ import { cn } from '@/lib/utils';
 
 const faqs = [
   {
-    question: 'Why should I register in DIU Lens?',
+    question: 'Why do students need DIU Lens?',
     answer:
-      'Verify your identity once and access campus services seamlessly. DIU Lens removes the need for repeated manual verifications across different university platforms by anchoring your student record to a secure biometric profile.',
+      'DIU Lens is designed to create a secure and trusted biometric identity system for DIU students. The platform helps strengthen digital authentication and identity validation across future university services.',
   },
   {
-    question: 'Is my facial data secure?',
+    question: 'How is biometric data protected?',
     answer:
-      'Yes. Your biometric data is instantly converted into a secure mathematical representation (vector embedding). We do not store raw images in our operational database, and all processing is encrypted end-to-end within DIU’s private infrastructure.',
+      'Biometric enrollment data is securely processed and stored using protected verification workflows. The platform is designed with privacy, integrity, and secure identity handling as core priorities.',
   },
   {
-    question: 'How long does registration take?',
+    question: 'How long does verification take?',
     answer: 
-      'The entire onboarding process takes less than 2 minutes. You simply validate your Student ID, confirm your basic details, and perform a quick guided face scan.',
+      'Most students can complete the full enrollment process within a few minutes. The guided workflow is optimized to remain simple, fast, and easy to follow.',
   },
   {
-    question: 'Do I need to register multiple times?',
+    question: 'Do I need to complete enrollment multiple times?',
     answer: 
-      'No. Registration is a one-time process. Once enrolled, your biometric profile serves as a permanent authentication layer for supported campus services.',
+      'No. Once biometric enrollment has been successfully approved, students typically do not need to repeat the process unless future verification updates are required.',
   },
   {
-    question: 'What if my face is not recognized?',
+    question: 'What happens if verification is unsuccessful?',
     answer: 
-      'You can safely retry the verification. The system is designed to handle variations in lighting and minor appearance changes. If you encounter persistent issues, you can update your biometric enrollment via the student portal.',
+      'If the system cannot validate enrollment properly, students may be asked to retry capture with improved lighting, positioning, or image clarity to ensure accurate verification.',
   },
   {
-    question: 'Is this required for all DIU students?',
+    question: 'Is biometric enrollment required for all students?',
     answer:
-      'DIU Lens is being rolled out as the standard, trusted identification layer across campus. While currently in phased adoption, it will eventually support all major authentication touchpoints.',
+      'Enrollment requirements may depend on future university authentication policies and platform integration plans across DIU systems.',
   },
 ];
 
@@ -89,7 +89,7 @@ export default function FaqPage() {
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-[1280px] flex-col px-5 pb-6 pt-4 sm:px-6 sm:pb-7 sm:pt-5 lg:px-10 lg:pb-8 lg:pt-6 xl:px-12">
         <Header />
 
-        <main className="flex w-full flex-1 justify-center pt-24 sm:pt-32 pb-16">
+        <main className="flex w-full flex-1 justify-center pt-28 pb-20 sm:pt-40 sm:pb-24">
           <div className="flex w-full max-w-2xl flex-col">
             
             {/* ── HEADER SECTION ───────────────────────────── */}
@@ -98,30 +98,30 @@ export default function FaqPage() {
                 <LifeBuoy className="size-3.5 text-blue-400/80" />
                 Support & Verification Help
               </div>
-              <h1 className="mt-6 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                How can we help?
+              <h1 className="mt-5 text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.75rem]">
+                Frequently Asked Questions
               </h1>
-              <p className="mt-4 max-w-lg text-[0.95rem] leading-relaxed text-slate-400 sm:text-base">
-                Everything you need to know about the DIU Lens biometric ecosystem, privacy guarantees, and enrollment procedures.
+              <p className="mt-5 max-w-[32rem] text-[0.95rem] leading-[1.7] text-slate-400 sm:text-[1.05rem]">
+                Everything students need to know before completing biometric enrollment through DIU Lens.
               </p>
             </header>
 
             {/* ── SEARCH INPUT ───────────────────────────── */}
-            <div className="relative mt-10 w-full sm:mt-12">
+            <div className="relative mt-12 w-full sm:mt-16">
               <div className="pointer-events-none absolute inset-y-0 left-5 flex items-center">
                 <Search className="size-4.5 text-slate-500" />
               </div>
               <input
                 type="text"
-                placeholder="Search support topics..."
+                placeholder="Search questions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-[1.25rem] border border-white/[0.06] bg-white/[0.02] py-4 pl-12 pr-6 text-[0.95rem] text-slate-200 placeholder:text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.02),0_8px_20px_-8px_rgba(0,0,0,0.3)] backdrop-blur-md transition-all duration-300 focus:border-white/[0.12] focus:bg-white/[0.04] focus:outline-none focus:ring-4 focus:ring-white/[0.02]"
+                className="w-full rounded-[16px] border border-white/[0.05] bg-[#16191f]/40 py-3.5 pl-[3.25rem] pr-4 text-[0.95rem] text-slate-200 outline-none ring-1 ring-white/0 transition-all placeholder:text-slate-500 focus:bg-[#16191f]/60 focus:ring-white/[0.08] sm:rounded-[14px] sm:py-3 sm:text-[1rem]"
               />
             </div>
 
             {/* ── FAQ ACCORDIONS ───────────────────────────── */}
-            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:gap-4">
+            <div className="mt-8 flex flex-col gap-3 sm:mt-10 sm:gap-[1.15rem]">
               {filteredFaqs.length > 0 ? (
                 filteredFaqs.map((faq, index) => {
                   const isOpen = openIndex === index;
@@ -138,12 +138,12 @@ export default function FaqPage() {
                       <button
                         type="button"
                         onClick={() => toggle(index)}
-                        className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left outline-none sm:px-7 sm:py-6"
+                        className="flex w-full items-center justify-between gap-4 px-6 py-[1.25rem] text-left outline-none sm:px-8 sm:py-[1.4rem]"
                         aria-expanded={isOpen}
                       >
                         <span 
                           className={cn(
-                            "text-[0.95rem] font-medium transition-colors duration-300 sm:text-[1.05rem]",
+                            "text-[1rem] font-medium tracking-[-0.01em] transition-colors duration-300 sm:text-[1.1rem]",
                             isOpen ? "text-white" : "text-slate-200 group-hover:text-white"
                           )}
                         >
@@ -171,7 +171,7 @@ export default function FaqPage() {
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                           >
-                            <div className="px-5 pb-6 pt-1 text-[0.88rem] leading-relaxed text-slate-400 sm:px-7 sm:pb-7 sm:text-[0.92rem]">
+                            <div className="px-6 pb-[1.6rem] pt-1 text-[0.98rem] leading-[1.7] text-slate-400/90 sm:px-8 sm:text-[0.98rem]">
                               {faq.answer}
                             </div>
                           </motion.div>
