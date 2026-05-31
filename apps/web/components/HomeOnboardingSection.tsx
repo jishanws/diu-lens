@@ -1,6 +1,3 @@
-'use client';
-
-import { useState } from 'react';
 import {
   IdCard,
   LockKeyhole,
@@ -11,8 +8,6 @@ import {
 } from 'lucide-react';
 
 import { HeroSection } from '@/components/HeroSection';
-import { RegistrationCard } from '@/components/RegistrationCard';
-import { cn } from '@/lib/utils';
 
 const benefits = [
   {
@@ -57,44 +52,11 @@ const workflowSteps = [
 ] as const;
 
 export function HomeOnboardingSection() {
-  const [activeStep, setActiveStep] = useState(0);
-  const isVerificationStep = activeStep === 2;
-
   return (
     <>
       <HeroSection />
       <BenefitsSection />
       <HowItWorksSection />
-
-      <section
-        id="start-verification"
-        className="relative scroll-mt-8 py-10 sm:py-14 lg:py-16"
-      >
-        <div className="relative mx-auto flex w-full max-w-4xl flex-col items-center gap-10">
-          <div
-            className={cn(
-              'mx-auto max-w-2xl text-center transition-all duration-300 ease-out',
-              activeStep > 0 && !isVerificationStep
-                ? 'opacity-80'
-                : 'opacity-100'
-            )}
-          >
-            <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase">
-              Identity Verification
-            </p>
-            <h2 className="mt-3 text-[1.8rem] leading-tight font-semibold tracking-tight text-white sm:text-[2.1rem]">
-              Begin secure student verification.
-            </h2>
-            <p className="mt-3 text-[0.95rem] leading-relaxed text-slate-400">
-              Follow the secure workflow below to anchor your campus identity.
-            </p>
-          </div>
-
-          <div className="relative mx-auto flex w-full max-w-[28rem] justify-center drop-shadow-[0_12px_30px_rgba(0,0,0,0.4)] md:max-w-[32rem]">
-            <RegistrationCard onStepIndexChange={setActiveStep} />
-          </div>
-        </div>
-      </section>
     </>
   );
 }

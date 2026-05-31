@@ -25,12 +25,12 @@ export function RegistrationShell({
   return (
     <Card
       className={cn(
-        'landing-card-surface flex w-full flex-col rounded-[1.25rem] border px-5 py-5 shadow-none sm:rounded-[1.3rem] sm:px-[1.375rem] sm:py-[1.4rem]',
+        'landing-card-surface flex w-full flex-col rounded-[1.5rem] border px-6 py-6 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] sm:rounded-[1.75rem] sm:px-8 sm:py-8 lg:px-10 lg:py-10',
         className
       )}
     >
       <CardContent className="space-y-0 p-0">
-        <header className="space-y-3 sm:space-y-2.5 pb-5 sm:pb-[1.4rem]">
+        <header className="space-y-4 sm:space-y-3.5 pb-6 sm:pb-8">
           <div>
             <h2 className="landing-text-primary text-center text-[1.38rem] leading-none font-semibold tracking-[-0.012em] sm:text-[1.58rem] sm:tracking-[-0.015em]">
               Verification Portal
@@ -171,7 +171,7 @@ export function RegistrationShell({
           </nav>
         </header>
 
-        <div className="space-y-5 border-t border-white/[0.06] pt-5 sm:space-y-4 sm:pt-[1.35rem]">
+        <div className="space-y-6 border-t border-white/[0.06] pt-6 sm:space-y-5 sm:pt-8">
           {children}
         </div>
       </CardContent>

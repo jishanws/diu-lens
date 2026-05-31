@@ -1,4 +1,5 @@
-import { ArrowDown } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
   return (
@@ -20,14 +21,17 @@ export function HeroSection() {
         </p>
       </div>
 
-      <div className="mt-6 flex items-center justify-center sm:mt-8">
-        <a
-          href="#start-verification"
-          className="group text-slate-500 transition-colors hover:text-slate-300"
-          aria-label="Scroll to verification"
+      <div className="group relative mt-10 flex flex-col items-center justify-center sm:mt-12">
+        {/* Subtle environmental glow framing the CTA */}
+        <div className="absolute -inset-4 z-0 rounded-full bg-white/[0.01] blur-[20px] transition-all duration-700 group-hover:bg-white/[0.03] group-hover:blur-[24px]" />
+        
+        <Link
+          href="/verify"
+          className="relative z-10 flex h-[3.25rem] items-center justify-center gap-2.5 rounded-full border border-white/[0.05] bg-[#111318]/40 px-8 text-[0.9rem] font-medium tracking-wide text-slate-200 shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.04)] backdrop-blur-xl transition-all duration-700 sm:h-[3.5rem] sm:px-10 sm:text-[0.95rem] group-hover:border-white/[0.1] group-hover:bg-white/[0.04] group-hover:text-white group-hover:shadow-[0_8px_32px_-8px_rgba(0,0,0,0.6),inset_0_1px_2px_rgba(255,255,255,0.08)]"
         >
-          <ArrowDown className="size-4 transition-transform duration-300 group-hover:translate-y-1 sm:size-5" />
-        </a>
+          Begin Secure Verification
+          <ArrowRight className="size-[1.1rem] opacity-60 transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-1 group-hover:opacity-100" />
+        </Link>
       </div>
     </section>
   );
