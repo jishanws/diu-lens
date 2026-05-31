@@ -30,11 +30,11 @@ export function Header() {
     <>
       {/* ── DESKTOP NAVBAR ──────────────────────────────────────────────────────── */}
       <header className="fixed inset-x-0 top-6 z-50 mx-auto hidden w-full px-6 md:flex md:justify-center">
-        <div className="flex w-full max-w-[42rem] items-center justify-between rounded-[20px] bg-[#0c121f]/35 px-4 py-2 backdrop-blur-2xl shadow-[0_12px_32px_-8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.03]">
+        <div className="flex w-full max-w-[38rem] items-center justify-between rounded-[20px] bg-[#0c121f]/30 px-7 py-3 backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
           {/* Logo Area */}
           <Link 
             href="/" 
-            className="group flex items-center gap-2.5 pl-1.5 opacity-90 outline-none transition-[opacity,transform] duration-300 hover:opacity-100 active:scale-[0.98]"
+            className="group flex items-center gap-2.5 opacity-90 outline-none transition-[opacity,transform] duration-300 hover:opacity-100 active:scale-[0.98]"
             aria-label="DIU Lens home"
           >
             <Image
@@ -45,18 +45,18 @@ export function Header() {
               priority
               className="object-contain drop-shadow-sm"
             />
-            <span className="text-[13.5px] font-semibold tracking-wide text-zinc-50 drop-shadow-sm">
+            <span className="text-[14px] font-semibold tracking-wide text-zinc-50 drop-shadow-sm">
               DIU Lens
             </span>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-1.5 pr-0.5" aria-label="Primary navigation">
+          <nav className="flex items-center gap-7" aria-label="Primary navigation">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="rounded-[12px] px-3.5 py-1.5 text-[13px] font-medium text-zinc-200 outline-none transition-all duration-300 hover:bg-white/[0.05] hover:text-white focus-visible:bg-white/[0.05] focus-visible:text-white"
+                className="text-[13.5px] font-medium text-zinc-300 outline-none transition-colors duration-300 hover:text-zinc-50 focus-visible:text-zinc-50"
               >
                 {item.label}
               </Link>
@@ -67,10 +67,10 @@ export function Header() {
 
       {/* ── MOBILE NAVBAR ───────────────────────────────────────────────────────── */}
       <header className="fixed inset-x-0 top-4 z-50 px-4 md:hidden">
-        <div className="mx-auto flex w-full max-w-[42rem] items-center justify-between rounded-[20px] bg-[#0c121f]/40 px-4 py-2.5 backdrop-blur-2xl shadow-[0_12px_32px_-8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.03]">
+        <div className="mx-auto flex w-full max-w-[38rem] items-center justify-between rounded-[20px] bg-[#0c121f]/35 px-5 py-2.5 backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
           <Link 
             href="/" 
-            className="flex items-center gap-2.5 pl-0.5 opacity-95 outline-none transition-opacity duration-300 hover:opacity-100 focus-visible:opacity-100"
+            className="flex items-center gap-2.5 opacity-95 outline-none transition-opacity duration-300 hover:opacity-100 focus-visible:opacity-100"
             onClick={() => setMobileMenuOpen(false)}
           >
             <Image
@@ -89,7 +89,7 @@ export function Header() {
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.03] text-zinc-100 outline-none transition-colors duration-300 hover:bg-white/[0.08] hover:text-white focus-visible:bg-white/[0.08] focus-visible:text-white"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.02] text-zinc-200 outline-none transition-colors duration-300 hover:bg-white/[0.06] hover:text-white focus-visible:bg-white/[0.06] focus-visible:text-white"
             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileMenuOpen}
           >
@@ -109,7 +109,7 @@ export function Header() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.98 }}
               transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
-              className="absolute inset-x-4 top-[calc(100%+0.5rem)] flex flex-col gap-1 rounded-[20px] bg-[#0c121f]/85 p-3.5 backdrop-blur-3xl shadow-[0_20px_40px_-12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.04]"
+              className="absolute inset-x-4 top-[calc(100%+0.5rem)] flex flex-col gap-1 rounded-[20px] bg-[#0c121f]/85 p-3.5 backdrop-blur-3xl shadow-[0_16px_40px_-8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]"
               aria-label="Mobile navigation"
             >
               {navItems.map((item, i) => (
@@ -122,7 +122,7 @@ export function Header() {
                   <Link
                     href={item.href}
                     onClick={() => setMobileMenuOpen(false)}
-                    className="block rounded-[14px] px-4 py-3.5 text-[14.5px] font-medium text-zinc-200 outline-none transition-colors duration-300 hover:bg-white/[0.05] hover:text-white focus-visible:bg-white/[0.05] focus-visible:text-white"
+                    className="block rounded-[14px] px-5 py-3.5 text-[14.5px] font-medium text-zinc-300 outline-none transition-colors duration-300 hover:bg-white/[0.04] hover:text-zinc-50 focus-visible:bg-white/[0.04] focus-visible:text-zinc-50"
                   >
                     {item.label}
                   </Link>
