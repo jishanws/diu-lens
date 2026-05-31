@@ -50,8 +50,8 @@
 }
 
 :root {
-  /* ── Background System — warm graphite, not navy ───────────── */
-  --background: oklch(0.155 0.006 250);
+  /* ── Background System — warm graphite cinematic slate ─────── */
+  --background: oklch(0.148 0.008 248);
   --foreground: oklch(0.93 0.005 250);
   --card: oklch(0.21 0.008 248);
   --card-foreground: oklch(0.93 0.005 250);
@@ -91,30 +91,111 @@
   --sidebar-border: oklch(0.34 0.008 248 / 40%);
   --sidebar-ring: oklch(0.65 0.04 230);
 
-  /* ── Landing Page — cinematic warm graphite ────────────────── */
+  /* ══════════════════════════════════════════════════════════════
+     CINEMATIC ENVIRONMENT — Atmospheric Background System
+     ══════════════════════════════════════════════════════════════
+
+     The page exists INSIDE an environment, not ON a surface.
+     Atmosphere comes from composition, not from individual effects.
+
+     L1 · Environmental Lighting (bg-environment)
+       Multi-gradient shaped vertical composition. Upper zone is
+       slightly luminous; hero zone has a warm focal pocket; lower
+       zone recedes into deep darkness. Creates spatial hierarchy.
+
+     L2 · Hero Atmosphere (bg-hero-atmos)
+       Wide, flat luminance centered at the hero content zone.
+       Anchors the interface in atmosphere — the hero feels lit.
+
+     L3 · Atmospheric Signature (bg-signature-form)
+       The emotional identity layer. An organic amorphous form
+       made from overlapping gradients → dissolved through 100px
+       CSS blur. Reads as atmospheric luminance flow, never as
+       a shape. Very slow drift animation (55s).
+
+     L4 · Film Grain (bg-grain)
+       SVG feTurbulence at ~2% opacity. Matte cinematic texture.
+
+     L5 · Depth Recession (bg-depth-recession)
+       Linear darkness increasing toward the bottom. Creates the
+       spatial impression of lit upper zone → distant depth below.
+
+     L6 · Cinematic Vignette (landing-vignette)
+       Radial edge darkening, bottom-heavier. Frames content.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* L1 — base surface */
+  --bg-base: #0e1115;
   --landing-page-gradient:
+    linear-gradient(
+      168deg,
+      #121620 0%,
+      #0e1115 42%,
+      #0c1013 72%,
+      #101418 100%
+    );
+
+  /* L1 — environmental lighting: multi-gradient vertical composition
+     Upper atmospheric glow + hero-zone warmth + lower recession.
+     These are stacked on a single div for GPU efficiency.         */
+  --bg-environment:
+    /* Upper atmospheric glow — wide, soft */
     radial-gradient(
-      circle at 50% 16%,
-      rgba(120, 150, 180, 0.06),
-      transparent 40%
+      ellipse 170% 55% at 50% -8%,
+      rgba(140, 168, 204, 0.065) 0%,
+      rgba(125, 152, 188, 0.028) 50%,
+      transparent 78%
     ),
-    linear-gradient(180deg, #111318 0%, #12151b 44%, #111318 100%);
-  --landing-grid-line: rgba(140, 165, 190, 0.022);
-  --landing-vignette: linear-gradient(
+    /* Upper-right secondary — directional depth, barely perceptible */
+    radial-gradient(
+      ellipse 90% 45% at 80% 5%,
+      rgba(135, 162, 198, 0.025) 0%,
+      transparent 65%
+    ),
+    /* Lower atmospheric darkness — progressive falloff */
+    linear-gradient(
+      180deg,
+      transparent 55%,
+      rgba(4, 6, 10, 0.18) 80%,
+      rgba(3, 5, 8, 0.32) 100%
+    );
+
+  /* L2 — hero atmosphere: centered focal warmth at hero zone */
+  --bg-hero-atmos: radial-gradient(
+    ellipse 100% 32% at 50% 38%,
+    rgba(148, 175, 210, 0.038) 0%,
+    rgba(130, 158, 194, 0.014) 55%,
+    transparent 85%
+  );
+
+  /* L5 — depth recession: linear bottom darkening */
+  --bg-depth-recession: linear-gradient(
     180deg,
-    rgba(14, 16, 20, 0.08),
-    rgba(14, 16, 20, 0.25)
+    transparent 0%,
+    transparent 45%,
+    rgba(5, 7, 11, 0.12) 70%,
+    rgba(3, 5, 9, 0.28) 90%,
+    rgba(2, 4, 7, 0.40) 100%
   );
-  --landing-glow-top-left: radial-gradient(
-    circle at 50% 0%,
-    rgba(130, 160, 190, 0.035),
-    transparent 48%
-  );
-  --landing-glow-bottom-right: radial-gradient(
-    circle at 90% 96%,
-    rgba(110, 140, 170, 0.02),
-    transparent 48%
-  );
+
+  /* L6 — vignette: compound radial, bottom-heavier for depth */
+  --bg-vignette:
+    radial-gradient(
+      ellipse 120% 115% at 50% 42%,
+      transparent 22%,
+      rgba(5, 7, 11, 0.22) 50%,
+      rgba(3, 5, 9, 0.48) 74%,
+      rgba(2, 4, 7, 0.70) 100%
+    );
+
+  /* ── Legacy aliases (admin panel compatibility) ───────── */
+  --landing-vignette: var(--bg-vignette);
+  --bg-ambient-light: var(--bg-environment);
+  --landing-glow-top-left: var(--bg-environment);
+  --landing-glow-bottom-right: transparent;
+
+  /* ── Component variables (unchanged) ────────────────── */
+  --landing-grid-line: rgba(140, 165, 190, 0.022);
   --landing-card-bg: linear-gradient(
     180deg,
     rgba(22, 25, 32, 0.94) 0%,
@@ -160,7 +241,8 @@
   }
 
   body {
-    @apply bg-background text-foreground selection:bg-primary/20 transition-colors duration-150;
+    @apply text-foreground selection:bg-primary/20 transition-colors duration-150;
+    background-color: var(--bg-base, #101318);
     min-height: 100dvh;
   }
   h1,
@@ -175,33 +257,93 @@
 
 
 @layer utilities {
+  /* ── L1: Base surface ──────────────────────────────────────── */
   .landing-page {
+    background-color: var(--bg-base);
     background-image: var(--landing-page-gradient);
-    background-color: var(--background);
   }
 
+  /* ── L1: Environmental lighting composition ──────────────── */
+  .bg-environment {
+    background-image: var(--bg-environment);
+  }
+
+  /* ── L2: Hero atmosphere ──────────────────────────────────── */
+  .bg-hero-atmos {
+    background-image: var(--bg-hero-atmos);
+  }
+
+  /* ── L3: Atmospheric signature ────────────────────────────── */
+  /*   The organic biometric energy current. A shaped gradient   */
+  /*   form dissolved through heavy blur. After blur(100px) the  */
+  /*   shape becomes pure atmospheric luminance — no detectable  */
+  /*   geometry, only environmental presence.                    */
+  .bg-signature-wrap {
+    /* Container clips the blurred form to viewport */
+  }
+
+  .bg-signature-form {
+    position: absolute;
+    /* Positioned to influence the hero zone primarily */
+    top: 8%;
+    left: 5%;
+    width: 90%;
+    height: 65%;
+    /* Multiple gradients create an organic, amorphous shape */
+    background:
+      radial-gradient(
+        ellipse 55% 50% at 30% 45%,
+        rgba(130, 162, 204, 0.08) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 45% 55% at 72% 38%,
+        rgba(118, 150, 192, 0.065) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 60% 35% at 50% 65%,
+        rgba(110, 142, 184, 0.045) 0%,
+        transparent 70%
+      );
+    /* The critical technique: heavy blur dissolves all shape */
+    filter: blur(100px);
+    opacity: 0.72;
+    /* Slow drift — imperceptible movement, alive feeling */
+    animation: signatureDrift 55s ease-in-out infinite alternate;
+    will-change: transform;
+    /* Prevent blur from expanding clickable area */
+    pointer-events: none;
+  }
+
+  /* ── L5: Depth recession ──────────────────────────────────── */
+  .bg-depth-recession {
+    background-image: var(--bg-depth-recession);
+  }
+
+  /* ── L6: Cinematic vignette ───────────────────────────────── */
   .landing-vignette {
-    background-image: var(--landing-vignette);
-    opacity: 0.9;
+    background-image: var(--bg-vignette);
   }
 
-  .landing-grid-overlay {
-    background-image:
-      linear-gradient(rgba(160, 175, 195, 0.018) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(160, 175, 195, 0.018) 1px, transparent 1px);
-    background-size: 82px 82px;
-    mask-image: radial-gradient(circle at center, rgba(0,0,0,0.5) 15%, transparent 70%);
-    opacity: 0.22;
-  }
-
+  /* ── Admin panel compatibility ─────────────────────────────── */
   .landing-glow-top-left {
     background-image: var(--landing-glow-top-left);
-    filter: saturate(0.5) brightness(0.7);
   }
-
   .landing-glow-bottom-right {
-    background-image: var(--landing-glow-bottom-right);
-    filter: saturate(0.5) brightness(0.7);
+    /* retained for compatibility */
+  }
+  .landing-grid-overlay {
+    background-image:
+      linear-gradient(rgba(148, 165, 185, 0.007) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 165, 185, 0.007) 1px, transparent 1px);
+    background-size: 120px 120px;
+    mask-image: radial-gradient(
+      ellipse 50% 36% at 50% 25%,
+      rgba(0, 0, 0, 0.22) 0%,
+      transparent 100%
+    );
+    opacity: 0.10;
   }
 
   .landing-card-surface {
@@ -257,7 +399,7 @@
     color: var(--landing-text-primary);
   }
 
-  /* ── Step node timeline ────────────────────────────── */
+  /* ── Step node timeline ──────────────────────────────── */
 
   @keyframes node-pulse {
     0%, 100% {
@@ -352,7 +494,7 @@
     .step-node  { width: 1.625rem; height: 1.625rem; }
   }
 
-  /* ── Biometric scan animations ──────────────────────── */
+  /* ── Biometric scan animations ────────────────────────── */
 
   @keyframes biometric-scan {
     0%   { top: 8%;  opacity: 0; }
@@ -378,7 +520,7 @@
     animation: biometric-dot-glow 1.8s ease-in-out infinite;
   }
 
-  /* ────────────────────────────────────────────────────── */
+  /* ────────────────────────────────────────────────────────── */
 
   .landing-input-surface {
     background: var(--landing-input-bg);
@@ -479,11 +621,9 @@
     transform: translateY(0);
   }
 
-  @media (max-width: 1023px) {
-    .landing-grid-overlay {
-      background-size: 74px 74px;
-    }
+  /* ── Responsive ─────────────────────────────────────── */
 
+  @media (max-width: 1023px) {
     .landing-step-labels-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       row-gap: 0.4rem;
@@ -492,7 +632,13 @@
 
   @media (max-width: 767px) {
     .landing-grid-overlay {
-      background-size: 64px 64px;
+      display: none;
+    }
+
+    /* Signature form: reduced on tablet */
+    .bg-signature-form {
+      opacity: 0.50;
+      filter: blur(120px);
     }
 
     .landing-step-labels-grid {
@@ -515,9 +661,25 @@
   }
 
   @media (max-width: 639px) {
-    .landing-grid-overlay {
-      background-size: 58px 58px;
-      opacity: 0.65;
+    /* Signature form: disabled on mobile for GPU performance */
+    .bg-signature-form {
+      display: none;
+    }
+
+    /* Environmental lighting: slightly reduced */
+    .bg-environment {
+      opacity: 0.78;
+    }
+
+    /* Vignette: softer on mobile */
+    .landing-vignette {
+      background-image: radial-gradient(
+        ellipse 140% 120% at 50% 45%,
+        transparent 20%,
+        rgba(5, 7, 11, 0.16) 48%,
+        rgba(3, 5, 9,  0.38) 75%,
+        rgba(2, 4, 7,  0.56) 100%
+      );
     }
 
     .landing-form-input {

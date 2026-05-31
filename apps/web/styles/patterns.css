@@ -1,3 +1,71 @@
+/* ═══════════════════════════════════════════════════════════════
+   DIU Lens — Atmospheric Pattern System
+   ───────────────────────────────────────────────────────────────
+   This file contains:
+   1. Background atmosphere utilities (layers 2–4)
+   2. Component-level ai-* animation classes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────
+   LAYER 4 — Film Grain / Noise Texture
+   Rendered via CSS filter referencing an inline SVG feTurbulence.
+   The .bg-grain class is applied to an absolutely-positioned div
+   in page.tsx. mix-blend-mode: overlay at ~3% opacity gives the
+   matte cinematic texture without looking digital.
+   ───────────────────────────────────────────────────────────── */
+@layer utilities {
+  .bg-grain {
+    /* SVG feTurbulence noise — GPU composited, zero layout cost */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='1'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 200px 200px;
+    opacity: 0.020;
+    mix-blend-mode: overlay;
+    will-change: auto;
+  }
+
+  @media (max-width: 639px) {
+    .bg-grain {
+      opacity: 0.014;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .bg-grain {
+      animation: grainDrift 90s steps(1) infinite;
+    }
+  }
+}
+
+  /* ─────────────────────────────────────────────────────────────
+   ATMOSPHERIC BREATHING ANIMATION
+   Applied to .bg-atmos-primary via the .bg-atmos-breathe class.
+   38s alternate cycle. Opacity only — zero layout/paint cost.
+   Creates the "alive" quality without any visible motion.
+   ───────────────────────────────────────────────────────────── */
+  .bg-atmos-breathe {
+    animation: atmosBreathe 38s ease-in-out infinite alternate;
+    will-change: opacity;
+  }
+
+  @media (max-width: 767px) {
+    /* No animation on tablet/mobile — preserve battery and prevent
+       any perception of the gradient edge moving on small screens */
+    .bg-atmos-breathe {
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-atmos-breathe {
+      animation: none;
+    }
+  }
+
+/* ─────────────────────────────────────────────────────────────
+   Component-level AI animation classes
+   (Used by specific feature components, not the background)
+   ───────────────────────────────────────────────────────────── */
 @layer utilities {
   .surface-panel {
     @apply rounded-2xl bg-white/88 backdrop-blur-sm;
@@ -263,6 +331,36 @@
     }
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Keyframes
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Atmospheric background keyframes ─────────────────────── */
+
+@keyframes grainDrift {
+  /* Steps through 8 positions over 90s — creates imperceptible
+     motion that breaks static flatness without visible movement */
+  0%   { background-position: 0px 0px; }
+  12%  { background-position: -12px 8px; }
+  25%  { background-position: 6px -10px; }
+  37%  { background-position: -8px 14px; }
+  50%  { background-position: 10px 6px; }
+  62%  { background-position: -6px -12px; }
+  75%  { background-position: 14px 4px; }
+  87%  { background-position: -10px 10px; }
+  100% { background-position: 0px 0px; }
+}
+
+@keyframes atmosBreathe {
+  /* Slow opacity breathing — 38s alternate cycle.
+     Range 1→0.6 gives presence without visible light pulsing. */
+  0%   { opacity: 1; }
+  100% { opacity: 0.62; }
+}
+
+
+/* ── Component animation keyframes ───────────────────────── */
 
 @keyframes aiGridDrift {
   0% {

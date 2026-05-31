@@ -130,8 +130,8 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
           <div className="flex h-full flex-col p-5">
             {/* Brand */}
             <div className="mb-10 flex items-center gap-3.5 px-3 pt-4">
-              <div className="flex size-[2.2rem] shrink-0 items-center justify-center rounded-[0.85rem] border border-white/[0.04] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                <Image src="/branding/logo.png" alt="DIU Lens" width={36} height={36} priority className="size-[1.7rem] drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]" />
+              <div className="flex size-[2rem] shrink-0 items-center justify-center rounded-[0.6rem] bg-transparent">
+                <Image src="/branding/logo-v2.png" alt="DIU Lens" width={32} height={32} priority className="size-[1.5rem] object-contain" />
               </div>
               <div className="flex flex-col justify-center">
                 <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-[#8BB8D0]/70">DIU LENS</p>
@@ -243,8 +243,8 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
             >
               <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4 min-h-[60px]">
                 <div className="flex items-center gap-3">
-                  <div className="flex size-[1.8rem] items-center justify-center rounded-[0.6rem] bg-white/[0.05]">
-                    <Image src="/branding/logo.png" alt="DIU Lens" width={24} height={24} />
+                  <div className="flex size-[1.8rem] items-center justify-center rounded-[0.6rem] bg-transparent">
+                    <Image src="/branding/logo-v2.png" alt="DIU Lens" width={24} height={24} className="object-contain" />
                   </div>
                   <span className="text-[0.8rem] font-bold tracking-widest text-[#8BB8D0]">DIU LENS</span>
                 </div>
