@@ -29,12 +29,12 @@ export function Header() {
   return (
     <>
       {/* ── DESKTOP NAVBAR ──────────────────────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-6 z-50 mx-auto hidden w-full px-6 md:flex md:justify-center">
-        <div className="flex w-full max-w-[42rem] items-center justify-between rounded-[20px] bg-[#0c121f]/30 px-8 py-[0.85rem] backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
+      <header className="fixed inset-x-0 top-6 z-50 mx-auto hidden w-full px-6 md:flex md:justify-center lg:px-8">
+        <div className="flex w-full max-w-[36rem] lg:max-w-[42rem] items-center justify-between rounded-[20px] bg-[#0c121f]/30 px-6 lg:px-8 py-[0.85rem] backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.02]">
           {/* Logo Area */}
           <Link 
             href="/" 
-            className="group flex items-center gap-2.5 opacity-90 outline-none transition-[opacity,transform] duration-300 hover:opacity-100 active:scale-[0.98]"
+            className="group flex items-center gap-2.5 opacity-90 outline-none transition-[opacity,transform] duration-300 hover:opacity-100 active:scale-[0.98] md:p-1 lg:p-0"
             aria-label="DIU Lens home"
           >
             <Image
@@ -43,20 +43,20 @@ export function Header() {
               width={20}
               height={20}
               priority
-              className="object-contain drop-shadow-sm"
+              className="object-contain drop-shadow-sm md:w-[1.35rem] md:h-[1.35rem] lg:w-[20px] lg:h-[20px]"
             />
-            <span className="mt-[1px] text-[0.95rem] font-medium tracking-[0.02em] text-white/95 drop-shadow-sm">
+            <span className="mt-[1px] text-[0.95rem] font-medium tracking-[0.02em] text-white/95 drop-shadow-sm md:text-[1rem] lg:text-[0.95rem]">
               DIU Lens
             </span>
           </Link>
 
           {/* Navigation Links */}
-          <nav className="flex items-center gap-8" aria-label="Primary navigation">
+          <nav className="flex items-center gap-6 lg:gap-8" aria-label="Primary navigation">
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-[0.85rem] font-medium tracking-[0.01em] text-slate-300/80 outline-none transition-colors duration-300 hover:text-white focus-visible:text-white"
+                className="text-[0.85rem] font-medium tracking-[0.01em] text-slate-300/80 outline-none transition-colors duration-300 hover:text-white focus-visible:text-white md:px-2 md:py-1 lg:px-0 lg:py-0 md:text-[0.9rem] lg:text-[0.85rem]"
               >
                 {item.label}
               </Link>

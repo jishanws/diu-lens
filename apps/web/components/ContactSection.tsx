@@ -54,14 +54,14 @@ export function ContactSection() {
     <>
       {/* ── Hero header ─────────────────────────────────────── */}
       <motion.section
-        className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 pt-24 pb-4 text-center sm:pt-32 sm:pb-8 lg:pt-36 lg:pb-10"
+        className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-4 pt-24 pb-4 text-center sm:pt-32 sm:pb-8 md:pt-36 md:pb-12 lg:pt-36 lg:pb-10"
         initial="hidden"
         animate="show"
       >
         <motion.p
           variants={FADE_UP}
           custom={0}
-          className="mb-3 text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase sm:mb-4"
+          className="mb-3 text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase sm:mb-4 md:text-[0.7rem]"
         >
           Support &amp; Contact
         </motion.p>
@@ -69,7 +69,7 @@ export function ContactSection() {
         <motion.h1
           variants={FADE_UP}
           custom={1}
-          className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl lg:text-[4rem] lg:leading-[1.05]"
+          className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl md:max-w-none md:text-[3.5rem] md:leading-[1.08] lg:text-[4rem] lg:leading-[1.05]"
         >
           Need help with{' '}
           <span className="bg-gradient-to-b from-slate-200 to-[#8BB8D0] bg-clip-text text-transparent">
@@ -80,7 +80,7 @@ export function ContactSection() {
         <motion.p
           variants={FADE_UP}
           custom={2}
-          className="mx-auto mt-4 max-w-[22rem] text-[0.9rem] leading-relaxed text-slate-400 sm:max-w-xl sm:text-base sm:mt-5"
+          className="mx-auto mt-4 max-w-[22rem] text-[0.9rem] leading-relaxed text-slate-400 sm:max-w-xl sm:text-base sm:mt-5 md:max-w-2xl md:text-[1.05rem] md:leading-[1.75]"
         >
           Reach out to the DIU Lens support team for help with biometric
           registration, identity verification, or campus access.
@@ -88,25 +88,25 @@ export function ContactSection() {
       </motion.section>
 
       {/* ── Two-column body ─────────────────────────────────── */}
-      <section className="relative mx-auto w-full max-w-5xl px-4 pt-10 pb-16 sm:px-6 sm:pt-12 sm:pb-20 lg:pt-14 lg:pb-24">
+      <section className="relative mx-auto w-full max-w-5xl px-4 pt-10 pb-16 sm:px-6 sm:pt-12 sm:pb-20 md:max-w-4xl lg:max-w-5xl lg:pt-14 lg:pb-24">
 
-        <div className="grid items-start gap-10 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
+        <div className="grid items-start gap-10 md:grid-cols-[1fr_1.1fr] md:gap-8 lg:grid-cols-[1fr_1.4fr] lg:gap-16">
 
           {/* Left: contact info */}
           <motion.div
-            className="flex flex-col gap-6 lg:sticky lg:top-32"
+            className="flex flex-col gap-6 md:sticky md:top-28 lg:top-32"
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, margin: '-80px' }}
           >
             <motion.div variants={FADE_UP} custom={0} className="space-y-2">
-              <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase">
+              <p className="text-[0.65rem] font-medium tracking-widest text-slate-500 uppercase md:text-[0.7rem]">
                 Contact Info
               </p>
-              <h2 className="text-[1.4rem] font-semibold leading-snug tracking-tight text-white sm:text-[1.6rem]">
+              <h2 className="text-[1.4rem] font-semibold leading-snug tracking-tight text-white sm:text-[1.6rem] md:text-[1.75rem]">
                 We&rsquo;re here to help.
               </h2>
-              <p className="text-[0.9rem] leading-relaxed text-slate-400">
+              <p className="text-[0.9rem] leading-relaxed text-slate-400 md:text-[0.95rem] md:leading-[1.65]">
                 Whether you&rsquo;re facing a registration issue or need access
                 support, our team is ready.
               </p>
@@ -146,7 +146,7 @@ export function ContactSection() {
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.65, delay: 0.15, ease: [0.32, 0.72, 0, 1] }}
           >
-            <div className="landing-card-surface relative overflow-hidden rounded-[1.75rem] border p-7 sm:p-9">
+            <div className="landing-card-surface relative overflow-hidden rounded-[1.75rem] border p-7 sm:p-9 md:p-8 lg:p-9">
               {/* top glow line */}
               <div
                 aria-hidden="true"
@@ -173,7 +173,7 @@ export function ContactSection() {
               ) : (
                 <form onSubmit={handleSubmit} className="flex flex-col gap-5">
                   {/* Row 1: Name + Student ID */}
-                  <div className="grid gap-5 sm:grid-cols-2">
+                  <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
                     <div className="space-y-1.5">
                       <label
                         htmlFor="contact-name"
