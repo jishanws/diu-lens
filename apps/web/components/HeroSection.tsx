@@ -3,28 +3,8 @@ import { ArrowRight } from 'lucide-react';
 
 export function HeroSection() {
   return (
-    <section className="relative mx-auto flex w-full flex-col items-center justify-center px-5 pt-28 pb-10 sm:px-4 sm:pt-36 sm:pb-12 md:pt-40 md:pb-14 lg:pt-44 lg:pb-16">
-      
-      {/* ── ARCHITECTURAL BLUEPRINT BACKGROUND ───────────────────
-          Subtle institutional infrastructure layer.
-          Masked heavily in the center to prioritize readability. ── */}
-      <div 
-        className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
-        aria-hidden="true" 
-      >
-        <div className="animate-blueprint absolute inset-[-2%] bg-[url('/branding/bg.jpeg')] bg-cover bg-[center_top_15%] bg-no-repeat mix-blend-screen saturate-[0.35] [mask-image:radial-gradient(ellipse_65%_55%_at_50%_45%,transparent_40%,black_100%)]" />
-        
-        {/* Soft radial depth lighting for the blueprint */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_20%,rgba(106,154,184,0.03),transparent)] mix-blend-screen" />
-        
-        {/* Extreme edge fading so it blends seamlessly into the global background */}
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0e1115] via-[#0e1115]/60 to-transparent" />
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#0e1115] via-[#0e1115]/60 to-transparent" />
-        <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#0e1115] via-[#0e1115]/60 to-transparent" />
-        <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#0e1115] via-[#0e1115]/60 to-transparent" />
-      </div>
-
-      <div className="relative z-10 flex w-full max-w-4xl flex-col items-center justify-center text-center md:max-w-5xl">
+    <section className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-5 pt-28 pb-10 text-center sm:px-4 sm:pt-36 sm:pb-12 md:max-w-5xl md:pt-40 md:pb-14 lg:pt-44 lg:pb-16">
+      <div className="flex flex-col items-center justify-center">
         <h1 className="mx-auto w-full text-[2.75rem] font-medium leading-[1.05] tracking-[-0.03em] text-white sm:text-[3.5rem] sm:leading-[1.08] md:text-[4.25rem] md:leading-[1.04] lg:text-[4.75rem] lg:leading-[1.02] lg:tracking-[-0.04em]">
           Smart{' '}
           <span className="bg-gradient-to-b from-white to-slate-400/80 bg-clip-text text-transparent">

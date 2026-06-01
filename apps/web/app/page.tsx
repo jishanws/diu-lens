@@ -19,15 +19,6 @@ export default function Home() {
           5. Depth Recession          — lower-page darkness falloff
           6. Cinematic Vignette       — edge framing
       */}
-
-      {/* ── L0: INFRASTRUCTURE ARTWORK ───────────────────────────
-          Subtle background image of the university infrastructure.
-          Masked at the center to keep text readable and calm. ──── */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 bg-[url('/branding/bg.jpeg')] bg-cover bg-center bg-no-repeat opacity-[0.14] blur-[2px] saturate-[0.6] [mask-image:radial-gradient(ellipse_at_center,transparent_25%,black_85%)]"
-      />
-
       {/* ── L1: ENVIRONMENTAL LIGHTING ─────────────────────────────
           Multi-gradient shaped composition. Creates vertical lighting
           hierarchy: atmospheric glow above, warmth at hero zone,

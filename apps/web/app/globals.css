@@ -399,24 +399,6 @@
     color: var(--landing-text-primary);
   }
 
-  /* ── Architectural Blueprint ─────────────────────────── */
-
-  @keyframes blueprint-breathe {
-    0%, 100% {
-      opacity: 0.16;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.24;
-      transform: scale(1.02);
-    }
-  }
-
-  .animate-blueprint {
-    animation: blueprint-breathe 25s ease-in-out infinite;
-    transform-origin: center top;
-  }
-
   /* ── Step node timeline ──────────────────────────────── */
 
   @keyframes node-pulse {
