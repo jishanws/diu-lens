@@ -5,16 +5,14 @@ export function HeroSection() {
   return (
     <section className="relative mx-auto flex w-full max-w-4xl flex-col items-center justify-center px-5 pt-28 pb-10 text-center sm:px-4 sm:pt-36 sm:pb-12 md:max-w-5xl md:pt-40 md:pb-14 lg:pt-44 lg:pb-16">
       <div className="flex flex-col items-center justify-center">
-        <h1 className="mx-auto max-w-[14ch] text-[2.75rem] font-medium leading-[1.05] tracking-[-0.03em] text-white sm:max-w-[16ch] sm:text-6xl sm:leading-[1.08] md:text-[4.25rem] md:leading-[1.04] md:tracking-[-0.03em] lg:max-w-none lg:text-[4.75rem] lg:leading-[1.02] lg:tracking-[-0.04em]">
+        <h1 className="mx-auto w-full text-[2.75rem] font-medium leading-[1.05] tracking-[-0.03em] text-white sm:text-[3.5rem] sm:leading-[1.08] md:text-[4.25rem] md:leading-[1.04] lg:text-[4.75rem] lg:leading-[1.02] lg:tracking-[-0.04em]">
           Smart{' '}
-          <br className="block sm:hidden" />
           <span className="bg-gradient-to-b from-white to-slate-400/80 bg-clip-text text-transparent">
             Identification
-          </span>{' '}
-          <br className="block lg:hidden" />
-          <span className="hidden lg:inline">for </span>
-          <span className="lg:hidden">for DIU Campus</span>
-          <span className="hidden lg:inline">DIU Campus</span>
+          </span>
+          <span className="sm:hidden"> </span>
+          <br className="hidden sm:block" />
+          for DIU Campus
         </h1>
 
         <p className="mx-auto mt-6 max-w-[21rem] text-[1rem] leading-[1.65] text-slate-400/90 sm:max-w-[36rem] sm:text-[1.05rem] sm:leading-[1.75] md:max-w-[38rem] md:text-[1.125rem] md:leading-[1.8] lg:max-w-[42rem]">
