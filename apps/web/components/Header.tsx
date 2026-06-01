@@ -66,72 +66,94 @@ export function Header() {
       </header>
 
       {/* ── MOBILE NAVBAR ───────────────────────────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-4 z-50 px-4 md:hidden">
-        <div className="mx-auto flex w-full max-w-[42rem] items-center justify-between rounded-[22px] bg-[#0c121f]/40 px-6 py-[0.85rem] backdrop-blur-2xl shadow-[0_8px_24px_-4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.02)] ring-1 ring-white/[0.04]">
-          <Link 
-            href="/" 
-            className="flex items-center gap-2.5 opacity-95 outline-none transition-opacity duration-300 hover:opacity-100 focus-visible:opacity-100"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <Image
-              src="/branding/logo-v2.png"
-              alt=""
-              width={20}
-              height={20}
-              priority
-              className="object-contain drop-shadow-sm"
-            />
-            <span className="mt-[1px] text-[0.95rem] font-medium tracking-[0.02em] text-white/95 drop-shadow-sm">
-              DIU Lens
-            </span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.02] text-blue-100/90 outline-none transition-colors duration-300 hover:bg-white/[0.06] hover:text-blue-50 focus-visible:bg-white/[0.06] focus-visible:text-blue-50"
-            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-            aria-expanded={mobileMenuOpen}
-          >
-            <motion.div 
-              animate={{ rotate: mobileMenuOpen ? 90 : 0 }} 
-              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
+      <div className="md:hidden">
+        {/* Subtle top gradient wash for logo/menu readability against scroll */}
+        <div 
+          className="fixed inset-x-0 top-0 z-40 h-32 bg-gradient-to-b from-[#060913]/90 via-[#060913]/40 to-transparent pointer-events-none transition-opacity duration-500" 
+          style={{ opacity: mobileMenuOpen ? 0 : 1 }} 
+        />
+        
+        <header className="fixed inset-x-0 top-0 z-50 px-6 py-7">
+          <div className="relative flex w-full items-center justify-between">
+            <Link 
+              href="/" 
+              className="flex items-center gap-3 outline-none transition-opacity duration-300 hover:opacity-80"
+              onClick={() => setMobileMenuOpen(false)}
             >
-              {mobileMenuOpen ? <X className="h-4.5 w-4.5" /> : <Menu className="h-4.5 w-4.5" />}
-            </motion.div>
-          </button>
-        </div>
+              <Image
+                src="/branding/logo-v2.png"
+                alt=""
+                width={18}
+                height={18}
+                priority
+                className="object-contain drop-shadow-sm"
+              />
+              <span className="text-[0.95rem] font-medium tracking-[0.03em] text-white/90 drop-shadow-sm">
+                DIU Lens
+              </span>
+            </Link>
 
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="relative flex h-10 w-10 items-center justify-end outline-none group"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+            >
+              <div className="relative flex flex-col justify-center items-end w-6 h-6 opacity-90 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100">
+                <motion.span 
+                  animate={mobileMenuOpen ? { rotate: 45, y: 0 } : { rotate: 0, y: -3.5 }}
+                  transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                  className="absolute block h-[1px] w-[22px] bg-white origin-center"
+                />
+                <motion.span 
+                  animate={mobileMenuOpen ? { rotate: -45, y: 0 } : { rotate: 0, y: 3.5 }}
+                  transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+                  className="absolute block h-[1px] w-[22px] bg-white origin-center"
+                />
+              </div>
+            </button>
+          </div>
+        </header>
+
+        {/* Fullscreen Atmospheric Menu Panel */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.nav
-              initial={{ opacity: 0, y: -12, scale: 0.96, filter: 'blur(8px)' }}
-              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-              exit={{ opacity: 0, y: -8, scale: 0.98, filter: 'blur(4px)' }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-x-2 top-[calc(100%+0.6rem)] flex flex-col gap-2 rounded-[24px] bg-[#0c121f]/90 p-4 backdrop-blur-3xl shadow-[0_24px_48px_-12px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ring-white/[0.04]"
-              aria-label="Mobile navigation"
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+              className="fixed inset-0 z-40 bg-[#060913]/95 backdrop-blur-2xl"
             >
-              {navItems.map((item, i) => (
-                <motion.div
-                  key={item.href}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: i * 0.05 + 0.1, ease: [0.32, 0.72, 0, 1] }}
-                >
-                  <Link
-                    href={item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block w-full rounded-[16px] px-6 py-[1.1rem] text-[1.05rem] font-medium tracking-[0.01em] text-slate-300/90 outline-none transition-colors duration-300 hover:bg-white/[0.04] hover:text-white active:bg-white/[0.06] focus-visible:bg-white/[0.04] focus-visible:text-white"
-                  >
-                    {item.label}
-                  </Link>
-                </motion.div>
-              ))}
-            </motion.nav>
+              <nav className="relative flex h-full flex-col justify-center px-12 pb-24" aria-label="Mobile navigation">
+                <div className="flex flex-col gap-10">
+                  {navItems.map((item, i) => (
+                    <motion.div
+                      key={item.href}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.6, delay: i * 0.08 + 0.1, ease: [0.32, 0.72, 0, 1] }}
+                    >
+                      <Link
+                        href={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="group flex items-center gap-6 text-[1.55rem] font-light tracking-[0.02em] text-white/50 outline-none transition-colors duration-400 hover:text-white focus-visible:text-white"
+                      >
+                        <span className="text-white/20 transition-colors duration-400 group-hover:text-white/40 text-[0.7rem] font-mono tracking-[0.15em]">
+                          0{i + 1}
+                        </span>
+                        {item.label}
+                      </Link>
+                    </motion.div>
+                  ))}
+                </div>
+              </nav>
+            </motion.div>
           )}
         </AnimatePresence>
-      </header>
+      </div>
     </>
   );
 }
