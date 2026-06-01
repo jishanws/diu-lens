@@ -12,10 +12,10 @@ export function HeroSection() {
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
         aria-hidden="true" 
       >
-        <div className="absolute inset-0 bg-[url('/branding/bg.jpeg')] bg-cover bg-[center_top_15%] bg-no-repeat opacity-[0.20] mix-blend-screen saturate-[0.4] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_45%,transparent_35%,black_100%)]" />
+        <div className="animate-blueprint absolute inset-[-2%] bg-[url('/branding/bg.jpeg')] bg-cover bg-[center_top_15%] bg-no-repeat mix-blend-screen saturate-[0.35] [mask-image:radial-gradient(ellipse_65%_55%_at_50%_45%,transparent_40%,black_100%)]" />
         
         {/* Soft radial depth lighting for the blueprint */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_20%,rgba(106,154,184,0.04),transparent)] mix-blend-screen" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_20%,rgba(106,154,184,0.03),transparent)] mix-blend-screen" />
         
         {/* Extreme edge fading so it blends seamlessly into the global background */}
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0e1115] via-[#0e1115]/60 to-transparent" />
