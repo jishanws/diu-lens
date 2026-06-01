@@ -67,13 +67,13 @@ export function Header() {
 
       {/* ── MOBILE NAVBAR ───────────────────────────────────────────────────────── */}
       <div className="md:hidden">
-        {/* Subtle top gradient wash for logo/menu readability against scroll */}
+        {/* Cinematic Translucent Navbar Surface */}
         <div 
-          className="fixed inset-x-0 top-0 z-40 h-32 bg-gradient-to-b from-[#060913]/90 via-[#060913]/40 to-transparent pointer-events-none transition-opacity duration-500" 
+          className="fixed inset-x-0 top-0 z-40 h-[76px] bg-[#050812]/45 backdrop-blur-[16px] border-b border-white/[0.02] shadow-[0_16px_48px_-12px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.03)] transition-opacity duration-500" 
           style={{ opacity: mobileMenuOpen ? 0 : 1 }} 
         />
         
-        <header className="fixed inset-x-0 top-0 z-50 px-6 py-7">
+        <header className="fixed inset-x-0 top-0 z-50 flex h-[76px] w-full items-center px-6">
           <div className="relative flex w-full items-center justify-between">
             <Link 
               href="/" 
@@ -124,7 +124,7 @@ export function Header() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
-              className="fixed inset-0 z-40 bg-[#060913]/95 backdrop-blur-2xl"
+              className="fixed inset-0 z-40 bg-[#050812]/55 backdrop-blur-[24px] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
             >
               <nav className="relative flex h-full flex-col justify-center px-12 pb-24" aria-label="Mobile navigation">
                 <div className="flex flex-col gap-10">
@@ -139,7 +139,7 @@ export function Header() {
                       <Link
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="group flex items-center gap-6 text-[1.55rem] font-light tracking-[0.02em] text-white/50 outline-none transition-colors duration-400 hover:text-white focus-visible:text-white"
+                        className="group flex items-center gap-6 text-[1.55rem] font-light tracking-[0.02em] text-white/60 outline-none transition-colors duration-400 hover:text-white focus-visible:text-white"
                       >
                         <span className="text-white/20 transition-colors duration-400 group-hover:text-white/40 text-[0.7rem] font-mono tracking-[0.15em]">
                           0{i + 1}
