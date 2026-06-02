@@ -62,6 +62,10 @@
     }
   }
 
+  .animate-spotlight {
+    animation: spotlight 2s ease .75s 1 forwards;
+  }
+
 /* ─────────────────────────────────────────────────────────────
    Component-level AI animation classes
    (Used by specific feature components, not the background)
@@ -357,6 +361,17 @@
      Range 1→0.6 gives presence without visible light pulsing. */
   0%   { opacity: 1; }
   100% { opacity: 0.62; }
+}
+
+@keyframes spotlight {
+  0% {
+    opacity: 0;
+    transform: translate(-72%, -62%) scale(0.5);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%,-40%) scale(1);
+  }
 }
 
 

@@ -1,6 +1,7 @@
 import { Footer } from '@/components/Footer';
 import { Header } from '@/components/Header';
 import { HomeOnboardingSection } from '@/components/HomeOnboardingSection';
+import { PremiumBackground } from '@/components/PremiumBackground';
 
 export default function Home() {
   return (
@@ -54,8 +55,12 @@ export default function Home() {
         <div className="bg-signature-form" />
       </div>
 
+      {/* ── PREMIUM BACKGROUND LAYERS ──────────────────────────────
+          Subtle grid and spotlight components for depth and parallax ─ */}
+      <PremiumBackground />
+
       {/* ── L4: FILM GRAIN ─────────────────────────────────────────
-          SVG feTurbulence, ~2% opacity, mix-blend-mode: overlay.
+          SVG feTurbulence, ~1.2% opacity, mix-blend-mode: overlay.
           The single most impactful "premium feel" layer.
           Prevents digital flatness across all dark surfaces. ────── */}
       <div
