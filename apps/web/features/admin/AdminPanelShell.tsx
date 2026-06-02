@@ -181,13 +181,13 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            'group relative flex items-center gap-3.5 rounded-lg px-4 py-2.5 text-[0.82rem] font-medium transition-all duration-300 min-h-[40px]',
+                            'group relative flex items-center gap-3.5 rounded-r-full px-4 py-2.5 text-[0.82rem] font-medium transition-all duration-300 min-h-[40px] -ml-4 pl-8 border border-transparent',
                             isActive 
-                              ? 'bg-gradient-to-r from-[#6493b5]/[0.08] to-transparent text-slate-100 shadow-[inset_2px_0_0_#6493b5]' 
+                              ? 'bg-gradient-to-r from-[#6493b5]/[0.12] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
                               : 'text-slate-400 hover:bg-white/[0.02] hover:text-slate-200'
                           )}
                         >
-                          <span className={cn('transition-colors', isActive ? 'text-[#6493b5]' : 'text-slate-500/80 group-hover:text-slate-400')}>
+                          <span className={cn('transition-colors', isActive ? 'text-[#6493b5] drop-shadow-[0_0_8px_rgba(100,147,181,0.5)]' : 'text-slate-500/80 group-hover:text-slate-400')}>
                             {item.icon}
                           </span>
                           {item.label}
@@ -305,13 +305,13 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                              'flex min-h-[44px] items-center gap-3.5 rounded-lg px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98]',
+                              'flex min-h-[44px] items-center gap-3.5 rounded-r-full px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98] -ml-4 pl-7 border border-transparent',
                               isActive 
-                                ? 'bg-gradient-to-r from-[#6493b5]/[0.08] to-transparent text-slate-100 shadow-[inset_2px_0_0_#6493b5]' 
+                                ? 'bg-gradient-to-r from-[#6493b5]/[0.12] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
                                 : 'text-slate-300 active:bg-white/[0.05]'
                             )}
                           >
-                            <span className={cn(isActive ? 'text-[#6493b5]' : 'text-slate-500/80')}>{item.icon}</span>
+                            <span className={cn(isActive ? 'text-[#6493b5] drop-shadow-[0_0_8px_rgba(100,147,181,0.5)]' : 'text-slate-500/80')}>{item.icon}</span>
                             {item.label}
                           </Link>
                         );
