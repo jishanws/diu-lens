@@ -13,19 +13,19 @@ const benefits = [
   {
     title: 'Trusted Campus Identity',
     description:
-      'Create a secure biometric identity connected directly to official DIU student records. The platform helps establish a trusted digital identity layer that can support future campus authentication systems and student services.',
+      'Your biometric identity is linked directly to your official DIU student record — building a verified foundation for campus authentication and future university services.',
     Icon: ShieldCheck,
   },
   {
     title: 'Intelligent Face Verification',
     description:
-      'Advanced facial verification technology helps validate student identity through a guided and reliable enrollment process. The experience is designed to remain accurate, fast, and accessible across modern devices.',
+      'A guided facial enrollment process that is accurate, fast, and accessible on any modern device. Built to be reliable from the first scan.',
     Icon: Sparkles,
   },
   {
     title: 'Impersonation Protection',
     description:
-      'Reduce identity misuse through biometric enrollment tied directly to the enrolled student. DIU Lens strengthens authenticity and helps ensure that campus identity remains personal, verifiable, and protected.',
+      'Biometric enrollment ties your identity to you alone — making it significantly harder to misuse or replicate your campus credentials.',
     Icon: LockKeyhole,
   },
 ] as const;
@@ -34,19 +34,19 @@ const workflowSteps = [
   {
     title: 'Student Verification',
     description:
-      'Begin by confirming your DIU student identity through institutional verification. This step establishes the foundation required for secure enrollment within the platform.',
+      'Confirm your DIU student identity to get started. This establishes the institutional link required before any biometric data is captured.',
     Icon: IdCard,
   },
   {
     title: 'Profile Confirmation',
     description:
-      'Review and confirm essential student information before continuing to biometric enrollment. This helps maintain profile accuracy and verification consistency.',
+      'Review your student details before proceeding. A quick step to ensure your profile is accurate going into enrollment.',
     Icon: UserRound,
   },
   {
     title: 'Biometric Enrollment',
     description:
-      'Complete the guided facial capture process to securely enroll your biometric identity. The system validates image quality and enrollment integrity in real time.',
+      'Follow the guided facial capture flow to complete your enrollment. Image quality is validated in real time so you know exactly when you are done.',
     Icon: ScanFace,
   },
 ] as const;
@@ -69,10 +69,10 @@ function BenefitsSection() {
           Features
         </p>
         <h2 className="mt-5 text-[2rem] font-medium leading-[1.15] tracking-[-0.02em] text-white sm:text-[2.75rem] sm:leading-[1.1] sm:tracking-[-0.03em]">
-          Built for secure and modern campus identity.
+          A secure identity layer for every student.
         </h2>
         <p className="mx-auto mt-6 max-w-[34rem] text-[0.95rem] leading-[1.75] text-slate-400 sm:text-[1.1rem]">
-          DIU Lens is designed to create a trusted identity layer for students across university systems. From biometric enrollment to authentication workflows, every part of the platform is built with clarity, reliability, and long-term campus integration in mind.
+          From first enrollment to verified authentication, DIU Lens is built around clarity, reliability, and long-term campus integration.
         </p>
       </div>
 
@@ -120,13 +120,13 @@ function HowItWorksSection() {
     <section id="how-it-works" className="scroll-mt-24 px-4 py-16 sm:px-6 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-3xl text-center">
         <p className="text-[0.7rem] font-medium tracking-[0.2em] text-slate-500 uppercase">
-          Process Flow
+          How It Works
         </p>
         <h2 className="mt-5 text-[2rem] font-medium leading-[1.15] tracking-[-0.02em] text-white sm:text-[2.75rem] sm:leading-[1.1] sm:tracking-[-0.03em]">
-          Three steps to secure biometric enrollment.
+          Enrolled in three steps.
         </h2>
         <p className="mx-auto mt-6 max-w-[34rem] text-[0.95rem] leading-[1.75] text-slate-400 sm:text-[1.1rem]">
-          The verification process is intentionally designed to remain simple, guided, and easy to complete while maintaining strong identity validation standards throughout enrollment.
+          Simple and guided by design. The entire process takes just a few minutes and maintains strong identity validation throughout.
         </p>
       </div>
 

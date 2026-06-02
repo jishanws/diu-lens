@@ -174,7 +174,7 @@ export function AlreadyRegisteredPanel({
           {!studentName && ' 🎉'}
         </h2>
         <p className="mx-auto max-w-[30ch] text-[0.88rem] leading-[1.6] text-slate-300">
-          Your Face ID registration is already completed.
+          Your biometric enrollment is complete.
           {studentId && (
             <span className="mt-2 block font-mono text-[0.85rem] tracking-wide text-[#8BB8D0]/80">
               Student ID: {studentId}
@@ -182,8 +182,7 @@ export function AlreadyRegisteredPanel({
           )}
         </p>
         <p className="mx-auto max-w-[32ch] text-[0.78rem] leading-[1.55] text-slate-400">
-          Your biometric identity has been securely enrolled in DIU Lens.
-          You can now use all verification services.
+          You are verified and ready to use campus services.
         </p>
       </motion.div>
 

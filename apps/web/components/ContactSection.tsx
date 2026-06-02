@@ -82,8 +82,7 @@ export function ContactSection() {
           custom={2}
           className="mx-auto mt-4 max-w-[22rem] text-[0.9rem] leading-relaxed text-slate-400 sm:max-w-xl sm:text-base sm:mt-5 md:max-w-2xl md:text-[1.05rem] md:leading-[1.75]"
         >
-          Reach out to the DIU Lens support team for help with biometric
-          registration, identity verification, or campus access.
+          Reach out for help with enrollment, identity verification, or anything else related to your campus access.
         </motion.p>
       </motion.section>
 
@@ -107,8 +106,7 @@ export function ContactSection() {
                 We&rsquo;re here to help.
               </h2>
               <p className="text-[0.9rem] leading-relaxed text-slate-400 md:text-[0.95rem] md:leading-[1.65]">
-                Whether you&rsquo;re facing a registration issue or need access
-                support, our team is ready.
+                Whether it is a registration issue or an access question, our team is ready to help.
               </p>
             </motion.div>
 

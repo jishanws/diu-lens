@@ -88,7 +88,7 @@ export function StudentIdStep({
           Check Registration Status
         </h3>
         <p className="landing-text-secondary text-[0.84rem] leading-[1.55] sm:text-[0.86rem]">
-          Enter your student ID to continue with DIU Lens.
+          Enter your student ID to get started.
         </p>
       </header>
 

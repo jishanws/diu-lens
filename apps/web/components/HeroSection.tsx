@@ -16,7 +16,7 @@ export function HeroSection() {
         </h1>
 
         <p className="mx-auto mt-6 max-w-[21rem] text-[1rem] leading-[1.65] text-slate-400/90 sm:max-w-[36rem] sm:text-[1.05rem] sm:leading-[1.75] md:max-w-[38rem] md:text-[1.125rem] md:leading-[1.8] lg:max-w-[42rem]">
-          Secure your campus identity through a modern biometric verification platform built for DIU students. DIU Lens combines intelligent facial authentication with streamlined enrollment to deliver safer access, trusted identity validation, and a more secure digital campus experience.
+          A biometric identity platform built for DIU students. Enroll once with facial recognition and establish a verified digital identity across campus services.
         </p>
       </div>
 

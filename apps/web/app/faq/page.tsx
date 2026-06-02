@@ -11,32 +11,32 @@ const faqs = [
   {
     question: 'Why do students need DIU Lens?',
     answer:
-      'DIU Lens is designed to create a secure and trusted biometric identity system for DIU students. The platform helps strengthen digital authentication and identity validation across future university services.',
+      'DIU Lens creates a verified biometric identity for each student, strengthening digital authentication across university services. Think of it as your secure campus identity — tied to your face, not just your student ID.',
   },
   {
     question: 'How is biometric data protected?',
     answer:
-      'Biometric enrollment data is securely processed and stored using protected verification workflows. The platform is designed with privacy, integrity, and secure identity handling as core priorities.',
+      'Your biometric data is processed and stored through secure, privacy-first workflows. The platform is built with data integrity and institutional privacy standards at its core.',
   },
   {
     question: 'How long does verification take?',
-    answer: 
-      'Most students can complete the full enrollment process within a few minutes. The guided workflow is optimized to remain simple, fast, and easy to follow.',
-  },
-  {
-    question: 'Do I need to complete enrollment multiple times?',
-    answer: 
-      'No. Once biometric enrollment has been successfully approved, students typically do not need to repeat the process unless future verification updates are required.',
-  },
-  {
-    question: 'What happens if verification is unsuccessful?',
-    answer: 
-      'If the system cannot validate enrollment properly, students may be asked to retry capture with improved lighting, positioning, or image clarity to ensure accurate verification.',
-  },
-  {
-    question: 'Is biometric enrollment required for all students?',
     answer:
-      'Enrollment requirements may depend on future university authentication policies and platform integration plans across DIU systems.',
+      'Most students complete enrollment in under five minutes. The guided flow is designed to be simple and fast from start to finish.',
+  },
+  {
+    question: 'Do I need to enroll more than once?',
+    answer:
+      'No. Once your enrollment is approved, you are registered. You may only need to re-enroll if the university requests a future update.',
+  },
+  {
+    question: 'What happens if verification fails?',
+    answer:
+      'You can simply retry. The system will guide you on improving lighting, positioning, or image clarity to get a clean capture.',
+  },
+  {
+    question: 'Is enrollment required for all students?',
+    answer:
+      'Enrollment requirements will depend on future university authentication policies as DIU Lens expands across campus systems.',
   },
 ];
 
@@ -102,7 +102,7 @@ export default function FaqPage() {
                 Frequently Asked Questions
               </h1>
               <p className="mt-5 max-w-[32rem] text-[0.95rem] leading-[1.7] text-slate-400 sm:text-[1.05rem]">
-                Everything students need to know before completing biometric enrollment through DIU Lens.
+                Everything you need to know before completing your enrollment.
               </p>
             </header>
 

@@ -206,14 +206,11 @@ export function SuccessStep({ onDone }: SuccessStepProps) {
         transition={{ delay: 0.54, duration: 0.34 }}
       >
         <h2 className="text-[1.38rem] font-semibold tracking-tight text-white sm:text-[1.55rem]">
-          Congratulations! 🎉
+          You&apos;re enrolled. 🎉
         </h2>
         <p className="mx-auto max-w-[32ch] text-[0.88rem] leading-[1.62] text-slate-300">
-          Your Face ID registration has been completed successfully.
-        </p>
-        <p className="mx-auto max-w-[34ch] text-[0.78rem] leading-[1.55] text-slate-400">
-          You are now securely enrolled in DIU Lens and can use all biometric
-          verification services.
+          Your biometric identity has been successfully registered with DIU Lens.
+          You are now verified and ready to use campus services.
         </p>
       </motion.div>
 

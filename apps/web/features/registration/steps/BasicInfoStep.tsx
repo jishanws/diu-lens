@@ -32,7 +32,7 @@ export function BasicInfoStep({
           Basic Information
         </h2>
         <p className="landing-text-secondary text-[0.84rem] leading-[1.55] sm:text-[0.86rem]">
-          Confirm your profile details before starting identity verification.
+          Review your details before we begin the facial capture.
         </p>
         {errorMessage ? (
           <p
