@@ -4,6 +4,7 @@ import { ChangeEvent, DragEvent, FormEvent, useCallback, useEffect, useMemo, use
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
+  Activity,
   ImagePlus,
   Loader2,
   RefreshCw,
@@ -323,15 +324,15 @@ export function RecognitionView() {
 
         {/* Action Form */}
         <form onSubmit={onSubmit} className="flex flex-col gap-5">
-          {/* Premium Dropzone */}
+          {/* Secure Biometric Intake Dropzone */}
           <div
             className={cn(
-              'group relative overflow-hidden rounded-[1.5rem] border transition-all duration-500',
+              'group relative overflow-hidden rounded-[1.25rem] border transition-all duration-500 min-h-[280px]',
               dragActive
-                ? 'border-[#6493b5]/40 bg-[#6493b5]/[0.05] shadow-[0_0_40px_-10px_rgba(100, 147, 181,0.2)]'
+                ? 'border-[#6493b5]/50 bg-gradient-to-b from-[#6493b5]/[0.08] to-transparent shadow-[0_0_40px_-10px_rgba(100,147,181,0.25),inset_0_0_0_1px_rgba(100,147,181,0.2)]'
                 : hasImage 
-                ? 'border-white/[0.06] bg-white/[0.02]' 
-                : 'border-white/[0.04] border-dashed bg-white/[0.01] hover:border-white/[0.1] hover:bg-white/[0.02]'
+                ? 'border-white/[0.06] bg-[#0c1015]/80' 
+                : 'border-white/[0.06] border-dashed bg-gradient-to-b from-white/[0.01] to-transparent hover:border-[#6493b5]/30 hover:bg-[#6493b5]/[0.02] shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]'
             )}
             onDrop={onDrop}
             onDragOver={onDragOver}
@@ -352,23 +353,23 @@ export function RecognitionView() {
             )} />
 
             {previewUrl ? (
-              <div className="relative aspect-square w-full bg-black/40">
+              <div className="relative h-full w-full bg-[#080b0f] min-h-[280px]">
                 <Image
                   src={previewUrl}
                   alt="Probe preview"
                   fill
                   unoptimized
-                  className="object-cover"
+                  className="object-contain p-4"
                 />
                 
                 {/* Glass overlay controls */}
-                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/90 via-black/40 to-transparent p-5 pb-6 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 p-1.5 backdrop-blur-md">
-                    <button type="button" className="flex items-center gap-2 rounded-full px-4 py-2 text-[0.75rem] font-medium text-slate-200 transition-colors hover:bg-white/10 hover:text-white" onClick={() => fileInputRef.current?.click()}>
+                <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/95 via-black/60 to-transparent p-4 pt-12 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-[#080b0f]/80 p-1.5 backdrop-blur-md shadow-xl">
+                    <button type="button" className="flex items-center gap-2 rounded-md px-3 py-1.5 text-[0.7rem] font-medium text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white" onClick={() => fileInputRef.current?.click()}>
                       <ImagePlus className="size-3.5" /> Replace
                     </button>
-                    <div className="h-4 w-px bg-white/10" />
-                    <button type="button" className="flex items-center gap-2 rounded-full px-4 py-2 text-[0.75rem] font-medium text-rose-300 transition-colors hover:bg-rose-500/20 hover:text-rose-200" onClick={clearSelectedFile}>
+                    <div className="h-4 w-px bg-white/[0.08]" />
+                    <button type="button" className="flex items-center gap-2 rounded-md px-3 py-1.5 text-[0.7rem] font-medium text-rose-300 transition-colors hover:bg-rose-500/10 hover:text-rose-200" onClick={clearSelectedFile}>
                       <Trash2 className="size-3.5" /> Remove
                     </button>
                   </div>
@@ -377,8 +378,8 @@ export function RecognitionView() {
                 {/* Scanning Animation */}
                 {isMatching && (
                   <div className="pointer-events-none absolute inset-0 overflow-hidden">
-                  <div className="absolute inset-0 bg-[#6493b5]/20 mix-blend-color" />
-                    <div className="absolute inset-x-0 -top-full h-[3px] w-full bg-[#6493b5] shadow-[0_0_20px_2px_rgba(100, 147, 181,0.8)] animate-[pulse_2s_ease-in-out_infinite]" style={{ animation: "scan 2s linear infinite" }} />
+                  <div className="absolute inset-0 bg-[#6493b5]/10 mix-blend-color" />
+                    <div className="absolute inset-x-0 -top-full h-[2px] w-full bg-[#6493b5] shadow-[0_0_15px_1px_rgba(100, 147, 181,0.6)] animate-[pulse_2s_ease-in-out_infinite]" style={{ animation: "scan 2s linear infinite" }} />
                     <style jsx>{`
                       @keyframes scan {
                         0% { top: -10%; opacity: 0; }
@@ -391,17 +392,23 @@ export function RecognitionView() {
                 )}
               </div>
             ) : (
-              <div className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center p-8 text-center" onClick={() => fileInputRef.current?.click()}>
-                <div className="relative mb-6 flex size-16 items-center justify-center rounded-2xl border border-white/[0.05] bg-white/[0.02] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition-transform duration-500 group-hover:scale-105 group-hover:bg-white/[0.04]">
-                  <ScanFace className="size-7 text-[#6493b5]/60 transition-colors duration-500 group-hover:text-[#6493b5]" />
-                  <div aria-hidden="true" className="absolute -inset-0 bg-[#6493b5]/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="flex h-[280px] w-full cursor-pointer flex-col items-center justify-center p-8 text-center" onClick={() => fileInputRef.current?.click()}>
+                {/* Scanner reticle decoration */}
+                <div className="absolute inset-5 border border-white/[0.03] rounded-xl pointer-events-none" />
+                <div className="absolute top-5 left-5 size-4 border-l-2 border-t-2 border-[#6493b5]/30 rounded-tl-xl transition-colors duration-500 group-hover:border-[#6493b5]/70" />
+                <div className="absolute top-5 right-5 size-4 border-r-2 border-t-2 border-[#6493b5]/30 rounded-tr-xl transition-colors duration-500 group-hover:border-[#6493b5]/70" />
+                <div className="absolute bottom-5 left-5 size-4 border-l-2 border-b-2 border-[#6493b5]/30 rounded-bl-xl transition-colors duration-500 group-hover:border-[#6493b5]/70" />
+                <div className="absolute bottom-5 right-5 size-4 border-r-2 border-b-2 border-[#6493b5]/30 rounded-br-xl transition-colors duration-500 group-hover:border-[#6493b5]/70" />
+                
+                <div className="relative mb-5 flex size-12 items-center justify-center rounded-lg border border-white/[0.04] bg-[#06080a]/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] transition-transform duration-500 group-hover:scale-110 group-hover:bg-[#6493b5]/10 group-hover:border-[#6493b5]/30">
+                  <ScanFace className="size-5 text-[#6493b5]/60 transition-colors duration-500 group-hover:text-[#6493b5]" />
                 </div>
-                <h3 className="mb-2 text-[1rem] font-medium text-slate-200">Drop target image</h3>
-                <p className="max-w-[220px] text-[0.8rem] leading-relaxed text-slate-500">
-                  Drag and drop a clear face crop, or click to browse files.
+                <h3 className="mb-1 text-[0.9rem] font-medium text-slate-200 tracking-tight">Initialize Intake</h3>
+                <p className="max-w-[200px] text-[0.75rem] leading-relaxed text-slate-500">
+                  Drag & drop a high-resolution probe or browse system files.
                 </p>
-                <div className="mt-8 rounded-full border border-white/[0.08] bg-white/[0.03] px-6 py-2 text-[0.75rem] font-medium tracking-wide text-slate-300 transition-colors hover:bg-white/[0.06] hover:text-white">
-                  Select File
+                <div className="mt-6 rounded-lg border border-white/[0.06] bg-white/[0.02] px-5 py-2 text-[0.75rem] font-medium tracking-wide text-slate-300 transition-colors group-hover:bg-white/[0.05] group-hover:text-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.5)]">
+                  Browse System
                 </div>
               </div>
             )}
@@ -476,14 +483,19 @@ export function RecognitionView() {
       </div>
 
       {/* ── Right Column: Live Results Workspace ───────────────────────────────── */}
-      <div className="flex min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.5rem] lg:rounded-[1.75rem] border border-white/[0.03] bg-white/[0.01] lg:min-w-[500px]">
+      <div className="flex min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] lg:min-w-[500px]">
         
         {/* Workspace Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.03] bg-white/[0.01] px-5 sm:px-7 py-4 sm:py-5">
-          <h3 className="text-[0.9rem] font-medium text-slate-200">Intelligence Workspace</h3>
-          <div className="flex items-center gap-2 rounded-full border border-[#6493b5]/10 bg-[#6493b5]/[0.02] px-3 py-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-5 sm:px-6 py-4 shadow-[0_1px_8px_rgba(0,0,0,0.2)] z-10">
+          <div className="flex items-center gap-3">
+            <div className="flex size-6 items-center justify-center rounded border border-[#6493b5]/20 bg-[#6493b5]/10">
+              <Activity className="size-3.5 text-[#6493b5]" />
+            </div>
+            <h3 className="text-[0.85rem] font-medium uppercase tracking-[0.1em] text-slate-200">Analysis Workspace</h3>
+          </div>
+          <div className="flex items-center gap-2 rounded-md border border-[#6493b5]/10 bg-[#6493b5]/[0.02] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             <ShieldAlert className="size-3.5 text-[#6493b5]/70" />
-            <span className="text-[0.65rem] font-medium uppercase tracking-widest text-slate-400">Recognition results are similarity-based suggestions for manual verification</span>
+            <span className="text-[0.62rem] font-medium uppercase tracking-widest text-slate-400">Manual Verification Required</span>
           </div>
         </div>
 
@@ -492,26 +504,29 @@ export function RecognitionView() {
           
           {/* Empty State: Pre-Upload */}
           {!hasImage && !isMatching && !hasSearched && (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-6 flex size-20 items-center justify-center rounded-full border border-white/[0.02] bg-white/[0.01]">
-                <Search className="size-8 text-slate-600/50" />
+            <div className="flex h-full flex-col items-center justify-center text-center p-8">
+              <div className="relative mb-6 flex size-16 items-center justify-center rounded-full border border-white/[0.03] bg-[#080b0f] shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+                <div className="absolute inset-0 rounded-full border-t border-white/[0.05]" />
+                <ScanFace className="size-6 text-slate-600/40" />
               </div>
-              <h3 className="text-[1.1rem] font-medium text-slate-300">Awaiting Target Selection</h3>
-              <p className="mt-2.5 max-w-sm text-[0.85rem] leading-relaxed text-slate-500">
-                Upload a probe image to the dropzone to initialize the workspace. The intelligence engine will populate ranked candidate suggestions here.
+              <h3 className="text-[0.95rem] font-medium tracking-wide text-slate-300">System Standby</h3>
+              <p className="mt-2.5 max-w-[280px] text-[0.8rem] leading-relaxed text-slate-500">
+                Initialize the workspace by securely loading a biometric probe into the intake zone.
               </p>
             </div>
           )}
 
           {/* Empty State: Pre-Search */}
           {hasImage && !isMatching && !hasSearched && (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <div className="mb-6 flex size-20 items-center justify-center rounded-full border border-[#6493b5]/20 bg-[#6493b5]/[0.05]">
-                <Search className="size-8 text-[#6493b5]/60" />
+            <div className="flex h-full flex-col items-center justify-center text-center p-8">
+              <div className="relative mb-6 flex size-16 items-center justify-center rounded-full border border-[#6493b5]/10 bg-[#080b0f] shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+                <div className="absolute inset-0 rounded-full border-t border-[#6493b5]/20" />
+                <div className="absolute inset-0 rounded-full bg-[#6493b5]/5 animate-pulse" />
+                <ScanFace className="size-6 text-[#6493b5]/70" />
               </div>
-              <h3 className="text-[1.1rem] font-medium text-slate-200">Target Acquired</h3>
-              <p className="mt-2.5 max-w-sm text-[0.85rem] leading-relaxed text-slate-500">
-                Image loaded successfully. Initiate the recognition scan to calculate cosine distances against the secure biometric database.
+              <h3 className="text-[0.95rem] font-medium tracking-wide text-slate-200">Target Data Cached</h3>
+              <p className="mt-2.5 max-w-[280px] text-[0.8rem] leading-relaxed text-slate-500">
+                Probe telemetry captured. Ready to execute distance computation against the identity registry.
               </p>
             </div>
           )}
