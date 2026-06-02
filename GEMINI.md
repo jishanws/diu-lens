@@ -78,5 +78,5 @@ pytest
     *   Database models and session management are in `apps/api/app/db`.
     *   Heavy biometric operations (extraction, validation) are handled asynchronously by Celery workers in `apps/api/app/tasks` and `apps/api/app/core`.
     *   Operational data mutations should ensure idempotency and utilize distributed Redis locks.
-*   **Frontend Architecture**: Uses Next.js App Router paradigm. UI components are primarily sourced from shadcn/ui. Styling relies on Tailwind CSS, enhanced by Framer Motion for premium, state-driven biometric scanning animations and cinematic transitions.
+*   **Frontend Architecture**: Uses Next.js App Router paradigm. UI components are primarily sourced from shadcn/ui, supplemented with Magic UI (Grid Pattern) and Aceternity UI (Spotlight) for sophisticated background depth. Styling relies on Tailwind CSS v4, enhanced by Framer Motion for premium parallax, state-driven biometric scanning animations, and cinematic transitions. The aesthetic is strictly dark, institutional, and cinematic, revolving around deep blue-black gradients (`#08111f`, `#0b1422`, `#0d1728`) and a softened primary brand accent (`#6493b5` / `RGB(100, 147, 181)`).
 *   **Testing**: Backend testing is robust and must be updated alongside feature changes. Ensure database teardown and mock isolation using fixtures in `conftest.py`.
