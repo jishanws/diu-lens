@@ -72,8 +72,8 @@ export function ContactSection() {
           className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl md:max-w-none md:text-[3.5rem] md:leading-[1.08] lg:text-[4rem] lg:leading-[1.05]"
         >
           Need help with{' '}
-          <span className="bg-gradient-to-b from-slate-200 to-[#8BB8D0] bg-clip-text text-transparent">
-            DIU&nbsp;Lens?
+          <span className="bg-gradient-to-b from-slate-200 to-[#6493b5] bg-clip-text text-transparent">
+            Support
           </span>
         </motion.h1>
 
@@ -118,9 +118,10 @@ export function ContactSection() {
                   custom={i + 1}
                   className="group flex items-start gap-4"
                 >
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.04] shadow-[0_0_12px_-4px_rgba(139,184,208,0.1)] transition-all duration-300 group-hover:border-[#8BB8D0]/25 group-hover:bg-[#8BB8D0]/[0.06] group-hover:shadow-[0_0_16px_-4px_rgba(139,184,208,0.2)]">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-white/[0.07] bg-white/[0.04] shadow-[0_0_12px_-4px_rgba(100,147,181,0.1)] transition-all duration-300 group-hover:border-[#6493b5]/25 group-hover:bg-[#6493b5]/[0.06] group-hover:shadow-[0_0_16px_-4px_rgba(100,147,181,0.2)]">
                     <item.icon
-                      className="size-[1.05rem] text-[#8BB8D0]/80 transition-colors duration-300 group-hover:text-[#9ec6d8]"
+                      className="size-[1.05rem] text-[#6493b5]/80 transition-colors duration-300 group-hover:text-[#75a4c6]"
+                      strokeWidth={1.8}
                       aria-hidden="true"
                     />
                   </div>
@@ -148,7 +149,11 @@ export function ContactSection() {
               {/* top glow line */}
               <div
                 aria-hidden="true"
-                className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#8BB8D0]/15 to-transparent"
+                className="pointer-events-none absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#6493b5]/15 to-transparent"
+                style={{
+                  maskImage:
+                    'radial-gradient(ellipse at center, black 0%, transparent 80%)',
+                }}
               />
 
               {submitted ? (
@@ -157,8 +162,11 @@ export function ContactSection() {
                   animate={{ opacity: 1, scale: 1 }}
                   className="flex min-h-[20rem] flex-col items-center justify-center gap-4 text-center"
                 >
-                  <div className="flex size-14 items-center justify-center rounded-full border border-[#8BB8D0]/25 bg-[#8BB8D0]/8 shadow-[0_0_20px_-6px_rgba(139,184,208,0.25)]">
-                    <Send className="size-6 text-[#8BB8D0]" />
+                  <div className="relative">
+                    <div className="absolute inset-0 animate-pulse rounded-full bg-[#6493b5]/10 blur-xl" />
+                    <div className="flex size-14 items-center justify-center rounded-full border border-[#6493b5]/25 bg-[#6493b5]/8 shadow-[0_0_20px_-6px_rgba(100,147,181,0.25)]">
+                      <Send className="size-6 text-[#6493b5]" strokeWidth={1.5} />
+                    </div>
                   </div>
                   <p className="text-[1.1rem] font-semibold text-white">
                     Message Sent
@@ -267,15 +275,17 @@ export function ContactSection() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="landing-cta group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden bg-gradient-to-b from-[#6a9ab8] to-[#5a8aa8] text-white shadow-[0_4px_14px_-4px_rgba(90,140,175,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-[#78a8c4] hover:to-[#6898b2] hover:shadow-[0_6px_18px_-4px_rgba(90,140,175,0.35)] disabled:opacity-60 disabled:pointer-events-none"
+                    className="landing-cta group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden bg-gradient-to-b from-[#6493b5] to-[#527c9a] text-white shadow-[0_4px_14px_-4px_rgba(100,147,181,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-[#75a4c6] hover:to-[#6493b5] hover:shadow-[0_6px_18px_-4px_rgba(100,147,181,0.35)] disabled:opacity-60 disabled:pointer-events-none"
                   >
-                    <div
-                      aria-hidden="true"
-                      className="absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                    />
-                    <Send className="relative size-[0.9rem] opacity-80" />
-                    <span className="relative">
-                      {isSubmitting ? 'Sending…' : 'Send Message'}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <div
+                        aria-hidden="true"
+                        className="absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                      />
+                      <Send className="relative size-[0.9rem] opacity-80" />
+                      <span className="relative">
+                        {isSubmitting ? 'Sending…' : 'Send Message'}
+                      </span>
                     </span>
                   </button>
                 </form>

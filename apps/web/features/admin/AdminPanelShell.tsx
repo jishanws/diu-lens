@@ -119,9 +119,9 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="landing-page relative h-[100dvh] w-full overflow-hidden bg-[#111318]">
+    <div className="landing-page relative h-[100dvh] w-full overflow-hidden bg-[#0b1422]">
       {/* Premium minimal background system */}
-      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800/10 via-[#111318] to-[#111318] hidden lg:block" />
+      <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800/10 via-[#0b1422] to-[#0b1422] hidden lg:block" />
       
       <div className="relative z-10 mx-auto flex h-full w-full max-w-[1800px] lg:gap-6 lg:p-6 xl:p-8 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         
@@ -134,7 +134,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                 <Image src="/branding/logo-v2.png" alt="DIU Lens" width={32} height={32} priority className="size-[1.5rem] object-contain" />
               </div>
               <div className="flex flex-col justify-center">
-                <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-[#8BB8D0]/70">DIU LENS</p>
+                <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-[#6493b5]/70">DIU LENS</p>
                 <p className="mt-[0.1rem] text-[0.85rem] font-medium tracking-[0.02em] text-slate-100">Admin Console</p>
               </div>
             </div>
@@ -155,7 +155,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                           isActive ? 'bg-white/[0.06] text-slate-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]' : 'text-slate-400 hover:bg-white/[0.03] hover:text-slate-200'
                         )}
                       >
-                        <span className={cn('transition-colors', isActive ? 'text-[#8BB8D0]' : 'text-slate-500 group-hover:text-slate-400')}>{item.icon}</span>
+                        <span className={cn('transition-colors', isActive ? 'text-[#6493b5]' : 'text-slate-500 group-hover:text-slate-400')}>{item.icon}</span>
                         {item.label}
                       </Link>
                     );
@@ -212,7 +212,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
           </header>
 
           {/* Content */}
-          <main className="relative flex-1 overflow-y-auto bg-[#111318] px-4 py-6 lg:px-10 lg:py-10">
+          <main className="relative flex-1 overflow-y-auto bg-[#0b1422] px-4 py-6 lg:px-10 lg:py-10">
             <div className="mx-auto max-w-6xl">
               {children}
             </div>
@@ -239,14 +239,14 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#111318] border-r border-white/[0.04] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:hidden shadow-2xl"
+              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#0b1422] border-r border-white/[0.04] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:hidden shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4 min-h-[60px]">
                 <div className="flex items-center gap-3">
                   <div className="flex size-[1.8rem] items-center justify-center rounded-[0.6rem] bg-transparent">
                     <Image src="/branding/logo-v2.png" alt="DIU Lens" width={24} height={24} className="object-contain" />
                   </div>
-                  <span className="text-[0.8rem] font-bold tracking-widest text-[#8BB8D0]">DIU LENS</span>
+                  <span className="text-[0.8rem] font-bold tracking-widest text-[#6493b5]">DIU LENS</span>
                 </div>
                 <button
                   type="button"
@@ -271,10 +271,10 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                             href={item.href}
                             className={cn(
                               'flex min-h-[44px] items-center gap-3.5 rounded-xl px-3 text-[0.9rem] font-medium transition-colors active:scale-[0.98]',
-                              isActive ? 'bg-[#8BB8D0]/10 text-[#8BB8D0]' : 'text-slate-300 active:bg-white/[0.05]'
+                              isActive ? 'bg-[#6493b5]/10 text-[#6493b5]' : 'text-slate-300 active:bg-white/[0.05]'
                             )}
                           >
-                            <span className={cn(isActive ? 'text-[#8BB8D0]' : 'text-slate-500')}>{item.icon}</span>
+                            <span className={cn(isActive ? 'text-[#6493b5]' : 'text-slate-500')}>{item.icon}</span>
                             {item.label}
                           </Link>
                         );

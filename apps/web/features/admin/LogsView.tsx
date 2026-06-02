@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { recentActivity } from '@/features/admin/mock-data';
 
 const statusStyles: Record<string, string> = {
-  match_found: 'text-[#8BB8D0]',
+  match_found: 'text-[#6493b5]',
   review_needed: 'text-amber-200',
   no_match: 'text-rose-200',
 };

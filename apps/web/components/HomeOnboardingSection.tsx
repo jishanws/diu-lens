@@ -87,7 +87,7 @@ function BenefitsSection() {
             
             <div className="relative z-10 flex w-full flex-col md:flex-row md:items-center md:gap-10 lg:flex-col lg:items-start lg:gap-0">
               <div className="mb-12 flex items-start justify-between md:mb-0 md:flex-col md:gap-5 lg:mb-12 lg:flex-row lg:justify-between shrink-0">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.04] bg-[#111318] shadow-inner transition-all duration-500 group-hover:border-white/[0.08] group-hover:bg-[#16181d] md:h-14 md:w-14 lg:h-12 lg:w-12">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.04] bg-[#0b1422] shadow-inner transition-all duration-500 group-hover:border-white/[0.08] group-hover:bg-[#0d1728] md:h-14 md:w-14 lg:h-12 lg:w-12">
                   <benefit.Icon
                     className="size-[1.375rem] text-slate-400 transition-colors duration-500 group-hover:text-slate-100 md:size-6 lg:size-[1.375rem]"
                     strokeWidth={1.5}
@@ -154,7 +154,7 @@ function HowItWorksSection() {
                   
                   {/* Step Indicator */}
                   <div className="flex flex-col items-center lg:mb-12 lg:justify-center">
-                    <div className="relative z-10 flex h-11 w-11 md:h-13 md:w-13 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#111318] transition-all duration-700 ease-out group-hover:border-white/30 group-hover:bg-[#1a1d24] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] md:h-[3.25rem] md:w-[3.25rem] lg:h-11 lg:w-11">
+                    <div className="relative z-10 flex h-11 w-11 md:h-13 md:w-13 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0b1422] transition-all duration-700 ease-out group-hover:border-white/30 group-hover:bg-[#131f33] group-hover:shadow-[0_0_20px_rgba(255,255,255,0.05)] md:h-[3.25rem] md:w-[3.25rem] lg:h-11 lg:w-11">
                       <span className="text-[0.7rem] md:text-[0.75rem] lg:text-[0.7rem] font-medium tracking-[0.05em] text-slate-400 transition-colors duration-500 group-hover:text-slate-100">
                         0{index + 1}
                       </span>

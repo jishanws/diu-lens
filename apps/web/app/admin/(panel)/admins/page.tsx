@@ -5,7 +5,7 @@ import { mockAdmins } from '@/features/admin/mock-data';
 import { getMockRoleFromCookies } from '@/features/admin/role';
 
 const statusStyles: Record<string, string> = {
-  Active: 'border-[#8BB8D0]/35 bg-[#8BB8D0]/15 text-[#8BB8D0]',
+  Active: 'border-[#6493b5]/35 bg-[#6493b5]/15 text-[#6493b5]',
   Pending: 'border-amber-300/35 bg-amber-500/15 text-amber-100',
   Disabled: 'border-rose-300/35 bg-rose-500/15 text-rose-100',
 };

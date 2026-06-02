@@ -72,7 +72,7 @@ export function MatchDetailView({ candidate }: MatchDetailViewProps) {
               <p><span className="text-muted-foreground">Department:</span> {candidate.department}</p>
               <p>
                 <span className="text-muted-foreground">Confidence:</span>{' '}
-                <span className="font-medium text-[#8BB8D0]">{candidate.confidence.toFixed(1)}%</span>
+                <span className="font-medium text-[#6493b5]">{candidate.confidence.toFixed(1)}%</span>
               </p>
               <p><span className="text-muted-foreground">Review Note:</span> {candidate.notes}</p>
             </div>

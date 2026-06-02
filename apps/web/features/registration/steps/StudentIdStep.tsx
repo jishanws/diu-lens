@@ -78,7 +78,7 @@ export function StudentIdStep({
   const inputRingClass = isInvalid
     ? 'ring-2 ring-red-500/60 focus-visible:ring-red-500/60'
     : isValid
-      ? 'ring-2 ring-[#8BB8D0]/60 focus-visible:ring-[#8BB8D0]/60'
+      ? 'ring-2 ring-[#6493b5]/60 focus-visible:ring-[#6493b5]/60'
       : '';
 
   return (
@@ -141,7 +141,7 @@ export function StudentIdStep({
                 transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
                 aria-hidden="true"
               >
-                <CheckCircle2 className="size-4 text-[#8BB8D0]" />
+                <CheckCircle2 className="size-4 text-[#6493b5]" />
               </motion.span>
             )}
             {isInvalid && (

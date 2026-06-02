@@ -48,9 +48,9 @@ export function CaptureProgress({
               className={cn(
                 'flex items-center justify-center rounded-2xl border px-3 py-2 text-xs font-semibold transition-colors',
                 completed
-                  ? 'border-[#8BB8D0]/30 bg-[#8BB8D0]/10 text-[#8BB8D0] max-[639px]:border-[#8BB8D0]/20 max-[639px]:bg-[#8BB8D0]/10 max-[639px]:text-[#8BB8D0]'
+                  ? 'border-[#6493b5]/30 bg-[#6493b5]/10 text-[#6493b5] max-[639px]:border-[#6493b5]/20 max-[639px]:bg-[#6493b5]/10 max-[639px]:text-[#6493b5]'
                   : active
-                    ? 'border-[#8BB8D0]/50 bg-[#8BB8D0]/5 text-[#8BB8D0] max-[639px]:border-[#8BB8D0]/30 max-[639px]:bg-[#8BB8D0]/5 max-[639px]:text-[#8BB8D0]'
+                    ? 'border-[#6493b5]/50 bg-[#6493b5]/5 text-[#6493b5] max-[639px]:border-[#6493b5]/30 max-[639px]:bg-[#6493b5]/5 max-[639px]:text-[#6493b5]'
                     : 'border-white/10 bg-white/5 text-slate-400 max-[639px]:border-white/10 max-[639px]:bg-white/5 max-[639px]:text-slate-500'
               )}
             >

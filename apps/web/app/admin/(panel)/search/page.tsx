@@ -60,9 +60,9 @@ export default function AdminSearchPage() {
         <CardContent className="space-y-4">
           <label
             htmlFor="query-image-upload"
-            className="group block cursor-pointer rounded-2xl border border-dashed border-[#8BB8D0]/30 bg-[#8BB8D0]/5 p-8 text-center transition-colors hover:border-[#8BB8D0]/50 hover:bg-[#8BB8D0]/10"
+            className="group block cursor-pointer rounded-2xl border border-dashed border-[#6493b5]/30 bg-[#6493b5]/5 p-8 text-center transition-colors hover:border-[#6493b5]/50 hover:bg-[#6493b5]/10"
           >
-            <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-full border border-[#8BB8D0]/20 bg-[#8BB8D0]/10 text-[#8BB8D0]">
+            <div className="mx-auto mb-4 inline-flex size-14 items-center justify-center rounded-full border border-[#6493b5]/20 bg-[#6493b5]/10 text-[#6493b5]">
               <Upload className="size-6" />
             </div>
             <p className="font-medium text-foreground">Drop an image here, or click to browse</p>

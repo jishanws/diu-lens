@@ -5,7 +5,7 @@ import './globals.css';
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#111318',
+  themeColor: '#08111f',
   interactiveWidget: 'resizes-content',
 };
 

@@ -56,7 +56,7 @@ export function CapturedShotStrip({
                 shot
                   ? 'border-white/10 bg-white/5 max-[639px]:border-white/10 max-[639px]:bg-white/5'
                   : active
-                    ? 'border-[#8BB8D0]/30 bg-[#8BB8D0]/5 max-[639px]:border-[#8BB8D0]/20 max-[639px]:bg-[#8BB8D0]/5'
+                    ? 'border-[#6493b5]/30 bg-[#6493b5]/5 max-[639px]:border-[#6493b5]/20 max-[639px]:bg-[#6493b5]/5'
                     : 'border-white/5 bg-transparent max-[639px]:border-white/5 max-[639px]:bg-transparent'
               )}
             >
@@ -88,7 +88,7 @@ export function CapturedShotStrip({
               </button>
 
               {completed ? (
-                <p className="mt-1 text-[10px] font-semibold text-[#8BB8D0]">
+                <p className="mt-1 text-[10px] font-semibold text-[#6493b5]">
                   Ready
                 </p>
               ) : null}

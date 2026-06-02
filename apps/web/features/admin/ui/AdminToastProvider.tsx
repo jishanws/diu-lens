@@ -45,13 +45,13 @@ export function AdminToastProvider({ children }: { children: ReactNode }) {
             className={cn(
               'pointer-events-auto rounded-xl border bg-card p-3 text-sm shadow-lg',
               toast.variant === 'success'
-                ? 'border-[#8BB8D0]/40'
+                ? 'border-[#6493b5]/40'
                 : 'border-destructive/40'
             )}
           >
             <div className="flex items-start gap-2">
               {toast.variant === 'success' ? (
-                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#8BB8D0]" />
+                <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-[#6493b5]" />
               ) : (
                 <XCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
               )}

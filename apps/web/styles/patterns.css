@@ -19,14 +19,14 @@
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)' opacity='1'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 200px 200px;
-    opacity: 0.020;
+    opacity: 0.012;
     mix-blend-mode: overlay;
     will-change: auto;
   }
 
   @media (max-width: 639px) {
     .bg-grain {
-      opacity: 0.014;
+      opacity: 0.008;
     }
   }
 
@@ -122,7 +122,7 @@
   }
 
   .ai-pulse-ring {
-    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.4);
+    box-shadow: 0 0 0 0 rgba(100, 147, 181, 0.4);
     animation: aiPulseRing 2.3s ease-out infinite;
   }
 
@@ -163,7 +163,7 @@
     background: linear-gradient(
       90deg,
       transparent 2%,
-      rgba(139, 184, 208, 0.2),
+      rgba(100, 147, 181, 0.2),
       rgba(155, 165, 185, 0.22),
       transparent 98%
     );
@@ -181,14 +181,14 @@
     transform: translate3d(0, -50%, 0);
     background: linear-gradient(
       90deg,
-      rgba(139, 184, 208, 0),
-      rgba(139, 184, 208, 0.1) 42%,
+      rgba(100, 147, 181, 0),
+      rgba(100, 147, 181, 0.1) 42%,
       rgba(155, 165, 185, 0.1) 70%,
       rgba(155, 165, 185, 0)
     );
     border-radius: 999px;
     filter: blur(1px);
-    box-shadow: 0 0 6px rgba(139, 184, 208, 0.08);
+    box-shadow: 0 0 6px rgba(100, 147, 181, 0.08);
     opacity: 0.1;
     z-index: -1;
     will-change: transform, opacity;
@@ -211,7 +211,7 @@
   }
 
   .ai-flow-node {
-    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.15);
+    box-shadow: 0 0 0 0 rgba(100, 147, 181, 0.15);
     animation: aiFlowNode 2.8s ease-in-out infinite;
   }
 
@@ -255,9 +255,9 @@
       height: 0.52rem;
       background: linear-gradient(
         180deg,
-        rgba(139, 184, 208, 0.1),
-        rgba(139, 184, 208, 0.35),
-        rgba(139, 184, 208, 0.06)
+        rgba(100, 147, 181, 0.1),
+        rgba(100, 147, 181, 0.35),
+        rgba(100, 147, 181, 0.06)
       );
       pointer-events: none;
     }
@@ -265,8 +265,8 @@
 
   .dark .ai-grid {
     background-image:
-      linear-gradient(rgba(139, 184, 208, 0.07) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(139, 184, 208, 0.07) 1px, transparent 1px);
+      linear-gradient(rgba(100, 147, 181, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(100, 147, 181, 0.07) 1px, transparent 1px);
     animation: aiGridDrift 20s linear infinite;
   }
 
@@ -302,12 +302,12 @@
   .dark .ai-flow-track::after {
     background: linear-gradient(
       90deg,
-      rgba(139, 184, 208, 0),
-      rgba(139, 184, 208, 0.15) 42%,
+      rgba(100, 147, 181, 0),
+      rgba(100, 147, 181, 0.15) 42%,
       rgba(155, 165, 185, 0.13) 70%,
       rgba(155, 165, 185, 0)
     );
-    box-shadow: 0 0 8px rgba(139, 184, 208, 0.1);
+    box-shadow: 0 0 8px rgba(100, 147, 181, 0.1);
     opacity: 0.1;
   }
 
@@ -427,11 +427,11 @@
 
 @keyframes aiPulseRing {
   0% {
-    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.35);
+    box-shadow: 0 0 0 0 rgba(100, 147, 181, 0.35);
   }
   75%,
   100% {
-    box-shadow: 0 0 0 10px rgba(139, 184, 208, 0);
+    box-shadow: 0 0 0 10px rgba(100, 147, 181, 0);
   }
 }
 
@@ -463,11 +463,11 @@
 @keyframes aiFlowNode {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(139, 184, 208, 0.12);
+    box-shadow: 0 0 0 0 rgba(100, 147, 181, 0.12);
     filter: brightness(0.94);
   }
   42% {
-    box-shadow: 0 0 0 5px rgba(139, 184, 208, 0);
+    box-shadow: 0 0 0 5px rgba(100, 147, 181, 0);
     filter: brightness(1.08);
   }
 }
@@ -479,8 +479,8 @@
     text-shadow: none;
   }
   40% {
-    color: rgb(106 154 184);
-    text-shadow: 0 0 6px rgba(139, 184, 208, 0.1);
+    color: rgb(100 147 181);
+    text-shadow: 0 0 6px rgba(100, 147, 181, 0.1);
   }
 }
 
@@ -491,8 +491,8 @@
     text-shadow: none;
   }
   40% {
-    color: rgb(160 190 215);
-    text-shadow: 0 0 8px rgba(139, 184, 208, 0.1);
+    color: rgb(100 147 181);
+    text-shadow: 0 0 8px rgba(100, 147, 181, 0.1);
   }
 }
 

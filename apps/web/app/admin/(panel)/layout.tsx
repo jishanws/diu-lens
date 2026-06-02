@@ -25,7 +25,7 @@ export default function AdminPanelLayout({ children }: { children: ReactNode }) 
         <div aria-hidden="true" className="landing-grid-overlay pointer-events-none absolute inset-0" />
         <div aria-hidden="true" className="landing-glow-top-left pointer-events-none absolute inset-0" />
         <div className="relative z-10 flex flex-col items-center gap-3">
-          <div className="size-8 animate-spin rounded-full border-2 border-white/10 border-t-[#8BB8D0]/60" />
+          <div className="size-8 animate-spin rounded-full border-2 border-white/10 border-t-[#6493b5]/60" />
           <p className="text-[0.8rem] text-slate-500">Restoring admin session…</p>
         </div>
       </div>

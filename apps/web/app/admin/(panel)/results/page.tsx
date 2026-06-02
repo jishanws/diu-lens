@@ -69,7 +69,7 @@ export default function AdminResultsPage() {
                   <p className="text-sm font-semibold text-foreground">{candidate.fullName}</p>
                   <p className="text-xs text-muted-foreground">Student ID: {candidate.studentId}</p>
                   <p className="text-xs text-muted-foreground">Department: {candidate.department}</p>
-                  <p className="inline-flex items-center gap-1 rounded-full border border-[#8BB8D0]/35 bg-[#8BB8D0]/15 px-2 py-0.5 text-[11px] text-[#8BB8D0]">
+                  <p className="inline-flex items-center gap-1 rounded-full border border-[#6493b5]/35 bg-[#6493b5]/15 px-2 py-0.5 text-[11px] text-[#6493b5]">
                     <CheckCircle2 className="size-3.5" />
                     Confidence {candidate.confidence.toFixed(1)}%
                   </p>

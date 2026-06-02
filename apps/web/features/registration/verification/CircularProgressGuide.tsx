@@ -74,7 +74,7 @@ function ActiveComet({ d }: { d: string }) {
       <motion.path
         d={d}
         fill="none"
-        stroke="rgba(139, 184, 208, 0.18)"
+        stroke="rgba(100, 147, 181, 0.18)"
         strokeWidth={14}
         strokeLinecap="round"
         style={{ pathLength: 0.3, pathOffset }}
@@ -228,7 +228,7 @@ export function CircularProgressGuide({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#8BB8D0"
+                  stroke="#6493b5"
                   strokeWidth={18}
                   strokeLinecap="round"
                   filter="url(#cpg-bloom-done)"
@@ -240,7 +240,7 @@ export function CircularProgressGuide({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#8BB8D0"
+                  stroke="#6493b5"
                   strokeWidth={8}
                   strokeLinecap="round"
                   filter="url(#cpg-glow-done)"
@@ -288,7 +288,7 @@ export function CircularProgressGuide({
                 <path
                   d={d}
                   fill="none"
-                  stroke="rgba(139, 184, 208, 0.12)"
+                  stroke="rgba(100, 147, 181, 0.12)"
                   strokeWidth={6}
                   strokeLinecap="round"
                 />

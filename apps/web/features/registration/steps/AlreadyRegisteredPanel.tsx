@@ -85,7 +85,7 @@ export function AlreadyRegisteredPanel({
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-[1.75rem] border border-white/[0.08] bg-gradient-to-b from-[#14171f]/80 via-[#111318]/90 to-[#14171f]/80 px-6 py-8 text-center shadow-[0_0_40px_rgba(16,185,129,0.06),inset_0_0_60px_rgba(16,185,129,0.05)] backdrop-blur-md sm:px-8 sm:py-10"
+      className="relative overflow-hidden rounded-[1.75rem] border border-white/[0.08] bg-gradient-to-b from-[#0d1728]/80 via-[#0b1422]/90 to-[#0d1728]/80 px-6 py-8 text-center shadow-[0_0_40px_rgba(16,185,129,0.06),inset_0_0_60px_rgba(16,185,129,0.05)] backdrop-blur-md sm:px-8 sm:py-10"
       initial={{ opacity: 0, scale: 0.93, y: 16 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
@@ -100,7 +100,7 @@ export function AlreadyRegisteredPanel({
       {/* Top ambient glow */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#8BB8D0]/10 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#6493b5]/10 to-transparent"
       />
 
       {/* Animated check ring */}
@@ -108,20 +108,20 @@ export function AlreadyRegisteredPanel({
         {/* Pulsing outer ring */}
         <motion.span
           aria-hidden="true"
-          className="absolute inset-0 rounded-full border border-[#8BB8D0]/30"
+          className="absolute inset-0 rounded-full border border-[#6493b5]/30"
           animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0.15, 0.5] }}
           transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Second ring */}
         <motion.span
           aria-hidden="true"
-          className="absolute inset-2 rounded-full border border-[#8BB8D0]/20"
+          className="absolute inset-2 rounded-full border border-[#6493b5]/20"
           animate={{ scale: [1, 1.12, 1], opacity: [0.4, 0.1, 0.4] }}
           transition={{ duration: 2.8, delay: 0.4, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Solid centre */}
         <motion.div
-          className="relative flex size-20 items-center justify-center rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#1A1D24] to-[#14171f] shadow-[0_0_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md"
+          className="relative flex size-20 items-center justify-center rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0d1728] to-[#08111f] shadow-[0_0_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md"
           initial={{ scale: 0, rotate: -20 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ delay: 0.18, duration: 0.48, ease: [0.32, 0.72, 0, 1] }}
@@ -129,21 +129,21 @@ export function AlreadyRegisteredPanel({
           {/* Glow blob */}
           <div
             aria-hidden="true"
-            className="absolute inset-0 rounded-full bg-[#8BB8D0]/20 blur-md"
+            className="absolute inset-0 rounded-full bg-[#6493b5]/20 blur-md"
           />
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.35, duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
           >
-            <CheckCircle2 className="relative size-7 text-[#8BB8D0] sm:size-8" strokeWidth={1.8} />
+            <CheckCircle2 className="relative size-7 text-[#6493b5] sm:size-8" strokeWidth={1.8} />
           </motion.div>
         </motion.div>
       </div>
 
       {/* Sparkles badge */}
       <motion.div
-        className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#8BB8D0]/25 bg-[#8BB8D0]/10 px-3 py-1 text-[0.7rem] font-medium tracking-wider text-[#8BB8D0] uppercase"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#6493b5]/25 bg-[#6493b5]/10 px-3 py-1 text-[0.7rem] font-medium tracking-wider text-[#6493b5] uppercase"
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.42, duration: 0.32 }}
@@ -176,7 +176,7 @@ export function AlreadyRegisteredPanel({
         <p className="mx-auto max-w-[30ch] text-[0.88rem] leading-[1.6] text-slate-300">
           Your biometric enrollment is complete.
           {studentId && (
-            <span className="mt-2 block font-mono text-[0.85rem] tracking-wide text-[#8BB8D0]/80">
+            <span className="mt-2 block font-mono text-[0.85rem] tracking-wide text-[#6493b5]/80">
               Student ID: {studentId}
             </span>
           )}
@@ -189,7 +189,7 @@ export function AlreadyRegisteredPanel({
       {/* Divider */}
       <motion.div
         aria-hidden="true"
-        className="mx-auto my-6 h-px w-2/3 bg-gradient-to-r from-transparent via-[#8BB8D0]/25 to-transparent"
+        className="mx-auto my-6 h-px w-2/3 bg-gradient-to-r from-transparent via-[#6493b5]/25 to-transparent"
         initial={{ opacity: 0, scaleX: 0 }}
         animate={{ opacity: 1, scaleX: 1 }}
         transition={{ delay: 0.62, duration: 0.36 }}

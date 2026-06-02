@@ -54,7 +54,7 @@ export default function FaqPage() {
   );
 
   return (
-    <div className="landing-page relative min-h-screen overflow-hidden bg-[#0a0c10]">
+    <div className="landing-page relative min-h-screen overflow-hidden">
       {/* ═══════════════════════════════════════════════════════════
           CINEMATIC ENVIRONMENT 
           ═══════════════════════════════════════════════════════════ */}

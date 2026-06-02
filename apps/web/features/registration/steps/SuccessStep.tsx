@@ -72,7 +72,7 @@ function useAmbientParticles(canvasRef: React.RefObject<HTMLCanvasElement | null
     canvas.height = H;
 
     type P = { x: number; y: number; r: number; vx: number; vy: number; alpha: number; color: string };
-    const COLORS = ['#8BB8D0', '#7BA8C0', '#D0DEE8'];
+    const COLORS = ['#6493b5', '#7BA8C0', '#D0DEE8'];
     const particles: P[] = Array.from({ length: 32 }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
@@ -113,7 +113,7 @@ export function SuccessStep({ onDone }: SuccessStepProps) {
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-3xl border border-[#8BB8D0]/15 bg-gradient-to-b from-[#14171f]/80 via-[#111318]/90 to-[#14171f]/80 shadow-[0_0_40px_rgba(139,184,208,0.08),inset_0_0_60px_rgba(139,184,208,0.05)] backdrop-blur-md px-6 py-8 text-center sm:px-8 sm:py-10"
+      className="relative overflow-hidden rounded-3xl border border-[#6493b5]/15 bg-gradient-to-b from-[#0d1728]/80 via-[#0b1422]/90 to-[#0d1728]/80 shadow-[0_0_40px_rgba(100,147,181,0.08),inset_0_0_60px_rgba(100,147,181,0.05)] backdrop-blur-md px-6 py-8 text-center sm:px-8 sm:py-10"
       initial={{ opacity: 0, scale: 0.92, y: 18 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.44, ease: [0.32, 0.72, 0, 1] }}
@@ -128,12 +128,12 @@ export function SuccessStep({ onDone }: SuccessStepProps) {
       {/* Top glow sweep */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#8BB8D0]/10 to-transparent"
+        className="pointer-events-none absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-[#6493b5]/10 to-transparent"
       />
       {/* Bottom glow */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#8BB8D0]/5 to-transparent"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#6493b5]/5 to-transparent"
       />
 
       {/* ── Animated check ring ── */}
@@ -141,42 +141,42 @@ export function SuccessStep({ onDone }: SuccessStepProps) {
         {/* Outermost slow pulse */}
         <motion.span
           aria-hidden="true"
-          className="absolute -inset-4 rounded-full border border-[#8BB8D0]/20 mix-blend-screen"
+          className="absolute -inset-4 rounded-full border border-[#6493b5]/20 mix-blend-screen"
           animate={{ scale: [1, 1.22, 1], opacity: [0.4, 0.08, 0.4] }}
           transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Mid ring */}
         <motion.span
           aria-hidden="true"
-          className="absolute inset-2 rounded-full border border-[#8BB8D0]/10"
+          className="absolute inset-2 rounded-full border border-[#6493b5]/10"
           animate={{ scale: [1, 1.14, 1], opacity: [0.35, 0.06, 0.35] }}
           transition={{ duration: 3.2, delay: 0.5, repeat: Infinity, ease: 'easeInOut' }}
         />
         {/* Inner ring — rotating shimmer */}
         <motion.span
           aria-hidden="true"
-          className="absolute inset-4 rounded-full border border-dashed border-[#8BB8D0]/15"
+          className="absolute inset-4 rounded-full border border-dashed border-[#6493b5]/15"
           animate={{ rotate: 360 }}
           transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
         />
 
         {/* Centre glowing disc */}
         <motion.div
-          className="relative flex size-20 items-center justify-center rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#1A1D24] to-[#14171f] shadow-[0_0_30px_rgba(139,184,208,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md"
+          className="relative flex size-20 items-center justify-center rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0d1728] to-[#08111f] shadow-[0_0_30px_rgba(100,147,181,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md"
           initial={{ scale: 0, rotate: -30 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ delay: 0.2, duration: 0.52, ease: [0.32, 0.72, 0, 1] }}
         >
           <div
             aria-hidden="true"
-            className="absolute inset-0 rounded-full bg-[#8BB8D0]/10 mix-blend-screen blur-xl"
+            className="absolute inset-0 rounded-full bg-[#6493b5]/10 mix-blend-screen blur-xl"
           />
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.38, duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
           >
-            <span className="text-[#8BB8D0] shadow-[#8BB8D0]/20 drop-shadow-md">
+            <span className="text-[#6493b5] shadow-[#6493b5]/20 drop-shadow-md">
               <CheckCircle2
                 className="relative size-8 sm:size-9"
                 strokeWidth={1.7}
@@ -189,7 +189,7 @@ export function SuccessStep({ onDone }: SuccessStepProps) {
 
       {/* Badge */}
       <motion.div
-        className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#8BB8D0]/25 bg-[#8BB8D0]/10 px-3 py-1 text-[0.68rem] font-medium tracking-wider text-[#8BB8D0] uppercase"
+        className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-[#6493b5]/25 bg-[#6493b5]/10 px-3 py-1 text-[0.68rem] font-medium tracking-wider text-[#6493b5] uppercase"
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.46, duration: 0.3 }}
@@ -217,7 +217,7 @@ export function SuccessStep({ onDone }: SuccessStepProps) {
       {/* Divider */}
       <motion.div
         aria-hidden="true"
-        className="mx-auto my-6 h-px w-2/3 bg-gradient-to-r from-transparent via-[#8BB8D0]/25 to-transparent"
+        className="mx-auto my-6 h-px w-2/3 bg-gradient-to-r from-transparent via-[#6493b5]/25 to-transparent"
         initial={{ opacity: 0, scaleX: 0 }}
         animate={{ opacity: 1, scaleX: 1 }}
         transition={{ delay: 0.68, duration: 0.36 }}
