@@ -4,18 +4,18 @@ import { BarChart3, Clock, TrendingUp, ShieldCheck, Activity, Zap, CheckCircle2 
 
 export function AnalyticsView() {
   return (
-    <div className="flex h-full flex-col p-6 lg:p-8 overflow-y-auto admin-workspace-scroll">
+    <div className="flex h-full flex-col p-4 sm:p-5 md:p-6 lg:p-8 overflow-y-auto admin-workspace-scroll">
       {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-6 md:mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-medium tracking-tight text-slate-100">System Intelligence</h1>
           <p className="mt-1.5 text-[0.85rem] text-slate-400">Operational visibility and biometric performance metrics.</p>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-md border border-white/[0.04] bg-white/[0.02] p-1 text-[0.7rem] font-medium text-slate-400">
-            <button className="rounded px-3 py-1.5 text-slate-200 bg-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.2)]">Today</button>
-            <button className="rounded px-3 py-1.5 hover:text-slate-200">7D</button>
-            <button className="rounded px-3 py-1.5 hover:text-slate-200">30D</button>
+          <div className="flex items-center gap-1 sm:gap-2 rounded-lg sm:rounded-md border border-white/[0.04] bg-white/[0.02] p-1 text-[0.75rem] sm:text-[0.7rem] font-medium text-slate-400 w-full sm:w-auto">
+            <button className="flex-1 sm:flex-none rounded-md sm:rounded px-4 sm:px-3 py-2 sm:py-1.5 text-slate-200 bg-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.2)] text-center">Today</button>
+            <button className="flex-1 sm:flex-none rounded-md sm:rounded px-4 sm:px-3 py-2 sm:py-1.5 hover:bg-white/[0.02] hover:text-slate-200 text-center">7D</button>
+            <button className="flex-1 sm:flex-none rounded-md sm:rounded px-4 sm:px-3 py-2 sm:py-1.5 hover:bg-white/[0.02] hover:text-slate-200 text-center">30D</button>
           </div>
         </div>
       </div>

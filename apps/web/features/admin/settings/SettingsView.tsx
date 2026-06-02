@@ -15,9 +15,9 @@ export function SettingsView() {
   ];
 
   return (
-    <div className="flex h-full flex-col p-6 lg:p-8 overflow-y-auto admin-workspace-scroll">
+    <div className="flex h-full flex-col p-4 sm:p-5 md:p-6 lg:p-8 overflow-y-auto admin-workspace-scroll">
       {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-6 md:mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-medium tracking-tight text-slate-100">System Configuration</h1>
           <p className="mt-1.5 text-[0.85rem] text-slate-400">Secure platform parameters and infrastructure settings.</p>
@@ -66,53 +66,53 @@ export function SettingsView() {
                 </div>
                 
                 <div className="flex flex-col gap-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
                       <h4 className="text-[0.85rem] font-medium text-slate-300">High Confidence Boundary</h4>
                       <p className="text-[0.7rem] text-slate-500 mt-0.5">Maximum distance to automatically approve matches.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <input type="number" defaultValue="0.25" step="0.01" className="h-9 w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
+                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                       <input type="number" defaultValue="0.25" step="0.01" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
                     </div>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
                       <h4 className="text-[0.85rem] font-medium text-slate-300">Review Threshold</h4>
                       <p className="text-[0.7rem] text-slate-500 mt-0.5">Distance triggering manual administrative review.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <input type="number" defaultValue="0.38" step="0.01" className="h-9 w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
+                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                       <input type="number" defaultValue="0.38" step="0.01" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* Panel 2 */}
-              <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+              <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
                 <div className="mb-6 pb-5 border-b border-white/[0.04]">
                   <h3 className="text-[1rem] font-medium text-slate-200">Processing Engine</h3>
                   <p className="mt-1 text-[0.75rem] text-slate-500">Resource allocation for Celery workers and embedding extraction.</p>
                 </div>
                 
                 <div className="flex flex-col gap-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
                       <h4 className="text-[0.85rem] font-medium text-slate-300">GPU Acceleration</h4>
                       <p className="text-[0.7rem] text-slate-500 mt-0.5">Force extraction tasks to CUDA devices when available.</p>
                     </div>
-                    <div className="relative inline-flex h-5 w-9 cursor-pointer rounded-full bg-[#6493b5]">
-                       <div className="absolute left-[2px] top-[2px] h-4 w-4 translate-x-4 rounded-full bg-white transition-transform" />
+                    <div className="relative inline-flex h-6 sm:h-5 w-11 sm:w-9 cursor-pointer rounded-full bg-[#6493b5] shrink-0 mt-2 sm:mt-0">
+                       <div className="absolute left-[2px] top-[2px] h-5 sm:h-4 w-5 sm:w-4 translate-x-5 sm:translate-x-4 rounded-full bg-white transition-transform" />
                     </div>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
                       <h4 className="text-[0.85rem] font-medium text-slate-300">Max Worker Concurrency</h4>
                       <p className="text-[0.7rem] text-slate-500 mt-0.5">Limit concurrent face detection processes.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <input type="number" defaultValue="4" className="h-9 w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
+                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                       <input type="number" defaultValue="4" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
                     </div>
                   </div>
                 </div>
@@ -121,7 +121,7 @@ export function SettingsView() {
           )}
 
           {activeTab === 'security' && (
-            <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+            <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
                <div className="mb-6 pb-5 border-b border-white/[0.04] flex items-center gap-3">
                   <Shield className="size-5 text-[#6493b5]" />
                   <div>
@@ -131,22 +131,22 @@ export function SettingsView() {
                </div>
                
                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
                       <h4 className="text-[0.85rem] font-medium text-slate-300">Require MFA for Admins</h4>
                       <p className="text-[0.7rem] text-slate-500 mt-0.5">Enforce multi-factor authentication for console access.</p>
                     </div>
-                    <div className="relative inline-flex h-5 w-9 cursor-pointer rounded-full bg-[#6493b5]">
-                       <div className="absolute left-[2px] top-[2px] h-4 w-4 translate-x-4 rounded-full bg-white transition-transform" />
+                    <div className="relative inline-flex h-6 sm:h-5 w-11 sm:w-9 cursor-pointer rounded-full bg-[#6493b5] shrink-0 mt-2 sm:mt-0">
+                       <div className="absolute left-[2px] top-[2px] h-5 sm:h-4 w-5 sm:w-4 translate-x-5 sm:translate-x-4 rounded-full bg-white transition-transform" />
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                     <div>
                       <h4 className="text-[0.85rem] font-medium text-slate-300">Session Timeout (Minutes)</h4>
                       <p className="text-[0.7rem] text-slate-500 mt-0.5">Idle time before automatic logout.</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                       <input type="number" defaultValue="30" className="h-9 w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
+                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                       <input type="number" defaultValue="30" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
                     </div>
                   </div>
                </div>

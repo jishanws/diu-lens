@@ -455,7 +455,7 @@ export function RecognitionView() {
                 <label htmlFor="top-k" className="mb-1.5 block text-[0.65rem] font-medium uppercase tracking-wider text-slate-500">top_k matches</label>
                 <input
                   id="top-k"
-                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-[#6493b5]/50 focus:ring-1 focus:ring-[#6493b5]/50"
+                  className="w-full h-10 sm:h-9 rounded-lg border border-white/[0.06] bg-black/40 px-3 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-[#6493b5]/50 focus:ring-1 focus:ring-[#6493b5]/50"
                   type="number"
                   min={1}
                   step={1}
@@ -468,7 +468,7 @@ export function RecognitionView() {
                 <label htmlFor="threshold" className="mb-1.5 block text-[0.65rem] font-medium uppercase tracking-wider text-slate-500">distance threshold</label>
                 <input
                   id="threshold"
-                  className="w-full rounded-lg border border-white/[0.06] bg-black/40 px-3 py-2 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-[#6493b5]/50 focus:ring-1 focus:ring-[#6493b5]/50"
+                  className="w-full h-10 sm:h-9 rounded-lg border border-white/[0.06] bg-black/40 px-3 text-[16px] sm:text-[0.8rem] text-slate-200 outline-none transition-colors focus:border-[#6493b5]/50 focus:ring-1 focus:ring-[#6493b5]/50"
                   type="number"
                   min={0.0001}
                   step={0.01}
@@ -483,7 +483,7 @@ export function RecognitionView() {
       </div>
 
       {/* ── Right Column: Live Results Workspace ───────────────────────────────── */}
-      <div className="flex min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] lg:min-w-[500px]">
+      <div className="flex min-h-[350px] lg:min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] lg:min-w-[500px]">
         
         {/* Workspace Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-5 sm:px-6 py-4 shadow-[0_1px_8px_rgba(0,0,0,0.2)] z-10">
@@ -620,22 +620,22 @@ export function RecognitionView() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="mt-4 flex items-center justify-between rounded-[1rem] border border-white/[0.03] bg-white/[0.01] px-5 py-3">
-                  <span className="text-[0.75rem] text-slate-500">
+                <div className="mt-4 flex flex-col sm:flex-row items-center justify-between rounded-[1rem] border border-white/[0.03] bg-white/[0.01] px-5 py-3 gap-3">
+                  <span className="text-[0.75rem] text-slate-500 w-full sm:w-auto text-center sm:text-left">
                     Showing <strong className="text-slate-300">{((currentPage - 1) * pageSize) + 1}</strong> to <strong className="text-slate-300">{Math.min(currentPage * pageSize, allCandidates.length)}</strong> of <strong className="text-slate-300">{allCandidates.length}</strong>
                   </span>
-                  <div className="flex items-center gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-between sm:justify-end">
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
                     <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
-                      className="admin-btn-ghost px-4 py-2 text-[0.75rem] min-h-[44px]"
+                      className="admin-btn-ghost px-4 py-2 text-[0.75rem] min-h-[44px] sm:min-h-0 flex-1 sm:flex-none justify-center"
                     >
                       Previous
                     </button>
                     <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage === totalPages}
-                      className="admin-btn-ghost px-4 py-2 text-[0.75rem] min-h-[44px]"
+                      className="admin-btn-ghost px-4 py-2 text-[0.75rem] min-h-[44px] sm:min-h-0 flex-1 sm:flex-none justify-center"
                     >
                       Next
                     </button>

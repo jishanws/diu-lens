@@ -91,10 +91,19 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
 
   // Close mobile menu on route change
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      setTimeout(() => setIsMobileMenuOpen(false), 0);
-    }
-  }, [pathname, isMobileMenuOpen]);
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Focus management and escape key handling
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMobileMenuOpen]);
 
   // Lock body scroll when mobile menu is open
   useEffect(() => {
@@ -118,62 +127,65 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-[#050709]">
       
-      {/* ── Environmental Atmosphere ──────────────────────────────────────── */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
+      {/* ── Environmental Atmosphere (Optimized) ─────────────────────────── */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center">
         <div className="h-[800px] w-[800px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.035)_0%,transparent_60%)] translate-x-[15%]" />
       </div>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_120%_120%_at_50%_50%,transparent_30%,#030406_100%)]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:block bg-[radial-gradient(ellipse_120%_120%_at_50%_50%,transparent_30%,#030406_100%)]" />
+      
+      {/* Mobile-only fallback ambient light (low GPU cost) */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#6493b5]/[0.03] to-transparent md:hidden" />
 
       {/* Subtle Infrastructure Details (Corners) */}
-      <div className="pointer-events-none absolute left-6 top-6 opacity-[0.15] hidden lg:block">
+      <div className="pointer-events-none absolute left-4 top-4 opacity-[0.15] hidden md:block">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
           <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
         </svg>
       </div>
-      <div className="pointer-events-none absolute right-6 top-6 opacity-[0.15] hidden lg:block rotate-90">
+      <div className="pointer-events-none absolute right-4 top-4 opacity-[0.15] hidden md:block rotate-90">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
           <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
         </svg>
       </div>
-      <div className="pointer-events-none absolute left-6 bottom-6 opacity-[0.15] hidden lg:block -rotate-90">
+      <div className="pointer-events-none absolute left-4 bottom-4 opacity-[0.15] hidden md:block -rotate-90">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
           <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
         </svg>
       </div>
-      <div className="pointer-events-none absolute right-6 bottom-6 opacity-[0.15] hidden lg:block rotate-180">
+      <div className="pointer-events-none absolute right-4 bottom-4 opacity-[0.15] hidden md:block rotate-180">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
           <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
         </svg>
       </div>
 
-      <div className="relative z-10 mx-auto flex h-full w-full max-w-[1800px] lg:p-4 xl:p-6 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-[1800px] md:p-4 lg:p-6 md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]">
         
         {/* ── Unified Application Container ──────────────────────────────────────── */}
-        <div className="flex h-full w-full flex-col lg:flex-row overflow-hidden lg:rounded-[1.25rem] lg:border lg:border-white/[0.04] lg:bg-[#0a0d12]/60 lg:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.8)] lg:backdrop-blur-3xl">
+        <div className="flex h-full w-full flex-col md:flex-row overflow-hidden md:rounded-[1.25rem] md:border md:border-white/[0.04] md:bg-[#0a0d12]/60 md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.8)] md:backdrop-blur-xl lg:backdrop-blur-3xl">
           
-          {/* ── Desktop Sidebar (Operational Rail) ──────────────────────────────────────── */}
-          <aside className="hidden w-[16rem] shrink-0 flex-col border-r border-white/[0.04] bg-white/[0.005] lg:flex">
+          {/* ── Desktop & Tablet Sidebar (Operational Rail) ──────────────────────────────────────── */}
+          <aside className="hidden w-[15rem] lg:w-[16rem] shrink-0 flex-col border-r border-white/[0.04] bg-white/[0.005] md:flex">
             <div className="flex h-full flex-col p-4 xl:p-5">
               {/* Brand */}
-              <div className="mb-10 flex items-center gap-3.5 px-3 pt-3">
-                <div className="flex size-[2rem] shrink-0 items-center justify-center rounded-[0.6rem] bg-white/[0.02] border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-                  <Image src="/branding/logo-v2.png" alt="DIU Lens" width={32} height={32} priority className="size-[1.2rem] object-contain opacity-90" />
+              <div className="mb-10 flex items-center gap-3 px-2 lg:px-3 pt-3">
+                <div className="flex size-[1.8rem] lg:size-[2rem] shrink-0 items-center justify-center rounded-[0.6rem] bg-white/[0.02] border border-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                  <Image src="/branding/logo-v2.png" alt="DIU Lens" width={32} height={32} priority className="size-[1.1rem] lg:size-[1.2rem] object-contain opacity-90" />
                 </div>
                 <div className="flex flex-col justify-center">
                   <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-[#6493b5]/80">DIU LENS</p>
-                  <p className="mt-[0.1rem] text-[0.8rem] font-medium tracking-[0.02em] text-slate-200/90">Admin Console</p>
+                  <p className="mt-[0.1rem] text-[0.75rem] lg:text-[0.8rem] font-medium tracking-[0.02em] text-slate-200/90">Admin Console</p>
                 </div>
               </div>
 
               {/* Nav */}
-              <nav className="flex flex-col gap-8">
+              <nav className="flex flex-col gap-6 lg:gap-8">
                 {navSections.map((section) => (
                   <div key={section.title} className="flex flex-col gap-1.5">
-                    <p className="mb-2 px-4 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-slate-500/70">{section.title}</p>
+                    <p className="mb-1 lg:mb-2 px-4 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-slate-500/70">{section.title}</p>
                     {section.items.map((item) => {
                       const isActive = pathname === item.href;
                       return (
@@ -181,16 +193,16 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            'group relative flex items-center gap-3.5 rounded-r-full px-4 py-2.5 text-[0.82rem] font-medium transition-all duration-300 min-h-[40px] -ml-4 pl-8 border border-transparent',
+                            'group relative flex items-center gap-3 rounded-r-full px-4 py-2 text-[0.8rem] lg:text-[0.82rem] font-medium transition-all duration-300 min-h-[38px] lg:min-h-[40px] -ml-4 pl-8 border border-transparent',
                             isActive 
                               ? 'bg-gradient-to-r from-[#6493b5]/[0.12] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
                               : 'text-slate-400 hover:bg-white/[0.02] hover:text-slate-200'
                           )}
                         >
-                          <span className={cn('transition-colors', isActive ? 'text-[#6493b5] drop-shadow-[0_0_8px_rgba(100,147,181,0.5)]' : 'text-slate-500/80 group-hover:text-slate-400')}>
+                          <span className={cn('transition-colors shrink-0', isActive ? 'text-[#6493b5] drop-shadow-[0_0_8px_rgba(100,147,181,0.5)]' : 'text-slate-500/80 group-hover:text-slate-400')}>
                             {item.icon}
                           </span>
-                          {item.label}
+                          <span className="truncate">{item.label}</span>
                         </Link>
                       );
                     })}
@@ -201,18 +213,18 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
               <div className="flex-1" />
 
               {/* Admin Profile Strip */}
-              <div className="group mb-1 mt-6 flex items-center gap-3 rounded-xl p-2.5 transition-colors hover:bg-white/[0.02]">
-                <div className="flex size-[2rem] shrink-0 items-center justify-center rounded-lg border border-white/[0.04] bg-white/[0.01] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-                  <UserCircle2 className="size-[1.1rem] text-slate-500/70" />
+              <div className="group mb-1 mt-4 lg:mt-6 flex items-center gap-2.5 lg:gap-3 rounded-xl p-2 lg:p-2.5 transition-colors hover:bg-white/[0.02]">
+                <div className="flex size-[1.8rem] lg:size-[2rem] shrink-0 items-center justify-center rounded-lg border border-white/[0.04] bg-white/[0.01] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                  <UserCircle2 className="size-[1rem] lg:size-[1.1rem] text-slate-500/70" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-[0.1rem]">
-                  <p className="truncate text-[0.8rem] font-medium text-slate-200/90">{admin?.full_name || 'Admin User'}</p>
+                  <p className="truncate text-[0.75rem] lg:text-[0.8rem] font-medium text-slate-200/90">{admin?.full_name || 'Admin User'}</p>
                   <p className="truncate text-[0.62rem] text-slate-500/70 font-medium">{admin?.email || '-'}</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 opacity-0 transition-all hover:bg-rose-500/[0.08] hover:text-rose-400 hover:border hover:border-rose-500/10 group-hover:opacity-100"
+                  className="flex size-7 lg:size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 opacity-0 transition-all hover:bg-rose-500/[0.08] hover:text-rose-400 hover:border hover:border-rose-500/10 group-hover:opacity-100"
                   aria-label="Logout"
                 >
                   <LogOut className="size-3.5" />
@@ -225,29 +237,33 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
           <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-transparent">
             
             {/* Topbar */}
-            <header className="sticky top-0 z-30 flex-none border-b border-white/[0.04] bg-[#0a0d12]/80 px-4 py-4 lg:px-8 lg:py-5 backdrop-blur-md">
+            <header className="sticky top-0 z-30 flex-none border-b border-white/[0.04] bg-[#0a0d12]/95 md:bg-[#0a0d12]/90 px-4 py-3 sm:px-5 md:px-6 md:py-4 lg:px-8 lg:py-5 backdrop-blur-md">
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  {/* Mobile Menu Button */}
+                <div className="flex items-center gap-4">
+                  {/* Mobile Menu Button - Optimized for touch */}
                   <button
                     type="button"
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="flex h-[40px] w-[40px] items-center justify-center rounded-lg bg-white/[0.02] text-slate-300 lg:hidden border border-white/[0.05] active:bg-white/[0.05]"
+                    className="flex h-[44px] w-[44px] items-center justify-center rounded-xl bg-white/[0.03] text-slate-200 md:hidden border border-white/[0.06] active:bg-white/[0.08] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
                     aria-label="Open menu"
                   >
-                    <Menu className="size-5" />
+                    <Menu className="size-[1.3rem]" />
                   </button>
-                  <div>
-                    <p className="hidden lg:block text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#6493b5]/60 mb-0.5">Workspace</p>
-                    <h1 className="text-[1.15rem] lg:text-[1.25rem] font-medium tracking-tight text-slate-100">{pageTitle}</h1>
+                  <div className="flex flex-col justify-center">
+                    <p className="hidden md:block text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#6493b5]/60 mb-0.5">Workspace</p>
+                    <h1 className="text-[1.15rem] md:text-[1.15rem] lg:text-[1.25rem] font-semibold tracking-tight text-white md:text-slate-100">{pageTitle}</h1>
                   </div>
+                </div>
+                {/* Mobile Logo Identifier */}
+                <div className="md:hidden flex size-[36px] items-center justify-center rounded-[0.75rem] bg-white/[0.03] border border-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+                  <Image src="/branding/logo-v2.png" alt="DIU Lens" width={24} height={24} priority className="size-[1.1rem] object-contain opacity-90" />
                 </div>
               </div>
             </header>
 
             {/* Content (with custom scrollbar styles applied globally) */}
-            <main className="admin-workspace-scroll relative flex-1 overflow-y-auto bg-transparent px-4 py-6 lg:px-8 lg:py-8">
-              <div className="mx-auto max-w-6xl">
+            <main className="admin-workspace-scroll relative flex-1 overflow-y-auto bg-transparent p-4 sm:p-5 md:p-6 lg:p-8">
+              <div className="mx-auto max-w-6xl h-full">
                 {children}
               </div>
             </main>
@@ -266,7 +282,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={() => setIsMobileMenuOpen(false)}
-              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
             />
             {/* Drawer */}
             <motion.div
@@ -274,7 +290,15 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#0a0d12] border-r border-white/[0.04] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] lg:hidden shadow-2xl"
+              drag="x"
+              dragConstraints={{ left: -280, right: 0 }}
+              dragElastic={0.05}
+              onDragEnd={(e, { offset, velocity }) => {
+                if (offset.x < -100 || velocity.x < -500) {
+                  setIsMobileMenuOpen(false);
+                }
+              }}
+              className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#0a0d12] border-r border-white/[0.04] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:hidden shadow-2xl"
             >
               <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4 min-h-[60px]">
                 <div className="flex items-center gap-3">
@@ -305,7 +329,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                             key={item.href}
                             href={item.href}
                             className={cn(
-                              'flex min-h-[44px] items-center gap-3.5 rounded-r-full px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98] -ml-4 pl-7 border border-transparent',
+                              'flex min-h-[48px] items-center gap-3.5 rounded-r-full px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98] -ml-4 pl-7 border border-transparent',
                               isActive 
                                 ? 'bg-gradient-to-r from-[#6493b5]/[0.12] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
                                 : 'text-slate-300 active:bg-white/[0.05]'

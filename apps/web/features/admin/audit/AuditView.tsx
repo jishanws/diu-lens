@@ -70,29 +70,31 @@ export function AuditView() {
       <div className="flex min-h-[500px] flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
         
         {/* Toolbar */}
-        <div className="flex items-center justify-between border-b border-white/[0.04] bg-[#080b0f]/80 px-6 py-4">
-          <div className="relative w-full max-w-[280px]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-4 sm:px-6 py-4">
+          <div className="relative w-full sm:max-w-[280px]">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               placeholder="Search ID, IP, or Actor..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 w-full rounded-md border border-white/[0.05] bg-black/20 pl-9 pr-4 text-[0.8rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40"
+              className="h-10 sm:h-9 w-full rounded-md border border-white/[0.05] bg-black/20 pl-9 pr-4 text-[0.8rem] sm:text-[0.8rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40"
             />
           </div>
-          <div className="hidden items-center gap-3 sm:flex">
-             <div className="flex items-center gap-2 rounded-md border border-white/[0.04] bg-white/[0.02] p-1 text-[0.7rem] font-medium text-slate-400">
-               <button className="rounded px-2.5 py-1 text-slate-200 bg-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.2)]">All</button>
-               <button className="rounded px-2.5 py-1 hover:text-slate-200">Verifications</button>
-               <button className="rounded px-2.5 py-1 hover:text-slate-200">System</button>
+          <div className="flex w-full overflow-x-auto sm:w-auto items-center gap-3 admin-workspace-scroll pb-1 sm:pb-0">
+             <div className="flex shrink-0 items-center gap-2 rounded-md border border-white/[0.04] bg-white/[0.02] p-1 text-[0.7rem] font-medium text-slate-400">
+               <button className="rounded px-3 sm:px-2.5 py-1.5 sm:py-1 text-slate-200 bg-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.2)]">All</button>
+               <button className="rounded px-3 sm:px-2.5 py-1.5 sm:py-1 hover:text-slate-200">Verifications</button>
+               <button className="rounded px-3 sm:px-2.5 py-1.5 sm:py-1 hover:text-slate-200">System</button>
              </div>
           </div>
         </div>
 
-        {/* Table Content */}
+        {/* Table Content (Desktop) & Cards (Mobile) */}
         <div className="admin-workspace-scroll flex-1 overflow-x-auto overflow-y-auto bg-transparent">
-          <table className="w-full min-w-[800px] border-collapse text-left">
+          
+          {/* Desktop Table Layout */}
+          <table className="hidden md:table w-full min-w-[800px] border-collapse text-left">
             <thead className="sticky top-0 z-10 bg-[#080b0f]/95 backdrop-blur-md">
               <tr>
                 <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Timestamp</th>
@@ -162,14 +164,81 @@ export function AuditView() {
               ))}
             </tbody>
           </table>
+
+          {/* Mobile Cards Layout */}
+          <div className="flex flex-col md:hidden divide-y divide-white/[0.02]">
+            {MOCK_AUDIT_LOGS.map((log) => (
+              <div key={log.id} className="flex flex-col gap-3 p-4 hover:bg-white/[0.015] transition-colors">
+                
+                {/* Header: Action & Status */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015] shadow-sm">
+                      {getActionIcon(log.actionType)}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[0.85rem] font-medium text-slate-200">{getActionLabel(log.actionType)}</span>
+                      <span className="font-mono text-[0.65rem] text-slate-500">{log.id}</span>
+                    </div>
+                  </div>
+                  <div className="shrink-0 mt-0.5">
+                    {log.status === 'SUCCESS' ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/10 bg-emerald-500/[0.02] px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wider text-emerald-400">
+                        <span className="size-1.5 rounded-full bg-emerald-400" />
+                        Success
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/10 bg-rose-500/[0.02] px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wider text-rose-400">
+                        <span className="size-1.5 rounded-full bg-rose-400" />
+                        Failed
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Details Grid */}
+                <div className="grid grid-cols-2 gap-3 rounded-lg border border-white/[0.02] bg-white/[0.01] p-3">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Target</span>
+                    {log.studentId ? (
+                      <span className="font-mono text-[0.75rem] text-slate-300">{log.studentId}</span>
+                    ) : (
+                      <span className="text-[0.75rem] text-slate-600">—</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Actor</span>
+                    <span className={cn(
+                       "text-[0.75rem] font-medium truncate",
+                       log.actor === 'SYSTEM' ? "text-[#6493b5]" : "text-slate-400"
+                     )}>
+                       {log.actor}
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Time</span>
+                    <span className="font-mono text-[0.7rem] text-slate-400">
+                      {new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
+                      <span className="text-slate-600 ml-1">{new Date(log.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Network</span>
+                    <span className="font-mono text-[0.7rem] text-slate-400">{log.ipAddress}</span>
+                  </div>
+                </div>
+
+              </div>
+            ))}
+          </div>
         </div>
         
         {/* Pagination Footer */}
-        <div className="border-t border-white/[0.04] bg-[#080b0f]/60 px-6 py-3 flex items-center justify-between">
-          <span className="text-[0.75rem] text-slate-500">Showing 1 to 9 of 1,204 logs</span>
-          <div className="flex items-center gap-2">
-            <button className="admin-btn-ghost h-8 px-3 text-[0.7rem]">Prev</button>
-            <button className="admin-btn-ghost h-8 px-3 text-[0.7rem]">Next</button>
+        <div className="border-t border-white/[0.04] bg-[#080b0f]/60 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <span className="text-[0.75rem] text-slate-500 text-center sm:text-left">Showing 1 to 9 of 1,204 logs</span>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button className="admin-btn-ghost h-10 sm:h-8 flex-1 sm:flex-none px-3 text-[0.75rem] sm:text-[0.7rem] justify-center">Prev</button>
+            <button className="admin-btn-ghost h-10 sm:h-8 flex-1 sm:flex-none px-3 text-[0.75rem] sm:text-[0.7rem] justify-center">Next</button>
           </div>
         </div>
 

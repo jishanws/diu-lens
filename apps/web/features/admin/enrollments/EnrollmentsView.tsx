@@ -280,7 +280,7 @@ export function EnrollmentsView() {
                   <p className="text-[0.8rem] text-slate-500">
                     Showing <span className="font-medium text-slate-300">{(currentPage - 1) * itemsPerPage + 1}</span> to <span className="font-medium text-slate-300">{Math.min(currentPage * itemsPerPage, enrollments.length)}</span> of <span className="font-medium text-slate-300">{enrollments.length}</span> entries
                   </p>
-                  <div className="flex items-center gap-1.5 rounded-full border border-white/[0.04] bg-[#0b1422]/20 p-1 backdrop-blur-md">
+                  <div className="flex w-full sm:w-auto items-center justify-between sm:justify-end gap-1.5 rounded-full border border-white/[0.04] bg-[#0b1422]/20 p-1 backdrop-blur-md">
                     <button
                       type="button"
                       disabled={currentPage === 1}
@@ -289,14 +289,14 @@ export function EnrollmentsView() {
                     >
                       Prev
                     </button>
-                    <div className="flex items-center gap-1 px-1">
+                    <div className="flex items-center gap-1 px-1 overflow-x-auto admin-workspace-scroll max-w-[150px] sm:max-w-none">
                       {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                         <button
                           key={page}
                           type="button"
                           onClick={() => setCurrentPage(page)}
                           className={cn(
-                            'flex size-11 sm:size-8 items-center justify-center rounded-full text-[0.75rem] font-medium transition-all',
+                            'flex shrink-0 size-9 sm:size-8 items-center justify-center rounded-full text-[0.75rem] font-medium transition-all',
                             currentPage === page
                               ? 'bg-[#6493b5]/[0.15] text-[#6493b5] shadow-[0_0_12px_-3px_rgba(100, 147, 181,0.4)] border border-[#6493b5]/30'
                               : 'text-slate-500 hover:bg-white/[0.06] hover:text-slate-300'
