@@ -69,7 +69,7 @@ export function Header() {
       <div className="md:hidden">
         {/* Cinematic Translucent Navbar Surface (Clean, restrained) */}
         <div 
-          className="fixed inset-x-0 top-0 z-40 h-[76px] bg-[#070b14]/80 backdrop-blur-[8px] border-b border-white/[0.02] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] transition-opacity duration-500" 
+          className="fixed inset-x-0 top-0 z-40 h-[76px] bg-[#070b14]/35 backdrop-blur-[12px] border-b border-white/[0.02] shadow-[0_4px_24px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] transition-opacity duration-500" 
           style={{ opacity: mobileMenuOpen ? 0 : 1 }} 
         />
         
