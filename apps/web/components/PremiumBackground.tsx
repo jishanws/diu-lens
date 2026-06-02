@@ -15,9 +15,9 @@ export function PremiumBackground() {
 
   // Extremely subtle parallax for the background layers
   // Grid moves slightly up as you scroll down
-  const yGrid = useTransform(scrollYProgress, [0, 1], ["0%", "15%"]);
-  // Spotlights move at a different rate
-  const ySpotlight = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
+  const yGrid = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
+  // Spotlights move at a different rate for deeper layer separation
+  const ySpotlight = useTransform(scrollYProgress, [0, 1], ["0%", "32%"]);
 
   return (
     <div ref={ref} className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -36,10 +36,19 @@ export function PremiumBackground() {
         />
       </motion.div>
 
+      {/* ── Dynamic Environmental Sweep ────────────────────────────
+          Extremely slow, soft scanning movement. Subtle luminance shift
+          for a gentle diagnostic motion feeling. ────────────────── */}
+      <motion.div
+        className="absolute inset-x-0 top-0 h-[300px] w-full bg-gradient-to-b from-transparent via-[#6493b5]/[0.025] to-transparent z-0 blur-3xl"
+        animate={{ y: ["-300px", "120vh"] }}
+        transition={{ duration: 22, ease: "linear", repeat: Infinity }}
+      />
+
       {/* ── Grid Pattern Layer ─────────────────────────────────────
           Magic UI Grid Pattern to add architectural structure.
           Oversized, low opacity, faded edges using a radial mask. ─ */}
-      <motion.div style={{ y: yGrid }} className="absolute inset-0 z-0 opacity-20 md:opacity-40">
+      <motion.div style={{ y: yGrid }} className="absolute inset-0 z-0 opacity-30 md:opacity-55">
         <GridPattern
           width={80}
           height={80}
@@ -47,7 +56,7 @@ export function PremiumBackground() {
           y={-1}
           className={cn(
             "[mask-image:radial-gradient(ellipse_at_center,transparent_30%,black_100%)]",
-            "inset-0 h-[150%] w-full skew-y-12 fill-[#6493b5]/5 stroke-[#6493b5]/10 blur-[1px]"
+            "inset-0 h-[150%] w-full skew-y-12 fill-[#6493b5]/[0.06] stroke-[#6493b5]/[0.15] blur-[1px]"
           )}
         />
       </motion.div>
