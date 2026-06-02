@@ -98,10 +98,10 @@ export default function FaqPage() {
                 <LifeBuoy className="size-3.5 text-blue-400/80" />
                 Support & Verification Help
               </div>
-              <h1 className="mt-5 text-[2rem] font-semibold leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.75rem]">
+              <h1 className="mt-5 text-[1.85rem] font-semibold leading-[1.1] tracking-[-0.03em] text-white sm:text-[2.75rem]">
                 Frequently Asked Questions
               </h1>
-              <p className="mt-5 max-w-[32rem] text-[0.95rem] leading-[1.7] text-slate-400 sm:text-[1.05rem]">
+              <p className="mt-4 max-w-[32rem] text-[0.95rem] leading-[1.7] text-slate-400 sm:mt-5 sm:text-[1.05rem]">
                 Everything you need to know before completing your enrollment.
               </p>
             </header>
@@ -138,7 +138,7 @@ export default function FaqPage() {
                       <button
                         type="button"
                         onClick={() => toggle(index)}
-                        className="flex w-full items-center justify-between gap-4 px-6 py-[1.25rem] text-left outline-none sm:px-8 sm:py-[1.4rem] md:px-10 md:py-[1.6rem]"
+                        className="flex w-full items-center justify-between gap-4 px-5 py-[1.15rem] text-left outline-none sm:px-8 sm:py-[1.4rem] md:px-10 md:py-[1.6rem]"
                         aria-expanded={isOpen}
                       >
                         <span 
@@ -171,7 +171,7 @@ export default function FaqPage() {
                             exit={{ height: 0, opacity: 0 }}
                             transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1] }}
                           >
-                            <div className="px-6 pb-[1.6rem] pt-1 text-[0.98rem] leading-[1.7] text-slate-400/90 sm:px-8 sm:text-[0.98rem] md:px-10 md:text-[1.05rem] md:leading-[1.8] md:pb-[2rem]">
+                            <div className="px-5 pb-[1.5rem] pt-1 text-[0.95rem] leading-[1.7] text-slate-400/90 sm:px-8 sm:text-[0.98rem] md:px-10 md:text-[1.05rem] md:leading-[1.8] md:pb-[2rem]">
                               {faq.answer}
                             </div>
                           </motion.div>

@@ -83,12 +83,12 @@ export function Header() {
               <Image
                 src="/branding/logo-v2.png"
                 alt=""
-                width={22}
-                height={22}
+                width={20}
+                height={20}
                 priority
-                className="object-contain"
+                className="object-contain drop-shadow-sm"
               />
-              <span className="text-[1.05rem] font-medium tracking-[0.02em] text-white/95">
+              <span className="text-[1rem] font-medium tracking-[0.02em] text-white/95">
                 DIU Lens
               </span>
             </Link>
@@ -127,7 +127,7 @@ export function Header() {
               className="fixed inset-0 z-40 bg-[#070b14]/90 backdrop-blur-[12px] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]"
             >
               <nav className="relative flex h-full flex-col justify-center px-10 pb-20" aria-label="Mobile navigation">
-                <div className="flex flex-col gap-10">
+                <div className="flex flex-col gap-8">
                   {navItems.map((item, i) => (
                     <motion.div
                       key={item.href}
@@ -139,9 +139,9 @@ export function Header() {
                       <Link
                         href={item.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="group flex items-center gap-6 text-[1.45rem] font-light tracking-[0.02em] text-white/60 outline-none transition-colors duration-400 hover:text-white focus-visible:text-white"
+                        className="group flex items-center gap-5 text-[1.35rem] font-light tracking-[0.02em] text-white/70 outline-none transition-colors duration-400 hover:text-white focus-visible:text-white"
                       >
-                        <span className="text-white/20 transition-colors duration-400 group-hover:text-white/40 text-[0.7rem] font-mono tracking-[0.15em]">
+                        <span className="text-white/30 transition-colors duration-400 group-hover:text-white/50 text-[0.7rem] font-mono tracking-[0.15em]">
                           0{i + 1}
                         </span>
                         {item.label}

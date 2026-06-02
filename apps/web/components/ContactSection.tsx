@@ -69,7 +69,7 @@ export function ContactSection() {
         <motion.h1
           variants={FADE_UP}
           custom={1}
-          className="mx-auto max-w-[15ch] text-[2.4rem] font-semibold leading-[1.1] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl md:max-w-none md:text-[3.5rem] md:leading-[1.08] lg:text-[4rem] lg:leading-[1.05]"
+          className="mx-auto max-w-[15ch] text-[2.1rem] font-semibold leading-[1.15] tracking-tight text-white sm:max-w-[18ch] sm:text-5xl md:max-w-none md:text-[3.5rem] md:leading-[1.08] lg:text-[4rem] lg:leading-[1.05]"
         >
           Need help with{' '}
           <span className="bg-gradient-to-b from-slate-200 to-[#6493b5] bg-clip-text text-transparent">
@@ -145,7 +145,7 @@ export function ContactSection() {
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.65, delay: 0.15, ease: [0.32, 0.72, 0, 1] }}
           >
-            <div className="landing-card-surface relative overflow-hidden rounded-[1.75rem] border p-7 sm:p-9 md:p-8 lg:p-9">
+            <div className="landing-card-surface relative overflow-hidden rounded-[1.75rem] border p-6 sm:p-8 md:p-8 lg:p-9">
               {/* top glow line */}
               <div
                 aria-hidden="true"
