@@ -306,12 +306,10 @@
         rgba(100, 147, 181, 0.045) 0%,
         transparent 70%
       );
-    /* The critical technique: heavy blur dissolves all shape */
-    filter: blur(100px);
-    opacity: 0.72;
-    /* Slow drift — imperceptible movement, alive feeling */
-    animation: signatureDrift 55s ease-in-out infinite alternate;
-    will-change: transform;
+    /* The critical technique: heavy blur dissolves all shape. 
+       Reduced from 100px to 80px for better performance while keeping softness. */
+    filter: blur(80px);
+    opacity: 0.65;
     /* Prevent blur from expanding clickable area */
     pointer-events: none;
   }
