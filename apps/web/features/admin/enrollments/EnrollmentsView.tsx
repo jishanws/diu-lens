@@ -248,7 +248,7 @@ export function EnrollmentsView() {
 
       {/* Queue card */}
       <div className="admin-surface relative overflow-hidden">
-        <div className="flex flex-col gap-4 border-b border-white/[0.03] px-7 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-white/[0.03] p-5 sm:px-7 sm:py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-[0.95rem] font-semibold text-white">Verification Queue</h2>
             <p className="mt-0.5 text-[0.82rem] text-slate-400">
@@ -257,7 +257,7 @@ export function EnrollmentsView() {
           </div>
           <button
             type="button"
-            className="admin-btn-ghost w-full sm:w-auto min-h-[44px]"
+            className="admin-btn-ghost w-full sm:w-auto"
             onClick={() => loadData(false)}
             disabled={isRefreshing || actionKey !== null}
           >
@@ -266,7 +266,7 @@ export function EnrollmentsView() {
           </button>
         </div>
 
-        <div className="space-y-4 p-6">
+        <div className="space-y-3 sm:space-y-4 p-4 sm:p-6">
           {error ? (
             <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] p-4 text-[0.85rem] text-rose-300">
               <p>{error}</p>
@@ -287,7 +287,7 @@ export function EnrollmentsView() {
               <div className="flex flex-col gap-3">
                 {paginatedEnrollments.map((item) => {
                   return (
-                    <div key={item.student_id} className="group relative flex flex-col gap-5 rounded-[1.25rem] border border-white/[0.03] bg-white/[0.01] p-5 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
+                    <div key={item.student_id} className="group relative flex flex-col gap-4 rounded-[1.25rem] border border-white/[0.03] bg-white/[0.01] p-4 sm:p-5 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
                       
                       {/* Identity Block */}
                       <div className="flex flex-col gap-1.5 sm:w-1/3">
@@ -314,7 +314,7 @@ export function EnrollmentsView() {
                       <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
                         <button
                           type="button"
-                          className="admin-btn-primary min-h-[44px] w-full sm:w-auto justify-center"
+                          className="admin-btn-primary w-full sm:w-auto justify-center"
                           onClick={() => {
                             setSelectedStudentId(item.student_id);
                             recordOperationEvent({
@@ -346,7 +346,7 @@ export function EnrollmentsView() {
                       type="button"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                      className="admin-btn-ghost h-11 rounded-full px-4 text-[0.75rem] disabled:opacity-30"
+                      className="admin-btn-ghost rounded-full px-4 text-[0.75rem] disabled:opacity-30"
                     >
                       Prev
                     </button>
@@ -371,7 +371,7 @@ export function EnrollmentsView() {
                       type="button"
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                      className="admin-btn-ghost h-11 rounded-full px-4 text-[0.75rem] disabled:opacity-30"
+                      className="admin-btn-ghost rounded-full px-4 text-[0.75rem] disabled:opacity-30"
                     >
                       Next
                     </button>
@@ -410,7 +410,7 @@ function MetricCard({
     'text-white';
 
   return (
-    <div className="admin-surface px-6 py-5 border border-slate-800">
+    <div className="admin-surface p-4 sm:px-6 sm:py-5 flex flex-col justify-center">
       <p className="text-[0.78rem] font-medium uppercase tracking-widest text-slate-500">{title}</p>
       <p className={cn('mt-1.5 text-3xl font-semibold tracking-tight', valueClass)}>{value}</p>
     </div>

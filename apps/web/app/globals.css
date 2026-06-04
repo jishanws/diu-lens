@@ -312,6 +312,27 @@
     opacity: 0.65;
     /* Prevent blur from expanding clickable area */
     pointer-events: none;
+    /* GPU layer isolation — limits repaint scope of the 80px blur */
+    contain: layout style;
+    will-change: transform;
+  }
+
+  /* ── Environmental breathing animation ────────────────────── */
+  .bg-env-breathe {
+    animation: atmosBreathe 38s ease-in-out infinite alternate;
+    will-change: opacity;
+  }
+
+  @media (max-width: 767px) {
+    .bg-env-breathe {
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-env-breathe {
+      animation: none;
+    }
   }
 
   /* ── L5: Depth recession ──────────────────────────────────── */
@@ -713,7 +734,7 @@
   .admin-surface {
     background: linear-gradient(180deg, rgba(22, 25, 32, 0.55) 0%, rgba(18, 21, 26, 0.6) 100%);
     border: 1px solid rgba(255, 255, 255, 0.04);
-    border-radius: 1.5rem;
+    border-radius: 1.25rem;
     backdrop-filter: blur(20px);
     box-shadow: 
       0 8px 32px -8px rgba(0, 0, 0, 0.35),
@@ -723,7 +744,7 @@
   .admin-surface-elevated {
     background: linear-gradient(180deg, rgba(26, 29, 36, 0.72) 0%, rgba(22, 25, 32, 0.78) 100%);
     border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 1.75rem;
+    border-radius: 1.5rem;
     backdrop-filter: blur(24px);
     box-shadow:
       0 24px 64px -12px rgba(0, 0, 0, 0.55),
@@ -765,13 +786,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
-    height: 2.125rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    border-radius: 0.75rem;
-    font-size: 0.78rem;
-    font-weight: 500;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
     letter-spacing: 0.01em;
     color: #e2e8f0;
     background: rgba(255, 255, 255, 0.04);
@@ -779,6 +800,7 @@
     transition: all 250ms ease;
     cursor: pointer;
     white-space: nowrap;
+    outline: none;
   }
 
   .admin-btn-primary:hover:not(:disabled) {
@@ -797,13 +819,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
-    height: 2.125rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    border-radius: 0.75rem;
-    font-size: 0.78rem;
-    font-weight: 500;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
     letter-spacing: 0.01em;
     color: #94a3b8;
     background: transparent;
@@ -811,6 +833,7 @@
     transition: all 250ms ease;
     cursor: pointer;
     white-space: nowrap;
+    outline: none;
   }
 
   .admin-btn-ghost:hover:not(:disabled) {
@@ -827,13 +850,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.35rem;
-    height: 2.125rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
-    border-radius: 0.75rem;
-    font-size: 0.78rem;
-    font-weight: 500;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
     letter-spacing: 0.01em;
     color: #fca5a5;
     background: rgba(244, 63, 94, 0.04);
@@ -841,6 +864,7 @@
     transition: all 250ms ease;
     cursor: pointer;
     white-space: nowrap;
+    outline: none;
   }
 
   .admin-btn-danger:hover:not(:disabled) {

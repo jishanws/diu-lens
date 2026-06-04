@@ -15,9 +15,9 @@ export function SettingsView() {
   ];
 
   return (
-    <div className="flex h-full flex-col p-4 sm:p-5 md:p-6 lg:p-8 overflow-y-auto admin-workspace-scroll">
+    <div className="flex h-full flex-col gap-5 overflow-y-auto admin-workspace-scroll">
       {/* Header */}
-      <div className="mb-6 md:mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-2 md:mb-4 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-xl font-medium tracking-tight text-slate-100">System Configuration</h1>
           <p className="mt-1.5 text-[0.85rem] text-slate-400">Secure platform parameters and infrastructure settings.</p>
@@ -59,7 +59,7 @@ export function SettingsView() {
           {activeTab === 'biometric' && (
             <>
               {/* Panel 1 */}
-              <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+              <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
                 <div className="mb-6 pb-5 border-b border-white/[0.04]">
                   <h3 className="text-[1rem] font-medium text-slate-200">Matching Thresholds</h3>
                   <p className="mt-1 text-[0.75rem] text-slate-500">Configure global parameters for cosine distance confidence mapping.</p>

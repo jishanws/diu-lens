@@ -187,7 +187,7 @@ export function AuditView() {
       </div>
 
       <div className="admin-surface flex min-h-[520px] flex-1 flex-col overflow-hidden">
-        <div className="flex flex-col justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
+        <div className="flex flex-col justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 p-4 sm:px-6 sm:py-5 sm:flex-row sm:items-center">
           <div className="relative w-full sm:max-w-[320px]">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
             <input
@@ -244,20 +244,20 @@ export function AuditView() {
         {!error && filteredEvents.length > 0 ? (
           <div className="admin-workspace-scroll flex-1 overflow-auto">
             <table className="hidden w-full min-w-[980px] border-collapse text-left md:table">
-              <thead className="sticky top-0 z-10 bg-[#080b0f]/95 backdrop-blur-md">
+              <thead className="sticky top-0 z-10 bg-white/[0.015] backdrop-blur-md">
                 <tr>
-                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Timestamp</th>
-                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Action</th>
-                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Affected Record</th>
-                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Operator</th>
-                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Result</th>
+                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Timestamp</th>
+                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Action</th>
+                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Affected Record</th>
+                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Operator</th>
+                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Result</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.025]">
+              <tbody className="divide-y divide-white/[0.03]">
                 {filteredEvents.map((event) => {
                   const timestamp = formatTimestamp(event.timestamp);
                   return (
-                    <tr key={event.id} className="transition-colors hover:bg-white/[0.015]">
+                    <tr key={event.id} className="transition-all duration-200 hover:bg-white/[0.03] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-0.5">
                           <span className="font-mono text-[0.74rem] text-slate-300">{timestamp.date}</span>

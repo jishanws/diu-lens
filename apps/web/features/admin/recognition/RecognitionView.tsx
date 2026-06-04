@@ -71,8 +71,8 @@ function CandidateCard({
 
   return (
     <div className={cn(
-      "group relative flex flex-col gap-4 overflow-hidden rounded-[1.25rem] border p-5 transition-all duration-300",
-      isOnlyCandidate ? "sm:flex-col sm:items-center sm:text-center p-8 border-[#6493b5]/40 bg-gradient-to-b from-[#6493b5]/[0.08] to-transparent shadow-[0_0_35px_-5px_rgba(100, 147, 181,0.15)]"
+      "group relative flex flex-col gap-4 overflow-hidden rounded-[1.25rem] border p-4 sm:p-5 transition-all duration-300",
+      isOnlyCandidate ? "sm:flex-col sm:items-center sm:text-center p-5 sm:p-8 border-[#6493b5]/40 bg-gradient-to-b from-[#6493b5]/[0.08] to-transparent shadow-[0_0_35px_-5px_rgba(100, 147, 181,0.15)]"
       : isTopCandidate 
         ? "sm:flex-row sm:items-stretch sm:justify-between border-[#6493b5]/30 bg-gradient-to-r from-[#6493b5]/[0.08] to-transparent shadow-[0_0_25px_-5px_rgba(100, 147, 181,0.1)]"
         : "sm:flex-row sm:items-stretch sm:justify-between border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.02]"
@@ -499,7 +499,7 @@ export function RecognitionView() {
       <div className="flex min-h-[350px] lg:min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] lg:min-w-[500px]">
         
         {/* Workspace Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-5 sm:px-6 py-4 shadow-[0_1px_8px_rgba(0,0,0,0.2)] z-10">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 p-4 sm:px-6 sm:py-5 shadow-[0_1px_8px_rgba(0,0,0,0.2)] z-10">
           <div className="flex items-center gap-3">
             <div className="flex size-6 items-center justify-center rounded border border-[#6493b5]/20 bg-[#6493b5]/10">
               <Activity className="size-3.5 text-[#6493b5]" />
@@ -513,7 +513,7 @@ export function RecognitionView() {
         </div>
 
         {/* Workspace Body */}
-        <div className="relative flex flex-1 flex-col overflow-y-auto p-7">
+        <div className="relative flex flex-1 flex-col overflow-y-auto p-4 sm:p-7">
           
           {/* Empty State: Pre-Upload */}
           {!hasImage && !isMatching && !hasSearched && (

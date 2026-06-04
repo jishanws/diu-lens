@@ -159,10 +159,10 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
               </div>
 
               {/* Nav */}
-              <nav className="flex flex-col gap-6 lg:gap-8">
+              <nav className="flex flex-col gap-8 lg:gap-10">
                 {navSections.map((section) => (
-                  <div key={section.title} className="flex flex-col gap-1.5">
-                    <p className="mb-1 lg:mb-2 px-4 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-slate-500/70">{section.title}</p>
+                  <div key={section.title} className="flex flex-col gap-2">
+                    <p className="mb-2 lg:mb-3 px-4 text-[0.65rem] font-bold uppercase tracking-[0.25em] text-slate-500/60">{section.title}</p>
                     {section.items.map((item) => {
                       const isActive = pathname === item.href;
                       return (
@@ -170,16 +170,16 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                           key={item.href}
                           href={item.href}
                           className={cn(
-                            'group relative flex items-center gap-3 rounded-r-full px-4 py-2 text-[0.8rem] lg:text-[0.82rem] font-medium transition-all duration-300 min-h-[38px] lg:min-h-[40px] -ml-4 pl-8 border border-transparent',
+                            'group relative flex items-center gap-3.5 rounded-r-full px-4 py-2.5 text-[0.8rem] lg:text-[0.85rem] font-medium transition-all duration-300 min-h-[44px] -ml-4 pl-8 border border-transparent',
                             isActive 
-                              ? 'bg-gradient-to-r from-[#6493b5]/[0.12] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
-                              : 'text-slate-400 hover:bg-white/[0.02] hover:text-slate-200'
+                              ? 'bg-gradient-to-r from-[#6493b5]/[0.15] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
+                              : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                           )}
                         >
-                          <span className={cn('transition-colors shrink-0', isActive ? 'text-[#6493b5] drop-shadow-[0_0_8px_rgba(100,147,181,0.5)]' : 'text-slate-500/80 group-hover:text-slate-400')}>
+                          <span className={cn('transition-all shrink-0 flex items-center justify-center', isActive ? 'text-[#6493b5] drop-shadow-[0_0_12px_rgba(100,147,181,0.6)]' : 'text-slate-500/70 group-hover:text-slate-400 group-hover:scale-105')}>
                             {item.icon}
                           </span>
-                          <span className="truncate">{item.label}</span>
+                          <span className="truncate pt-[0.05rem]">{item.label}</span>
                         </Link>
                       );
                     })}
@@ -214,32 +214,40 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
           <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-transparent">
             
             {/* Topbar */}
-            <header className="sticky top-0 z-30 flex-none border-b border-white/[0.04] bg-[#0a0d12]/95 md:bg-[#0a0d12]/90 px-4 py-3 sm:px-5 md:px-6 md:py-4 lg:px-8 lg:py-5 backdrop-blur-md">
-              <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  {/* Mobile Menu Button - Optimized for touch */}
+            <header className="sticky top-0 z-30 flex-none border-b border-white/[0.04] bg-[#0a0d12]/95 md:bg-[#0a0d12]/90 px-3 py-2 sm:px-5 md:px-6 md:py-4 lg:px-8 lg:py-5 backdrop-blur-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {/* Mobile Menu Button - Sleek & Premium */}
                   <button
                     type="button"
                     onClick={() => setIsMobileMenuOpen(true)}
-                    className="flex h-[44px] w-[44px] items-center justify-center rounded-xl bg-white/[0.03] text-slate-200 md:hidden border border-white/[0.06] active:bg-white/[0.08] active:scale-95 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.2)]"
+                    className="md:hidden flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.02] border border-white/[0.04] text-slate-300 active:scale-95 transition-all shadow-sm"
                     aria-label="Open menu"
                   >
-                    <Menu className="size-[1.3rem]" />
+                    <Menu className="size-4" strokeWidth={2.5} />
                   </button>
-                  <div className="flex flex-col justify-center">
-                    <p className="hidden md:block text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#6493b5]/60 mb-0.5">Workspace</p>
-                    <h1 className="text-[1.15rem] md:text-[1.15rem] lg:text-[1.25rem] font-semibold tracking-tight text-white md:text-slate-100">{pageTitle}</h1>
+                  <div className="flex items-center gap-2.5">
+                    <div className="md:hidden flex size-7 items-center justify-center rounded-[0.4rem] bg-white/[0.02] border border-white/[0.04]">
+                      <Image src="/branding/logo-v2.png" alt="DIU Lens" width={24} height={24} priority className="size-4 object-contain opacity-90" />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <p className="hidden md:block text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#6493b5]/60 mb-0.5">Workspace</p>
+                      <h1 className="text-[1.05rem] md:text-[1.15rem] lg:text-[1.25rem] font-semibold tracking-tight text-white md:text-slate-100">{pageTitle}</h1>
+                    </div>
                   </div>
                 </div>
-                {/* Mobile Logo Identifier */}
-                <div className="md:hidden flex size-[36px] items-center justify-center rounded-[0.75rem] bg-white/[0.03] border border-white/[0.05] shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-                  <Image src="/branding/logo-v2.png" alt="DIU Lens" width={24} height={24} priority className="size-[1.1rem] object-contain opacity-90" />
-                </div>
+                {/* Mobile Profile Trigger */}
+                <button type="button" className="md:hidden flex items-center gap-2 rounded-full border border-white/[0.04] bg-[#0c1015] p-1 pl-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] active:scale-95 transition-transform">
+                  <span className="text-[0.65rem] font-medium text-slate-400">{admin?.full_name?.split(' ')[0] || 'Admin'}</span>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/[0.03]">
+                    <UserCircle2 className="size-4 text-[#6493b5]" />
+                  </div>
+                </button>
               </div>
             </header>
 
             {/* Content (with custom scrollbar styles applied globally) */}
-            <main className="admin-workspace-scroll relative flex-1 overflow-y-auto bg-transparent p-4 sm:p-5 md:p-6 lg:p-8">
+            <main className="admin-workspace-scroll relative flex-1 overflow-y-auto bg-transparent p-3 sm:p-5 md:p-6 lg:p-8">
               <div className="mx-auto max-w-6xl min-h-full">
                 {children}
               </div>
@@ -277,7 +285,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
               }}
               className="fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col bg-[#0a0d12] border-r border-white/[0.04] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] md:hidden shadow-2xl"
             >
-              <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4 min-h-[60px]">
+              <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4 min-h-[60px] bg-[#0a0d12]">
                 <div className="flex items-center gap-3">
                   <div className="flex size-[1.8rem] items-center justify-center rounded-[0.6rem] bg-white/[0.02] border border-white/[0.04]">
                     <Image src="/branding/logo-v2.png" alt="DIU Lens" width={24} height={24} className="object-contain opacity-90 size-[1.1rem]" />
@@ -287,18 +295,18 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex h-[40px] w-[40px] items-center justify-center rounded-lg text-slate-400 active:bg-white/[0.05]"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.02] border border-white/[0.04] text-slate-400 active:scale-95"
                   aria-label="Close menu"
                 >
-                  <X className="size-5" />
+                  <X className="size-4" />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto px-4 py-6">
+              <div className="flex-1 overflow-y-auto px-4 py-6 admin-workspace-scroll">
                 <nav className="flex flex-col gap-8">
                   {navSections.map((section) => (
-                    <div key={section.title} className="flex flex-col gap-1.5">
-                      <p className="mb-2 px-3 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-slate-500/70">{section.title}</p>
+                    <div key={section.title} className="flex flex-col gap-2">
+                      <p className="mb-1 px-3 text-[0.6rem] font-bold uppercase tracking-[0.25em] text-slate-500/60">{section.title}</p>
                       {section.items.map((item) => {
                         const isActive = pathname === item.href;
                         return (
@@ -307,13 +315,13 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                             href={item.href}
                             onClick={() => setIsMobileMenuOpen(false)}
                             className={cn(
-                              'flex min-h-[48px] items-center gap-3.5 rounded-r-full px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98] -ml-4 pl-7 border border-transparent',
+                              'flex min-h-[44px] items-center gap-3.5 rounded-xl px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98] border border-transparent',
                               isActive 
-                                ? 'bg-gradient-to-r from-[#6493b5]/[0.12] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
-                                : 'text-slate-300 active:bg-white/[0.05]'
+                                ? 'bg-[#6493b5]/10 text-[#a9c6d9] border-[#6493b5]/20' 
+                                : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
                             )}
                           >
-                            <span className={cn(isActive ? 'text-[#6493b5] drop-shadow-[0_0_8px_rgba(100,147,181,0.5)]' : 'text-slate-500/80')}>{item.icon}</span>
+                            <span className={cn('shrink-0 flex items-center justify-center', isActive ? 'text-[#6493b5]' : 'text-slate-500/70')}>{item.icon}</span>
                             {item.label}
                           </Link>
                         );
@@ -323,14 +331,14 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                 </nav>
               </div>
 
-              <div className="border-t border-white/[0.04] p-4">
+              <div className="border-t border-white/[0.04] p-4 bg-[#0a0d12]">
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-lg px-3 text-[0.85rem] font-medium text-rose-400 hover:bg-rose-500/10 active:bg-rose-500/20 border border-rose-500/10"
+                  className="flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl bg-white/[0.01] px-3 text-[0.85rem] font-medium text-rose-400 active:bg-rose-500/10 border border-white/[0.04] transition-colors"
                 >
                   <LogOut className="size-4" />
-                  Logout Admin
+                  Logout Session
                 </button>
               </div>
             </motion.div>

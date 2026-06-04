@@ -36,7 +36,7 @@ export function RejectReasonModal({ isOpen, onClose, onConfirm, isSubmitting }: 
             exit={{ opacity: 0, scale: 0.95 }}
             className="w-full max-w-md overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 p-5">
+            <div className="flex items-center justify-between border-b border-slate-800 p-4 sm:p-5">
               <div className="flex items-center gap-3 text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <h3 className="font-semibold text-slate-100">Reject Enrollment</h3>
@@ -101,7 +101,7 @@ export function RejectReasonModal({ isOpen, onClose, onConfirm, isSubmitting }: 
               )}
             </div>
 
-            <div className="flex items-center gap-3 border-t border-slate-800 bg-slate-900/50 p-5">
+            <div className="flex items-center gap-3 border-t border-slate-800 bg-slate-900/50 p-4 sm:p-5">
               <button
                 onClick={onClose}
                 disabled={isSubmitting}

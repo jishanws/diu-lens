@@ -67,6 +67,18 @@
     will-change: opacity, transform;
   }
 
+  /* ── Environmental sweep — CSS replacement for Framer Motion loop ─ */
+  .animate-env-sweep {
+    animation: envSweep 30s linear infinite;
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-env-sweep {
+      animation: none;
+    }
+  }
+
 /* ─────────────────────────────────────────────────────────────
    Component-level AI animation classes
    (Used by specific feature components, not the background)
@@ -372,6 +384,17 @@
   100% {
     opacity: 1;
     transform: translate(-50%,-40%) scale(1);
+  }
+}
+
+/* Environmental sweep — compositor-thread replacement for Framer Motion
+   JS-driven infinite animation. Runs entirely on the GPU. */
+@keyframes envSweep {
+  0% {
+    transform: translateY(-300px);
+  }
+  100% {
+    transform: translateY(120vh);
   }
 }
 

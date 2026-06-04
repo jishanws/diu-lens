@@ -71,7 +71,7 @@ const PanelCard = ({ title, icon: Icon, children, isWarning = false, className =
   const iconColor = isWarning ? 'text-amber-500' : 'text-slate-400';
 
   return (
-    <div className={`rounded-xl border bg-white/[0.01] flex flex-col overflow-hidden ${borderColor} ${className}`}>
+    <div className={`rounded-[1.25rem] border bg-white/[0.01] flex flex-col overflow-hidden ${borderColor} ${className}`}>
       <div className={`px-5 py-3 border-b flex items-center gap-2.5 ${borderColor} ${headerBg}`}>
         <Icon className={`h-4 w-4 ${iconColor}`} />
         <h3 className={`text-[0.75rem] font-semibold uppercase tracking-wider ${textColor}`}>
@@ -227,7 +227,7 @@ export function EnrollmentDetailsPanel({
                     <Loader2 className="h-8 w-8 animate-spin text-[#6493b5]" />
                   </div>
                 ) : error ? (
-                  <div className="m-8 rounded-xl border border-rose-500/20 bg-rose-500/10 p-5 flex gap-3 text-rose-400">
+                  <div className="m-4 sm:m-8 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4 sm:p-5 flex gap-3 text-rose-400">
                     <AlertCircle className="h-5 w-5 shrink-0" />
                     <p className="text-sm">{error}</p>
                   </div>
@@ -449,14 +449,14 @@ export function EnrollmentDetailsPanel({
                   <button
                     onClick={() => setIsRejectModalOpen(true)}
                     disabled={loading || isProcessing || !details}
-                    className="h-10 sm:h-11 px-6 rounded-lg bg-transparent border border-white/[0.08] text-[0.85rem] font-medium text-slate-300 hover:bg-white/[0.04] hover:text-white disabled:opacity-50 transition-colors"
+                    className="admin-btn-ghost px-6 justify-center"
                   >
                     Reject
                   </button>
                   <button
                     onClick={() => studentId && onApprove(studentId)}
                     disabled={loading || isProcessing || !details || details.enrollment.status !== 'validated'}
-                    className="h-10 sm:h-11 px-8 flex items-center justify-center gap-2 rounded-lg bg-[#6493b5] text-[0.85rem] font-semibold text-white hover:bg-[#75a3c7] disabled:opacity-50 transition-colors shadow-sm"
+                    className="admin-btn-primary px-8 justify-center"
                   >
                     {isProcessing ? (
                       <>

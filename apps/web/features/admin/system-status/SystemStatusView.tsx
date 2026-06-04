@@ -410,7 +410,7 @@ export function SystemStatusView() {
 
   return (
     <div className="min-h-full pb-2 text-slate-100">
-      <section className="relative overflow-hidden rounded-[1rem] border border-white/[0.05] bg-[#0b0f14]/80 p-4 shadow-[0_14px_42px_-28px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-5 md:p-6">
+      <section className="relative overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0b0f14]/80 p-4 sm:p-6 md:p-7 shadow-[0_14px_42px_-28px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.03)]">
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(100,147,181,0.045)_1px,transparent_1px),linear-gradient(0deg,rgba(100,147,181,0.035)_1px,transparent_1px)] bg-[size:42px_42px] opacity-35" />
         <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
@@ -474,7 +474,7 @@ export function SystemStatusView() {
             const styles = toneStyles[service.tone];
 
             return (
-              <article key={service.name} className="rounded-[0.85rem] border border-white/[0.05] bg-[#0c1015]/78 p-4 shadow-[0_12px_32px_-26px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.03)]">
+              <article key={service.name} className="rounded-[1rem] border border-white/[0.04] bg-[#0c1015]/78 p-4 sm:p-5 shadow-[0_12px_32px_-26px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(255,255,255,0.03)] transition-all hover:bg-[#0c1015]/90">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-start gap-3">
                     <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border', styles.bg, styles.border)}>
@@ -511,7 +511,7 @@ export function SystemStatusView() {
       </section>
 
       <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.85fr)]">
-        <div className="rounded-[1rem] border border-white/[0.05] bg-[#0c1015]/78 p-4 shadow-[0_14px_38px_-28px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-5">
+        <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/78 p-4 shadow-[0_14px_38px_-28px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-6">
           <div className="mb-4">
             <h3 className="text-[0.95rem] font-semibold text-slate-100">System Activity</h3>
             <p className="mt-1 text-[0.75rem] text-slate-500">Recent backend audit rows and actions from this console session.</p>
@@ -525,7 +525,7 @@ export function SystemStatusView() {
               <p className="text-[0.8rem] text-slate-500">No operational events have been reported yet.</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/[0.04] overflow-hidden rounded-[0.85rem] border border-white/[0.04] bg-black/[0.12]">
+            <div className="divide-y divide-white/[0.04] overflow-hidden rounded-[1rem] border border-white/[0.04] bg-black/[0.12]">
               {auditEvents.slice(0, 8).map((event) => {
                 const tone: StatusTone =
                   event.operation_result === 'failed'
@@ -564,7 +564,7 @@ export function SystemStatusView() {
           )}
         </div>
 
-        <div className="rounded-[1rem] border border-white/[0.05] bg-[#0c1015]/78 p-4 shadow-[0_14px_38px_-28px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-5">
+        <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/78 p-4 shadow-[0_14px_38px_-28px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.03)] sm:p-6">
           <div className="mb-4">
             <h3 className="text-[0.95rem] font-semibold text-slate-100">Infrastructure Readings</h3>
             <p className="mt-1 text-[0.75rem] text-slate-500">Small counters from backend state, not business analytics.</p>
@@ -576,7 +576,7 @@ export function SystemStatusView() {
               const styles = toneStyles[metric.tone ?? 'nominal'];
 
               return (
-                <article key={metric.label} className="flex items-center gap-3 rounded-[0.85rem] border border-white/[0.04] bg-black/[0.12] p-3.5">
+                <article key={metric.label} className="flex items-center gap-3 rounded-[1rem] border border-white/[0.04] bg-black/[0.12] p-4 transition-all hover:bg-black/[0.2]">
                   <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border', styles.bg, styles.border)}>
                     <Icon className={cn('size-4', styles.icon)} />
                   </div>
@@ -592,7 +592,7 @@ export function SystemStatusView() {
             })}
           </div>
 
-          <div className="mt-4 rounded-[0.85rem] border border-white/[0.04] bg-black/[0.12] p-3.5">
+          <div className="mt-4 rounded-[1rem] border border-white/[0.04] bg-black/[0.12] p-4">
             <div className="flex items-center gap-2 text-[0.76rem] font-medium text-slate-300">
               <Gauge className="size-4 text-[#8fb4ce]" />
               Diagnostics Window

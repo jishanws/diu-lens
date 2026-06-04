@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useId } from "react";
 import { cn } from "@/lib/utils";
 
 type SpotlightProps = {
@@ -9,6 +9,8 @@ type SpotlightProps = {
 };
 
 export const Spotlight = ({ className, fill }: SpotlightProps) => {
+  const filterId = useId();
+
   return (
     <svg
       className={cn(
@@ -19,7 +21,7 @@ export const Spotlight = ({ className, fill }: SpotlightProps) => {
       viewBox="0 0 3787 2842"
       fill="none"
     >
-      <g filter="url(#filter)">
+      <g filter={`url(#${filterId})`}>
         <ellipse
           cx="1924.71"
           cy="273.501"
@@ -32,7 +34,7 @@ export const Spotlight = ({ className, fill }: SpotlightProps) => {
       </g>
       <defs>
         <filter
-          id="filter"
+          id={filterId}
           x="0.860352"
           y="0.838989"
           width="3785.16"
