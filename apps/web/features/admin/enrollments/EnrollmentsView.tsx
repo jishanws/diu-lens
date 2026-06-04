@@ -237,36 +237,33 @@ export function EnrollmentsView() {
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4 sm:gap-5">
       {/* Metrics Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <MetricCard title="Pending Review" value={metrics?.pending_review ?? 0} tone="pending" />
-        <MetricCard title="Approved Today" value={metrics?.approved_today ?? 0} tone="approved" />
-        <MetricCard title="Rejected Today" value={metrics?.rejected_today ?? 0} tone="rejected" />
-        <MetricCard title="Oldest Pending" value={oldestPendingDisplay} tone="default" />
+        <MetricCard title="Approved" value={metrics?.approved_today ?? 0} tone="approved" />
+        <MetricCard title="Rejected" value={metrics?.rejected_today ?? 0} tone="rejected" />
+        <MetricCard title="Oldest" value={oldestPendingDisplay} tone="default" />
       </div>
 
       {/* Queue card */}
       <div className="admin-surface relative overflow-hidden">
-        <div className="flex flex-col gap-3 border-b border-white/[0.03] p-5 sm:px-7 sm:py-6 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-[0.95rem] font-semibold text-white">Verification Queue</h2>
-            <p className="mt-0.5 text-[0.82rem] text-slate-400">
-              Inspect biometric data before final approval.
-            </p>
+        <div className="flex items-center justify-between border-b border-white/[0.03] p-3 sm:px-5 sm:py-4">
+          <div className="flex flex-col">
+            <h2 className="text-[0.9rem] sm:text-[0.95rem] font-medium text-slate-200">Verification Queue</h2>
           </div>
           <button
             type="button"
-            className="admin-btn-ghost w-full sm:w-auto"
+            className="flex items-center gap-2 rounded-lg bg-white/[0.02] border border-white/[0.04] px-3 py-1.5 text-[0.75rem] font-medium text-slate-300 hover:bg-white/[0.04] active:scale-95 transition-all"
             onClick={() => loadData(false)}
             disabled={isRefreshing || actionKey !== null}
           >
             <RefreshCw className={cn('size-3.5', isRefreshing ? 'animate-spin' : '')} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
-        <div className="space-y-3 sm:space-y-4 p-4 sm:p-6">
+        <div className="space-y-2.5 sm:space-y-3 p-3 sm:p-5">
           {error ? (
             <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.08] p-4 text-[0.85rem] text-rose-300">
               <p>{error}</p>
@@ -287,34 +284,46 @@ export function EnrollmentsView() {
               <div className="flex flex-col gap-3">
                 {paginatedEnrollments.map((item) => {
                   return (
-                    <div key={item.student_id} className="group relative flex flex-col gap-4 rounded-[1.25rem] border border-white/[0.03] bg-white/[0.01] p-4 sm:p-5 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
+                    <div key={item.student_id} className="group relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-[0.85rem] border border-white/[0.03] bg-white/[0.01] p-3.5 sm:p-4 transition-all hover:bg-white/[0.02]">
                       
-                      {/* Identity Block */}
-                      <div className="flex flex-col gap-1.5 sm:w-1/3">
-                        <div className="flex flex-wrap items-center gap-2.5">
-                          <p className="text-[0.95rem] font-semibold tracking-tight text-slate-100">{item.full_name || 'Unknown User'}</p>
-                          <span className="rounded-full border border-white/[0.05] bg-white/[0.03] px-2 py-0.5 text-[0.65rem] font-mono tracking-wide text-slate-400">
-                            {item.student_id}
-                          </span>
+                      <div className="flex items-start justify-between gap-3 sm:w-[60%]">
+                        {/* Identity Block */}
+                        <div className="flex flex-col gap-0.5 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-[0.85rem] font-medium text-slate-200">{item.full_name || 'Unknown User'}</p>
+                            <span className="shrink-0 rounded bg-white/[0.03] border border-white/[0.05] px-1.5 py-0.5 text-[0.6rem] font-mono text-slate-400">
+                              {item.student_id}
+                            </span>
+                          </div>
+                          <p className="truncate text-[0.7rem] text-slate-500">{item.university_email || 'No email provided'}</p>
                         </div>
-                        <p className="text-[0.8rem] text-slate-400 hidden sm:block">{item.university_email || 'No email provided'}</p>
+                        
+                        {/* Metadata Grouping for Mobile */}
+                        <div className="flex flex-col items-end gap-0.5 text-right sm:hidden shrink-0">
+                          <div className="text-[0.65rem] text-slate-400">
+                            {formatQueueDate(item.updated_at || item.created_at).split(' at ')[0]}
+                          </div>
+                          <div className="text-[0.65rem] font-medium text-amber-500/70">
+                            <WaitTime timestamp={item.updated_at || item.created_at} />
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Verification Summary */}
-                      <div className="flex flex-col gap-1 sm:w-1/3">
-                        <div className="text-[0.8rem] text-slate-300">
-                          Submitted: {formatQueueDate(item.updated_at || item.created_at)}
+                      {/* Desktop Metadata */}
+                      <div className="hidden sm:flex flex-col gap-0.5 sm:w-[20%]">
+                        <div className="text-[0.75rem] text-slate-400">
+                          {formatQueueDate(item.updated_at || item.created_at)}
                         </div>
-                        <div className="text-[0.75rem] text-slate-500">
+                        <div className="text-[0.7rem] font-medium text-amber-500/70">
                           <WaitTime timestamp={item.updated_at || item.created_at} />
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+                      <div className="mt-1 sm:mt-0 sm:w-auto shrink-0">
                         <button
                           type="button"
-                          className="admin-btn-primary w-full sm:w-auto justify-center"
+                          className="flex w-full sm:w-auto items-center justify-center gap-1.5 rounded-lg bg-[#6493b5]/10 border border-[#6493b5]/20 px-3 py-1.5 text-[0.75rem] font-medium text-[#8ab4d3] hover:bg-[#6493b5]/20 active:scale-95 transition-all"
                           onClick={() => {
                             setSelectedStudentId(item.student_id);
                             recordOperationEvent({
@@ -327,7 +336,7 @@ export function EnrollmentsView() {
                           }}
                         >
                           <Eye className="size-3.5" />
-                          View Details
+                          Review
                         </button>
                       </div>
                     </div>
@@ -410,9 +419,9 @@ function MetricCard({
     'text-white';
 
   return (
-    <div className="admin-surface p-4 sm:px-6 sm:py-5 flex flex-col justify-center">
-      <p className="text-[0.78rem] font-medium uppercase tracking-widest text-slate-500">{title}</p>
-      <p className={cn('mt-1.5 text-3xl font-semibold tracking-tight', valueClass)}>{value}</p>
+    <div className="admin-surface p-3.5 sm:p-4 flex flex-col gap-1 sm:gap-1.5 rounded-xl border border-white/[0.03] bg-white/[0.01]">
+      <p className="text-[0.65rem] sm:text-[0.7rem] font-medium uppercase tracking-[0.15em] text-slate-500">{title}</p>
+      <p className={cn('text-xl sm:text-2xl font-semibold tracking-tight', valueClass)}>{value}</p>
     </div>
   );
 }

@@ -123,7 +123,7 @@ export function EnrollmentDetailsPanel({
           // Set initial hero image (front or first available)
           if (data.prioritized_images.length > 0) {
             const initial = data.prioritized_images.find(img => img.angle === 'natural_front' || img.angle === 'front') || data.prioritized_images[0];
-            setSelectedImageId(initial.id);
+            setSelectedImageId(String(initial.id));
           }
         }
       } catch (err) {
@@ -150,8 +150,8 @@ export function EnrollmentDetailsPanel({
 
   const primaryImage = useMemo(() => {
     if (!details || !selectedImageId) return null;
-    return details.prioritized_images.find(img => img.id === selectedImageId) 
-      || details.supplementary_images.find(img => img.id === selectedImageId)
+    return details.prioritized_images.find(img => String(img.id) === selectedImageId) 
+      || details.supplementary_images.find(img => String(img.id) === selectedImageId)
       || details.prioritized_images[0];
   }, [details, selectedImageId]);
 
@@ -277,9 +277,9 @@ export function EnrollmentDetailsPanel({
                             {details.prioritized_images.map((img) => (
                               <button
                                 key={img.id}
-                                onClick={() => setSelectedImageId(img.id)}
+                                onClick={() => setSelectedImageId(String(img.id))}
                                 className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all group ${
-                                  selectedImageId === img.id 
+                                  selectedImageId === String(img.id) 
                                     ? 'border-[#6493b5] opacity-100 ring-2 ring-[#6493b5]/20 ring-offset-2 ring-offset-[#0a0d12]' 
                                     : 'border-white/[0.04] opacity-60 hover:opacity-100 hover:border-white/20'
                                 }`}
@@ -290,8 +290,8 @@ export function EnrollmentDetailsPanel({
                                   alt={`${img.angle} thumbnail`} 
                                   className="object-cover w-full h-full bg-[#0c1015]"
                                 />
-                                <div className={`absolute inset-x-0 bottom-0 bg-black/80 backdrop-blur-sm p-1.5 border-t ${selectedImageId === img.id ? 'border-[#6493b5]/50' : 'border-white/[0.05]'}`}>
-                                  <p className={`text-[0.55rem] uppercase tracking-wider font-semibold text-center truncate ${selectedImageId === img.id ? 'text-[#6493b5]' : 'text-slate-300'}`}>
+                                <div className={`absolute inset-x-0 bottom-0 bg-black/80 backdrop-blur-sm p-1.5 border-t ${selectedImageId === String(img.id) ? 'border-[#6493b5]/50' : 'border-white/[0.05]'}`}>
+                                  <p className={`text-[0.55rem] uppercase tracking-wider font-semibold text-center truncate ${selectedImageId === String(img.id) ? 'text-[#6493b5]' : 'text-slate-300'}`}>
                                     {img.angle.replace(/_/g, ' ')}
                                   </p>
                                 </div>
@@ -306,7 +306,7 @@ export function EnrollmentDetailsPanel({
                             <div>
                               <p className="text-[0.65rem] uppercase tracking-widest text-slate-500 font-semibold mb-1">Date</p>
                               <p className="text-[0.85rem] font-medium text-slate-200">
-                                {new Date(details.enrollment.created_at).toLocaleDateString()}
+                                {details.enrollment.created_at ? new Date(details.enrollment.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '-'}
                               </p>
                             </div>
                             <div>

@@ -21,19 +21,19 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="grid gap-6">
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {dashboardStats.map((stat) => (
-          <Card key={stat.label} className="border-border bg-card text-foreground">
-            <CardHeader>
-              <CardDescription className="text-muted-foreground">{stat.label}</CardDescription>
-              <CardTitle className="text-3xl font-semibold tracking-tight text-foreground">
-                {stat.value}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{stat.hint}</p>
-            </CardContent>
-          </Card>
+          <div key={stat.label} className="flex flex-col gap-1 sm:gap-1.5 rounded-xl border border-white/[0.03] bg-white/[0.01] p-3.5 sm:p-4 hover:bg-white/[0.02] transition-colors">
+            <p className="text-[0.65rem] sm:text-[0.7rem] font-medium uppercase tracking-[0.15em] text-slate-500">
+              {stat.label}
+            </p>
+            <p className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-200">
+              {stat.value}
+            </p>
+            <p className="text-[0.65rem] text-slate-500 mt-1">
+              {stat.hint}
+            </p>
+          </div>
         ))}
       </section>
 

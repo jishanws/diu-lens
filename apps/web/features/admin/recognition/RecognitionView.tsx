@@ -71,11 +71,11 @@ function CandidateCard({
 
   return (
     <div className={cn(
-      "group relative flex flex-col gap-4 overflow-hidden rounded-[1.25rem] border p-4 sm:p-5 transition-all duration-300",
-      isOnlyCandidate ? "sm:flex-col sm:items-center sm:text-center p-5 sm:p-8 border-[#6493b5]/40 bg-gradient-to-b from-[#6493b5]/[0.08] to-transparent shadow-[0_0_35px_-5px_rgba(100, 147, 181,0.15)]"
+      "group relative flex flex-col sm:flex-row sm:items-stretch sm:justify-between gap-3 overflow-hidden rounded-[0.85rem] border p-3.5 sm:p-4 transition-all duration-300",
+      isOnlyCandidate ? "sm:flex-col sm:items-center sm:text-center p-4 sm:p-6 border-[#6493b5]/40 bg-gradient-to-b from-[#6493b5]/[0.08] to-transparent shadow-lg"
       : isTopCandidate 
-        ? "sm:flex-row sm:items-stretch sm:justify-between border-[#6493b5]/30 bg-gradient-to-r from-[#6493b5]/[0.08] to-transparent shadow-[0_0_25px_-5px_rgba(100, 147, 181,0.1)]"
-        : "sm:flex-row sm:items-stretch sm:justify-between border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.02]"
+        ? "border-[#6493b5]/30 bg-gradient-to-r from-[#6493b5]/[0.08] to-transparent shadow-md"
+        : "border-white/[0.03] bg-white/[0.01] hover:bg-white/[0.02]"
     )}>
       {isTopCandidate && (
          <div className={cn("absolute top-0 inset-x-0 h-[1.5px] bg-gradient-to-r from-transparent to-transparent", isOnlyCandidate ? "via-[#6493b5]" : "via-[#6493b5]/80")} />
@@ -131,8 +131,8 @@ function CandidateCard({
 
       {/* Intelligence Column */}
       <div className={cn(
-        "flex shrink-0 flex-col items-start justify-center gap-1.5 border-t border-white/[0.04] pt-4",
-        isOnlyCandidate ? "mt-4 items-center border-t-0 pt-0" : "sm:items-end sm:border-l sm:border-t-0 sm:pl-6 sm:pt-0"
+        "flex shrink-0 flex-col items-start justify-center gap-1 border-t border-white/[0.04] pt-3",
+        isOnlyCandidate ? "mt-3 items-center border-t-0 pt-0" : "sm:items-end sm:border-l sm:border-t-0 sm:pl-5 sm:pt-0"
       )}>
          <span className={cn("font-medium uppercase tracking-widest text-slate-500", isOnlyCandidate ? "text-[0.7rem]" : "text-[0.65rem]")}>Similarity</span>
          <span className={cn("font-semibold tracking-tighter", isTopCandidate ? "text-[#6493b5] drop-shadow-[0_0_8px_rgba(100, 147, 181,0.5)]" : "text-slate-200", isOnlyCandidate ? "text-4xl my-1" : "text-2xl")}>
@@ -499,16 +499,12 @@ export function RecognitionView() {
       <div className="flex min-h-[350px] lg:min-h-[500px] min-w-0 flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)] lg:min-w-[500px]">
         
         {/* Workspace Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 p-4 sm:px-6 sm:py-5 shadow-[0_1px_8px_rgba(0,0,0,0.2)] z-10">
-          <div className="flex items-center gap-3">
-            <div className="flex size-6 items-center justify-center rounded border border-[#6493b5]/20 bg-[#6493b5]/10">
-              <Activity className="size-3.5 text-[#6493b5]" />
+        <div className="flex items-center justify-between gap-4 border-b border-white/[0.03] bg-[#080b0f]/80 p-3 sm:px-5 sm:py-4 shadow-sm z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-6 items-center justify-center rounded bg-white/[0.03] border border-white/[0.05]">
+              <Activity className="size-3.5 text-slate-300" />
             </div>
             <h3 className="text-[0.85rem] font-medium uppercase tracking-[0.1em] text-slate-200">Analysis Workspace</h3>
-          </div>
-          <div className="flex items-center gap-2 rounded-md border border-[#6493b5]/10 bg-[#6493b5]/[0.02] px-3 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-            <ShieldAlert className="size-3.5 text-[#6493b5]/70" />
-            <span className="text-[0.62rem] font-medium uppercase tracking-widest text-slate-400">Manual Verification Required</span>
           </div>
         </div>
 
