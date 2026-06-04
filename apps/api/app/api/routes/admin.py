@@ -532,13 +532,14 @@ async def get_enrollments_metrics(
             )
         ) or 0
         
-        avg_recognition_confidence = db.scalar(
-            select(func.avg(RecognitionAuditLog.confidence_score))
-        ) or 0.0
+        oldest_pending_timestamp = db.scalar(
+            select(func.min(Enrollment.updated_at))
+            .where(Enrollment.status == "validated")
+        )
 
         return {
             "pending_review": pending_review,
             "approved_today": approved_today,
             "rejected_today": rejected_today,
-            "avg_recognition_confidence": avg_recognition_confidence
+            "oldest_pending_timestamp": oldest_pending_timestamp.isoformat() if oldest_pending_timestamp else None
         }

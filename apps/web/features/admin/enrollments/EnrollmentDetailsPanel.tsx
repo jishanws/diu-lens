@@ -323,8 +323,8 @@ export function EnrollmentDetailsPanel({
                             </div>
                             <div>
                               <p className="text-[0.65rem] uppercase tracking-widest text-slate-500 font-semibold mb-1">Enrollment ID</p>
-                              <p className="text-[0.85rem] font-medium text-slate-200 truncate" title={details.enrollment.id}>
-                                {details.enrollment.id.split('-')[0]}...
+                              <p className="text-[0.85rem] font-medium text-slate-200 truncate" title={String(details.enrollment.id)}>
+                                #{details.enrollment.id}
                               </p>
                             </div>
                           </div>

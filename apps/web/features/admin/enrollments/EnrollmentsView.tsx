@@ -18,14 +18,43 @@ import { useAdminToast } from '@/features/admin/ui/AdminToastProvider';
 import { cn } from '@/lib/utils';
 import { EnrollmentDetailsPanel } from './EnrollmentDetailsPanel';
 
-function formatDate(value: string | null) {
+function formatQueueDate(value: string | null) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  const day = date.getDate();
+  const month = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${day} ${month} ${year} at ${hours}:${minutes}`;
+}
+
+function WaitTime({ timestamp }: { timestamp: string | null }) {
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!timestamp) return <span>Waiting: -</span>;
+
+  const ms = Math.max(0, now - new Date(timestamp).getTime());
+  const days = Math.floor(ms / 86400000);
+  const hours = Math.floor((ms % 86400000) / 3600000);
+  const minutes = Math.floor((ms % 3600000) / 60000);
+
+  let display = '';
+  if (days > 0) {
+    display = `${days}d ${hours}h`;
+  } else if (hours > 0) {
+    display = `${hours}h ${minutes}m`;
+  } else {
+    display = `${minutes}m`;
+  }
+
+  return <span>Waiting: {display}</span>;
 }
 
 export function EnrollmentsView() {
@@ -188,6 +217,16 @@ export function EnrollmentsView() {
     }
   };
 
+  const oldestPendingDisplay = useMemo(() => {
+    if (!metrics?.oldest_pending_timestamp) return '--';
+    const ms = Date.now() - new Date(metrics.oldest_pending_timestamp).getTime();
+    if (ms < 0) return 'Just now';
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.floor((ms % 3600000) / 60000);
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  }, [metrics?.oldest_pending_timestamp]);
+
   if (isLoading) {
     return (
       <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-slate-500">
@@ -204,7 +243,7 @@ export function EnrollmentsView() {
         <MetricCard title="Pending Review" value={metrics?.pending_review ?? 0} tone="pending" />
         <MetricCard title="Approved Today" value={metrics?.approved_today ?? 0} tone="approved" />
         <MetricCard title="Rejected Today" value={metrics?.rejected_today ?? 0} tone="rejected" />
-        <MetricCard title="Avg Confidence" value={`${(metrics?.avg_recognition_confidence ?? 0).toFixed(1)}%`} tone="default" />
+        <MetricCard title="Oldest Pending" value={oldestPendingDisplay} tone="default" />
       </div>
 
       {/* Queue card */}
@@ -262,19 +301,13 @@ export function EnrollmentsView() {
                       </div>
 
                       {/* Verification Summary */}
-                      <div className="flex flex-col gap-2.5 sm:w-1/3">
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-medium tracking-wide",
-                            item.verification_completed 
-                              ? "border-[#6493b5]/10 bg-[#6493b5]/[0.05] text-[#6493b5]" 
-                              : "border-amber-500/10 bg-amber-500/[0.05] text-amber-400"
-                          )}>
-                            <span className={cn("size-1.5 rounded-full", item.verification_completed ? "bg-[#6493b5]" : "bg-amber-400 animate-pulse")} />
-                            {item.verification_completed ? 'Ready for Review' : 'Incomplete'}
-                          </span>
+                      <div className="flex flex-col gap-1 sm:w-1/3">
+                        <div className="text-[0.8rem] text-slate-300">
+                          Submitted: {formatQueueDate(item.updated_at || item.created_at)}
                         </div>
-                        <p className="text-[0.7rem] text-slate-500">Submitted: {formatDate(item.updated_at || item.created_at)}</p>
+                        <div className="text-[0.75rem] text-slate-500">
+                          <WaitTime timestamp={item.updated_at || item.created_at} />
+                        </div>
                       </div>
 
                       {/* Actions */}

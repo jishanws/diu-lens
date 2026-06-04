@@ -833,7 +833,7 @@ export type EnrollmentsMetricsResponse = {
   pending_review: number;
   approved_today: number;
   rejected_today: number;
-  avg_recognition_confidence: number;
+  oldest_pending_timestamp: string | null;
 };
 
 export async function fetchEnrollmentMetrics(

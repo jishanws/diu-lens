@@ -26,14 +26,27 @@ type ResetDialogState = {
   fullName: string;
 };
 
-function formatDate(value: string | null) {
+function formatApprovedOn(value: string | null) {
   if (!value) return '-';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  const day = date.getDate();
+  const month = new Intl.DateTimeFormat('en-US', { month: 'short' }).format(date);
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${day} ${month} ${year} • ${hours}:${minutes}`;
+}
+
+function getTimeAgo(value: string | null) {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  const ms = Date.now() - date.getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days === 0) return 'Approved today';
+  if (days === 1) return 'Approved 1 day ago';
+  return `Approved ${days} days ago`;
 }
 
 export function ApprovedEnrollmentsView() {
@@ -225,71 +238,88 @@ export function ApprovedEnrollmentsView() {
                 const canProcess = needsProcessing || isProcessingFailed;
 
                 return (
-                  <div key={item.student_id} className="group relative flex flex-col gap-5 rounded-[1.25rem] border border-white/[0.03] bg-white/[0.01] p-5 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
+                  <div key={item.student_id} className="group relative flex flex-col gap-4 rounded-xl border border-white/[0.03] bg-white/[0.01] p-4 transition-all hover:bg-white/[0.02] sm:flex-row sm:items-center sm:justify-between">
                     
                     {/* Identity Block */}
-                    <div className="flex flex-col gap-1.5 sm:w-1/3">
+                    <div className="flex flex-col gap-1 sm:w-2/5">
                       <div className="flex flex-wrap items-center gap-2.5">
-                        <p className="text-[0.95rem] font-semibold tracking-tight text-slate-100">{item.full_name || 'Unknown User'}</p>
-                        <span className="rounded-full border border-white/[0.05] bg-white/[0.03] px-2 py-0.5 text-[0.65rem] font-mono tracking-wide text-slate-400">
+                        <p className="text-[1rem] font-bold tracking-tight text-slate-100">{item.full_name || 'Unknown User'}</p>
+                        <span className="rounded-md border border-white/[0.08] bg-white/[0.02] px-1.5 py-0.5 text-[0.65rem] font-mono tracking-widest text-slate-400">
                           {item.student_id}
                         </span>
                       </div>
-                      <p className="text-[0.8rem] text-slate-400 hidden sm:block">{item.university_email || 'No email provided'}</p>
-                      {item.phone && <p className="text-[0.75rem] text-slate-500 hidden sm:block">{item.phone}</p>}
-                    </div>
-
-                    {/* Processing Summary */}
-                    <div className="flex flex-col gap-2.5 sm:w-1/3">
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[0.7rem] font-medium tracking-wide",
-                          isProcessed
-                            ? "border-[#6493b5]/10 bg-[#6493b5]/[0.05] text-[#6493b5]"
-                            : isProcessingFailed
-                            ? "border-rose-500/10 bg-rose-500/[0.05] text-rose-400"
-                            : needsProcessing
-                            ? "border-amber-500/10 bg-amber-500/[0.05] text-amber-400"
-                            : "border-slate-500/10 bg-slate-500/[0.05] text-slate-400"
-                        )}>
-                          {isProcessed && <CheckCircle2 className="size-3" />}
-                          {isProcessingFailed && <ShieldAlert className="size-3" />}
-                          {needsProcessing && <span className="size-1.5 animate-pulse rounded-full bg-amber-400" />}
-                          {isProcessed ? 'Processed' : isProcessingFailed ? 'Processing Failed' : needsProcessing ? 'Needs Processing' : 'Not Applicable'}
-                        </span>
-                      </div>
-                      {item.last_processing_message ? (
-                        <p className="max-w-xs text-[0.72rem] text-slate-500">{item.last_processing_message}</p>
-                      ) : null}
-                      <p className="text-[0.7rem] text-slate-500">Updated: {formatDate(item.updated_at || item.created_at)}</p>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
-                      {isSuperAdmin ? (
-                        <button
-                          type="button"
-                          className="admin-btn-ghost hover:text-rose-300 min-h-[44px] flex-1 sm:flex-none justify-center"
-                          onClick={() => setResetDialog({ studentId: item.student_id, fullName: item.full_name })}
-                          disabled={rowBusy}
-                        >
-                          <Undo2 className="size-3.5" />
-                          Reset
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="admin-btn-primary min-h-[44px] flex-[2] sm:flex-none justify-center"
-                        onClick={() => onProcess(item)}
-                        disabled={rowBusy || !canProcess}
-                      >
-                        {actionKey === processKey ? (
-                          <Loader2 className="size-3.5 animate-spin" />
-                        ) : (
-                          <RefreshCw className="size-3.5" />
+                      <div className="flex items-center gap-3">
+                        <p className="text-[0.8rem] text-slate-400 hidden sm:block">{item.university_email || 'No email provided'}</p>
+                        {item.phone && (
+                          <>
+                            <span className="hidden sm:block text-slate-700 text-[0.6rem]">•</span>
+                            <p className="text-[0.8rem] text-slate-400 hidden sm:block">{item.phone}</p>
+                          </>
                         )}
-                        {isProcessingFailed ? 'Retry Process' : isProcessed ? 'Processed' : 'Process'}
-                      </button>
+                      </div>
+                    </div>
+
+                    {/* Operational Information */}
+                    <div className="flex flex-col gap-0.5 sm:w-1/3">
+                      <div className="text-[0.6rem] uppercase tracking-widest text-slate-500 font-medium mb-0.5">Approved On</div>
+                      <div className="text-[0.85rem] font-medium text-slate-200">
+                        {formatApprovedOn(item.updated_at || item.created_at)}
+                      </div>
+                      <div className="text-[0.7rem] text-slate-300 mt-0.5">
+                        {getTimeAgo(item.updated_at || item.created_at)}
+                      </div>
+                    </div>
+
+                    {/* Actions & Status Badge */}
+                    <div className="flex shrink-0 flex-col items-end justify-center gap-3 sm:w-1/4">
+                      {/* Badge */}
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.65rem] font-semibold tracking-wider uppercase shadow-sm",
+                        item.has_active_embeddings
+                          ? "border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400"
+                          : isProcessed
+                          ? "border-[#6493b5]/20 bg-[#6493b5]/[0.08] text-[#6493b5]"
+                          : isProcessingFailed
+                          ? "border-rose-500/20 bg-rose-500/[0.08] text-rose-400"
+                          : needsProcessing
+                          ? "border-amber-500/20 bg-amber-500/[0.08] text-amber-400"
+                          : "border-slate-500/20 bg-slate-500/[0.08] text-slate-400"
+                      )}>
+                        {(item.has_active_embeddings || isProcessed) && <CheckCircle2 className="size-3.5 opacity-80" />}
+                        {isProcessingFailed && <ShieldAlert className="size-3.5 opacity-80" />}
+                        {needsProcessing && <span className="size-1.5 animate-pulse rounded-full bg-amber-400" />}
+                        {item.has_active_embeddings ? 'Active' : isProcessed ? 'Processed' : isProcessingFailed ? 'Failed' : needsProcessing ? 'Needs Sync' : 'Approved'}
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end gap-3 mt-0.5">
+                        {isSuperAdmin ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1.5 text-[0.7rem] font-medium text-slate-500 hover:text-rose-400 transition-colors"
+                            onClick={() => setResetDialog({ studentId: item.student_id, fullName: item.full_name })}
+                            disabled={rowBusy}
+                          >
+                            <Undo2 className="size-3" />
+                            Reset
+                          </button>
+                        ) : null}
+                        {canProcess && (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1.5 text-[0.7rem] font-medium text-[#6493b5] hover:text-[#83b0cd] transition-colors"
+                            onClick={() => onProcess(item)}
+                            disabled={rowBusy}
+                          >
+                            {actionKey === processKey ? (
+                              <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                              <RefreshCw className="size-3" />
+                            )}
+                            {isProcessingFailed ? 'Retry' : 'Process'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
