@@ -1,247 +1,347 @@
 'use client';
 
-import { Activity, ArrowDownToLine, Search, ShieldAlert, FileText, CheckCircle2, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  Activity,
+  ArrowDownToLine,
+  CheckCircle2,
+  FileText,
+  LockKeyhole,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  UserCheck,
+  XCircle,
+} from 'lucide-react';
+import { AdminApiAuthError, AdminAuditEvent, fetchAdminAuditEvents } from '@/features/admin/api';
+import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
+import {
+  mergeAuditEvents,
+  readSessionOperationalEvents,
+  subscribeToOperationEvents,
+} from '@/features/admin/operations';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
 
-type AuditEvent = {
-  id: string;
-  timestamp: string;
-  actionType: 'VERIFICATION_APPROVED' | 'VERIFICATION_REJECTED' | 'BIOMETRIC_SCAN' | 'SYSTEM_CONFIG_CHANGED' | 'ADMIN_LOGIN';
-  studentId?: string;
-  actor: string;
-  status: 'SUCCESS' | 'FAILURE' | 'PENDING';
-  ipAddress: string;
-};
+type AuditFilter = 'all' | 'enrollment' | 'recognition' | 'session';
 
-const MOCK_AUDIT_LOGS: AuditEvent[] = [
-  { id: 'EVT-9381', timestamp: '2026-06-02T10:14:22Z', actionType: 'VERIFICATION_APPROVED', studentId: '211-15-1422', actor: 'admin@diu.edu.bd', status: 'SUCCESS', ipAddress: '192.168.1.45' },
-  { id: 'EVT-9380', timestamp: '2026-06-02T10:11:05Z', actionType: 'BIOMETRIC_SCAN', studentId: '211-15-1422', actor: 'SYSTEM', status: 'SUCCESS', ipAddress: 'Internal' },
-  { id: 'EVT-9379', timestamp: '2026-06-02T09:45:11Z', actionType: 'VERIFICATION_REJECTED', studentId: '193-15-1102', actor: 'sysadmin@diu.edu.bd', status: 'SUCCESS', ipAddress: '10.0.0.12' },
-  { id: 'EVT-9378', timestamp: '2026-06-02T09:42:15Z', actionType: 'BIOMETRIC_SCAN', studentId: '193-15-1102', actor: 'SYSTEM', status: 'FAILURE', ipAddress: 'Internal' },
-  { id: 'EVT-9377', timestamp: '2026-06-02T08:30:00Z', actionType: 'SYSTEM_CONFIG_CHANGED', actor: 'sysadmin@diu.edu.bd', status: 'SUCCESS', ipAddress: '10.0.0.12' },
-  { id: 'EVT-9376', timestamp: '2026-06-02T08:15:22Z', actionType: 'ADMIN_LOGIN', actor: 'sysadmin@diu.edu.bd', status: 'SUCCESS', ipAddress: '10.0.0.12' },
-  { id: 'EVT-9375', timestamp: '2026-06-02T08:14:05Z', actionType: 'ADMIN_LOGIN', actor: 'unknown', status: 'FAILURE', ipAddress: '103.11.22.100' },
-  { id: 'EVT-9374', timestamp: '2026-06-01T15:22:11Z', actionType: 'VERIFICATION_APPROVED', studentId: '221-15-3301', actor: 'admin@diu.edu.bd', status: 'SUCCESS', ipAddress: '192.168.1.45' },
-  { id: 'EVT-9373', timestamp: '2026-06-01T15:20:00Z', actionType: 'BIOMETRIC_SCAN', studentId: '221-15-3301', actor: 'SYSTEM', status: 'SUCCESS', ipAddress: 'Internal' },
-];
-
-function getActionLabel(type: AuditEvent['actionType']) {
-  switch (type) {
-    case 'VERIFICATION_APPROVED': return 'Verification Approved';
-    case 'VERIFICATION_REJECTED': return 'Verification Rejected';
-    case 'BIOMETRIC_SCAN': return 'Biometric Scan Attempt';
-    case 'SYSTEM_CONFIG_CHANGED': return 'System Config Modified';
-    case 'ADMIN_LOGIN': return 'Admin Authentication';
-    default: return type;
-  }
+function formatTimestamp(value: string | null) {
+  if (!value) return { date: 'Not reported', time: '-' };
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { date: 'Invalid timestamp', time: '-' };
+  return {
+    date: new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date),
+    time: new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(date),
+  };
 }
 
-function getActionIcon(type: AuditEvent['actionType']) {
-  switch (type) {
-    case 'VERIFICATION_APPROVED': return <CheckCircle2 className="size-3.5 text-emerald-400" />;
-    case 'VERIFICATION_REJECTED': return <XCircle className="size-3.5 text-rose-400" />;
-    case 'BIOMETRIC_SCAN': return <Activity className="size-3.5 text-[#6493b5]" />;
-    case 'SYSTEM_CONFIG_CHANGED': return <ShieldAlert className="size-3.5 text-amber-400" />;
-    case 'ADMIN_LOGIN': return <FileText className="size-3.5 text-slate-400" />;
+function getActionLabel(type: string) {
+  const labels: Record<string, string> = {
+    admin_login: 'Admin Login',
+    admin_logout: 'Admin Logout',
+    enrollment_created: 'Enrollment Submitted',
+    enrollment_validated: 'Enrollment Submitted',
+    enrollment_approved: 'Record Moved to Approved',
+    enrollment_rejected: 'Verification Rejected',
+    enrollment_reset: 'Record Reset',
+    processing_completed: 'Face Embedding Generated',
+    processing_failed: 'Embedding Processing Failed',
+    recognition_search_executed: 'Search Executed',
+    similarity_scan_executed: 'Similarity Scan Executed',
+    similarity_scan_failed: 'Similarity Scan Failed',
+    verification_approved: 'Verification Approved',
+    verification_rejected: 'Verification Rejected',
+    manual_review_opened: 'Manual Review Opened',
+    record_reset: 'Record Reset',
+    face_embedding_generated: 'Face Embedding Generated',
+  };
+  return labels[type] ?? type.replaceAll('_', ' ');
+}
+
+function getActionIcon(event: AdminAuditEvent) {
+  if (event.operation_result === 'failed') return <XCircle className="size-3.5 text-rose-300" />;
+  if (event.source === 'recognition' || event.action_type.includes('scan')) {
+    return <Activity className="size-3.5 text-[#8fb4ce]" />;
   }
+  if (event.action_type.includes('login') || event.action_type.includes('session')) {
+    return <LockKeyhole className="size-3.5 text-slate-300" />;
+  }
+  if (event.action_type.includes('review')) return <UserCheck className="size-3.5 text-amber-300" />;
+  if (event.operation_result === 'success') return <CheckCircle2 className="size-3.5 text-emerald-300" />;
+  return <FileText className="size-3.5 text-slate-400" />;
+}
+
+function resultClass(result: string) {
+  if (result === 'success') return 'border-emerald-400/15 bg-emerald-500/[0.05] text-emerald-300';
+  if (result === 'failed') return 'border-rose-400/15 bg-rose-500/[0.05] text-rose-300';
+  if (result === 'review_required') return 'border-amber-400/15 bg-amber-500/[0.05] text-amber-300';
+  return 'border-slate-300/10 bg-slate-400/[0.04] text-slate-300';
+}
+
+function sourceLabel(source: string) {
+  if (source === 'session') return 'Console session';
+  if (source === 'recognition') return 'Recognition';
+  if (source === 'enrollment') return 'Enrollment';
+  return source;
 }
 
 export function AuditView() {
+  const router = useRouter();
+  const { token, clearSession } = useAdminAuth();
+
+  const [backendEvents, setBackendEvents] = useState<AdminAuditEvent[]>([]);
+  const [sessionEvents, setSessionEvents] = useState<AdminAuditEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState<AuditFilter>('all');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadAuditEvents = useCallback(
+    async (showLoading: boolean) => {
+      if (!token) return;
+      if (showLoading) setIsLoading(true);
+      else setIsRefreshing(true);
+      setError(null);
+
+      try {
+        const events = await fetchAdminAuditEvents(token);
+        setBackendEvents(events);
+        setSessionEvents(readSessionOperationalEvents());
+      } catch (errorValue) {
+        if (errorValue instanceof AdminApiAuthError) {
+          clearSession();
+          router.replace('/admin/login?next=%2Fadmin%2Faudit');
+          return;
+        }
+        setError(errorValue instanceof Error ? errorValue.message : 'Unable to load audit logs.');
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [clearSession, router, token]
+  );
+
+  useEffect(() => {
+    if (!token) return;
+    void loadAuditEvents(true);
+  }, [loadAuditEvents, token]);
+
+  useEffect(() => {
+    setSessionEvents(readSessionOperationalEvents());
+    return subscribeToOperationEvents(() => {
+      setSessionEvents(readSessionOperationalEvents());
+    });
+  }, []);
+
+  const allEvents = useMemo(
+    () => mergeAuditEvents(backendEvents, sessionEvents),
+    [backendEvents, sessionEvents]
+  );
+
+  const filteredEvents = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+    return allEvents.filter((event) => {
+      const matchesFilter = filter === 'all' || event.source === filter;
+      if (!matchesFilter) return false;
+      if (!normalizedQuery) return true;
+
+      return [
+        event.action_type,
+        getActionLabel(event.action_type),
+        event.affected_record,
+        event.operator_identity,
+        event.operation_result,
+        event.request_id,
+        event.correlation_id,
+        event.detail,
+      ]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedQuery));
+    });
+  }, [allEvents, filter, searchQuery]);
+
+  if (isLoading) {
+    return (
+      <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-slate-500">
+        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-[#6493b5]/60" />
+        Loading audit trail…
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-full flex-col p-6 lg:p-8">
-      {/* Header */}
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex h-full flex-col gap-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-xl font-medium tracking-tight text-slate-100">Audit & Activity Log</h1>
-          <p className="mt-1.5 text-[0.85rem] text-slate-400">Institutional verification activity and system events.</p>
+          <h2 className="text-xl font-medium tracking-tight text-slate-100">Audit & Activity Log</h2>
+          <p className="mt-1.5 text-[0.85rem] text-slate-400">
+            Persisted platform events and current console operations.
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button className="admin-btn-ghost group h-9 px-4">
-            <ArrowDownToLine className="size-4 opacity-70 transition-opacity group-hover:opacity-100" />
-            <span className="hidden sm:inline">Export CSV</span>
-          </button>
-        </div>
+        <button type="button" className="admin-btn-ghost h-10 px-4" disabled={filteredEvents.length === 0}>
+          <ArrowDownToLine className="size-4 opacity-70" />
+          <span className="hidden sm:inline">Export Current View</span>
+        </button>
       </div>
 
-      {/* Main Workspace Surface */}
-      <div className="flex min-h-[500px] flex-1 flex-col overflow-hidden rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
-        
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-4 sm:px-6 py-4">
-          <div className="relative w-full sm:max-w-[280px]">
+      <div className="admin-surface flex min-h-[520px] flex-1 flex-col overflow-hidden">
+        <div className="flex flex-col justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 px-4 py-4 sm:flex-row sm:items-center sm:px-6">
+          <div className="relative w-full sm:max-w-[320px]">
             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
-              placeholder="Search ID, IP, or Actor..."
+              placeholder="Search record, operator, request, or action..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 sm:h-9 w-full rounded-md border border-white/[0.05] bg-black/20 pl-9 pr-4 text-[0.8rem] sm:text-[0.8rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40"
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="h-10 w-full rounded-md border border-white/[0.05] bg-black/20 pl-9 pr-4 text-[0.85rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40"
             />
           </div>
-          <div className="flex w-full overflow-x-auto sm:w-auto items-center gap-3 admin-workspace-scroll pb-1 sm:pb-0">
-             <div className="flex shrink-0 items-center gap-2 rounded-md border border-white/[0.04] bg-white/[0.02] p-1 text-[0.7rem] font-medium text-slate-400">
-               <button className="rounded px-3 sm:px-2.5 py-1.5 sm:py-1 text-slate-200 bg-white/[0.06] shadow-[0_1px_2px_rgba(0,0,0,0.2)]">All</button>
-               <button className="rounded px-3 sm:px-2.5 py-1.5 sm:py-1 hover:text-slate-200">Verifications</button>
-               <button className="rounded px-3 sm:px-2.5 py-1.5 sm:py-1 hover:text-slate-200">System</button>
-             </div>
-          </div>
-        </div>
-
-        {/* Table Content (Desktop) & Cards (Mobile) */}
-        <div className="admin-workspace-scroll flex-1 overflow-x-auto overflow-y-auto bg-transparent">
-          
-          {/* Desktop Table Layout */}
-          <table className="hidden md:table w-full min-w-[800px] border-collapse text-left">
-            <thead className="sticky top-0 z-10 bg-[#080b0f]/95 backdrop-blur-md">
-              <tr>
-                <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Timestamp</th>
-                <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Action / Event</th>
-                <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Target (ID)</th>
-                <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Actor</th>
-                <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">IP Address</th>
-                <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.02]">
-              {MOCK_AUDIT_LOGS.map((log) => (
-                <tr key={log.id} className="group transition-colors hover:bg-white/[0.015]">
-                  <td className="px-6 py-3.5">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="font-mono text-[0.75rem] text-slate-300">
-                        {new Date(log.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </span>
-                      <span className="font-mono text-[0.7rem] text-slate-500">
-                        {new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false })}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015] shadow-sm">
-                        {getActionIcon(log.actionType)}
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="text-[0.8rem] font-medium text-slate-200">{getActionLabel(log.actionType)}</span>
-                        <span className="text-[0.65rem] text-slate-500 font-mono">{log.id}</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-3.5">
-                    {log.studentId ? (
-                      <span className="font-mono text-[0.8rem] text-slate-300">{log.studentId}</span>
-                    ) : (
-                      <span className="text-[0.8rem] text-slate-600">—</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3.5">
-                     <span className={cn(
-                       "text-[0.75rem] font-medium",
-                       log.actor === 'SYSTEM' ? "text-[#6493b5] bg-[#6493b5]/10 px-2 py-0.5 rounded" : "text-slate-400"
-                     )}>
-                       {log.actor}
-                     </span>
-                  </td>
-                  <td className="px-6 py-3.5">
-                    <span className="font-mono text-[0.75rem] text-slate-500">{log.ipAddress}</span>
-                  </td>
-                  <td className="px-6 py-3.5">
-                    {log.status === 'SUCCESS' ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/10 bg-emerald-500/[0.02] px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wider text-emerald-400">
-                        <span className="size-1.5 rounded-full bg-emerald-400" />
-                        Success
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/10 bg-rose-500/[0.02] px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wider text-rose-400">
-                        <span className="size-1.5 rounded-full bg-rose-400" />
-                        Failed
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Mobile Cards Layout */}
-          <div className="flex flex-col md:hidden divide-y divide-white/[0.02]">
-            {MOCK_AUDIT_LOGS.map((log) => (
-              <div key={log.id} className="flex flex-col gap-3 p-4 hover:bg-white/[0.015] transition-colors">
-                
-                {/* Header: Action & Status */}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015] shadow-sm">
-                      {getActionIcon(log.actionType)}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-[0.85rem] font-medium text-slate-200">{getActionLabel(log.actionType)}</span>
-                      <span className="font-mono text-[0.65rem] text-slate-500">{log.id}</span>
-                    </div>
-                  </div>
-                  <div className="shrink-0 mt-0.5">
-                    {log.status === 'SUCCESS' ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/10 bg-emerald-500/[0.02] px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wider text-emerald-400">
-                        <span className="size-1.5 rounded-full bg-emerald-400" />
-                        Success
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/10 bg-rose-500/[0.02] px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wider text-rose-400">
-                        <span className="size-1.5 rounded-full bg-rose-400" />
-                        Failed
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Details Grid */}
-                <div className="grid grid-cols-2 gap-3 rounded-lg border border-white/[0.02] bg-white/[0.01] p-3">
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Target</span>
-                    {log.studentId ? (
-                      <span className="font-mono text-[0.75rem] text-slate-300">{log.studentId}</span>
-                    ) : (
-                      <span className="text-[0.75rem] text-slate-600">—</span>
-                    )}
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Actor</span>
-                    <span className={cn(
-                       "text-[0.75rem] font-medium truncate",
-                       log.actor === 'SYSTEM' ? "text-[#6493b5]" : "text-slate-400"
-                     )}>
-                       {log.actor}
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Time</span>
-                    <span className="font-mono text-[0.7rem] text-slate-400">
-                      {new Date(log.timestamp).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
-                      <span className="text-slate-600 ml-1">{new Date(log.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
-                    </span>
-                  </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-[0.6rem] uppercase tracking-widest text-slate-500">Network</span>
-                    <span className="font-mono text-[0.7rem] text-slate-400">{log.ipAddress}</span>
-                  </div>
-                </div>
-
-              </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {(['all', 'enrollment', 'recognition', 'session'] as AuditFilter[]).map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setFilter(item)}
+                className={cn(
+                  'min-h-9 shrink-0 rounded-md border px-3 text-[0.72rem] font-medium transition-colors',
+                  filter === item
+                    ? 'border-[#6493b5]/20 bg-[#6493b5]/[0.09] text-[#a9c6d9]'
+                    : 'border-white/[0.04] bg-white/[0.02] text-slate-400 hover:text-slate-200'
+                )}
+              >
+                {item === 'all' ? 'All Sources' : sourceLabel(item)}
+              </button>
             ))}
-          </div>
-        </div>
-        
-        {/* Pagination Footer */}
-        <div className="border-t border-white/[0.04] bg-[#080b0f]/60 px-4 sm:px-6 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <span className="text-[0.75rem] text-slate-500 text-center sm:text-left">Showing 1 to 9 of 1,204 logs</span>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button className="admin-btn-ghost h-10 sm:h-8 flex-1 sm:flex-none px-3 text-[0.75rem] sm:text-[0.7rem] justify-center">Prev</button>
-            <button className="admin-btn-ghost h-10 sm:h-8 flex-1 sm:flex-none px-3 text-[0.75rem] sm:text-[0.7rem] justify-center">Next</button>
+            <button
+              type="button"
+              className="admin-btn-ghost min-h-9 px-3 text-[0.72rem]"
+              disabled={isRefreshing}
+              onClick={() => loadAuditEvents(false)}
+            >
+              <RefreshCw className={cn('size-3.5', isRefreshing && 'animate-spin')} />
+              Refresh
+            </button>
           </div>
         </div>
 
+        {error ? (
+          <div className="m-5 rounded-xl border border-rose-500/25 bg-rose-500/[0.08] p-4 text-[0.85rem] text-rose-300">
+            <div className="flex items-start gap-2">
+              <ShieldAlert className="mt-0.5 size-4 shrink-0" />
+              <p>{error}</p>
+            </div>
+          </div>
+        ) : null}
+
+        {!error && filteredEvents.length === 0 ? (
+          <div className="flex flex-1 items-center justify-center p-10 text-center text-[0.85rem] text-slate-500">
+            No audit events match the current filters.
+          </div>
+        ) : null}
+
+        {!error && filteredEvents.length > 0 ? (
+          <div className="admin-workspace-scroll flex-1 overflow-auto">
+            <table className="hidden w-full min-w-[980px] border-collapse text-left md:table">
+              <thead className="sticky top-0 z-10 bg-[#080b0f]/95 backdrop-blur-md">
+                <tr>
+                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Timestamp</th>
+                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Action</th>
+                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Affected Record</th>
+                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Operator</th>
+                  <th className="border-b border-white/[0.04] px-6 py-3 text-[0.65rem] font-medium uppercase tracking-widest text-slate-500">Result</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.025]">
+                {filteredEvents.map((event) => {
+                  const timestamp = formatTimestamp(event.timestamp);
+                  return (
+                    <tr key={event.id} className="transition-colors hover:bg-white/[0.015]">
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono text-[0.74rem] text-slate-300">{timestamp.date}</span>
+                          <span className="font-mono text-[0.68rem] text-slate-500">{timestamp.time}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-start gap-3">
+                          <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015]">
+                            {getActionIcon(event)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[0.8rem] font-medium capitalize text-slate-200">{getActionLabel(event.action_type)}</p>
+                            <p className="mt-1 max-w-md truncate text-[0.68rem] text-slate-500">{event.detail}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-mono text-[0.78rem] text-slate-300">{event.affected_record || '-'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[0.75rem] font-medium text-slate-300">{event.operator_identity}</span>
+                          <span className="text-[0.64rem] uppercase tracking-widest text-slate-600">{sourceLabel(event.source)}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={cn('inline-flex rounded-full border px-2 py-1 text-[0.64rem] font-medium uppercase tracking-wider', resultClass(event.operation_result))}>
+                          {event.operation_result.replaceAll('_', ' ')}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            <div className="divide-y divide-white/[0.025] md:hidden">
+              {filteredEvents.map((event) => {
+                const timestamp = formatTimestamp(event.timestamp);
+                return (
+                  <article key={event.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 gap-3">
+                        <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015]">
+                          {getActionIcon(event)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[0.84rem] font-medium capitalize text-slate-200">{getActionLabel(event.action_type)}</p>
+                          <p className="mt-1 text-[0.7rem] leading-5 text-slate-500">{event.detail}</p>
+                        </div>
+                      </div>
+                      <span className={cn('shrink-0 rounded-full border px-2 py-1 text-[0.6rem] font-medium uppercase tracking-wider', resultClass(event.operation_result))}>
+                        {event.operation_result.replaceAll('_', ' ')}
+                      </span>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg border border-white/[0.03] bg-white/[0.01] p-3">
+                      <div>
+                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Record</p>
+                        <p className="mt-1 font-mono text-[0.74rem] text-slate-300">{event.affected_record || '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Operator</p>
+                        <p className="mt-1 truncate text-[0.74rem] text-slate-300">{event.operator_identity}</p>
+                      </div>
+                      <div>
+                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Time</p>
+                        <p className="mt-1 font-mono text-[0.7rem] text-slate-400">{timestamp.time}</p>
+                      </div>
+                      <div>
+                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Source</p>
+                        <p className="mt-1 text-[0.7rem] text-slate-400">{sourceLabel(event.source)}</p>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="border-t border-white/[0.04] bg-[#080b0f]/60 px-4 py-3 text-[0.74rem] text-slate-500 sm:px-6">
+          Showing {filteredEvents.length} of {allEvents.length} available operational events.
+        </div>
       </div>
     </div>
   );

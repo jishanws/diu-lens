@@ -17,6 +17,7 @@ import {
 } from '@/features/admin/api';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
 import { EnrollmentRecord } from '@/features/admin/auth/types';
+import { recordOperationEvent } from '@/features/admin/operations';
 import { useAdminToast } from '@/features/admin/ui/AdminToastProvider';
 import { cn } from '@/lib/utils';
 
@@ -96,6 +97,13 @@ export function ApprovedEnrollmentsView() {
         return;
       }
       showToast({ title: 'Enrollment reset', message: result.message, variant: 'success' });
+      recordOperationEvent({
+        actionType: 'record_reset',
+        affectedRecord: resetDialog.studentId,
+        operatorIdentity: admin?.email || 'Unknown admin',
+        result: 'success',
+        detail: 'Approved record reset by authorized super admin.',
+      });
       await loadApproved(false);
       setResetDialog(null);
     } catch (errorValue) {
@@ -130,6 +138,13 @@ export function ApprovedEnrollmentsView() {
         title: 'Embeddings generated',
         message: `Generated ${result.embeddings_generated_count} embeddings for ${item.student_id}.`,
         variant: 'success',
+      });
+      recordOperationEvent({
+        actionType: 'face_embedding_generated',
+        affectedRecord: item.student_id,
+        operatorIdentity: admin?.email || 'Unknown admin',
+        result: 'success',
+        detail: `Biometric processing generated ${result.embeddings_generated_count} embeddings.`,
       });
       await loadApproved(false);
     } catch (errorValue) {

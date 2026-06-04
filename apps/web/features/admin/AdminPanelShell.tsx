@@ -12,12 +12,13 @@ import {
   ShieldCheck,
   UserCircle2,
   Activity,
-  LineChart,
+  Server,
   Settings,
   Menu,
   X,
 } from 'lucide-react';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
+import { recordOperationEvent } from '@/features/admin/operations';
 import { cn } from '@/lib/utils';
 
 type NavItem = {
@@ -61,9 +62,9 @@ const navSections: NavSection[] = [
         icon: <Activity className="size-[1.1rem]" />,
       },
       {
-        href: '/admin/analytics',
-        label: 'Analytics',
-        icon: <LineChart className="size-[1.1rem]" />,
+        href: '/admin/system-status',
+        label: 'System Status',
+        icon: <Server className="size-[1.1rem]" />,
       },
       {
         href: '/admin/settings',
@@ -79,7 +80,7 @@ const titleMap: Record<string, string> = {
   '/admin/approved': 'Approved Records',
   '/admin/enrollments': 'Pending Review',
   '/admin/audit': 'Audit Logs',
-  '/admin/analytics': 'Analytics',
+  '/admin/system-status': 'System Status',
   '/admin/settings': 'Settings',
 };
 
@@ -88,11 +89,6 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { admin, logout } = useAdminAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
 
   // Focus management and escape key handling
   useEffect(() => {
@@ -120,6 +116,12 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   const pageTitle = titleMap[pathname] ?? 'Admin Panel';
 
   const handleLogout = () => {
+    recordOperationEvent({
+      actionType: 'admin_logout',
+      operatorIdentity: admin?.email || 'Unknown admin',
+      result: 'success',
+      detail: 'Admin session terminated from console.',
+    });
     logout();
     router.replace('/admin/login');
   };
@@ -136,31 +138,6 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
       {/* Mobile-only fallback ambient light (low GPU cost) */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-64 bg-gradient-to-b from-[#6493b5]/[0.03] to-transparent md:hidden" />
 
-      {/* Subtle Infrastructure Details (Corners) */}
-      <div className="pointer-events-none absolute left-4 top-4 opacity-[0.15] hidden md:block">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute right-4 top-4 opacity-[0.15] hidden md:block rotate-90">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute left-4 bottom-4 opacity-[0.15] hidden md:block -rotate-90">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute right-4 bottom-4 opacity-[0.15] hidden md:block rotate-180">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
 
       <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-[1800px] md:p-4 lg:p-6 md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]">
         
@@ -263,7 +240,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
 
             {/* Content (with custom scrollbar styles applied globally) */}
             <main className="admin-workspace-scroll relative flex-1 overflow-y-auto bg-transparent p-4 sm:p-5 md:p-6 lg:p-8">
-              <div className="mx-auto max-w-6xl h-full">
+              <div className="mx-auto max-w-6xl min-h-full">
                 {children}
               </div>
             </main>
@@ -328,6 +305,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                           <Link
                             key={item.href}
                             href={item.href}
+                            onClick={() => setIsMobileMenuOpen(false)}
                             className={cn(
                               'flex min-h-[48px] items-center gap-3.5 rounded-r-full px-3 text-[0.85rem] font-medium transition-colors active:scale-[0.98] -ml-4 pl-7 border border-transparent',
                               isActive 

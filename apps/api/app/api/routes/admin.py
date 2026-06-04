@@ -389,6 +389,92 @@ from datetime import datetime, timezone
 from app.core.enrollment_db import get_enrollment_details_by_student_id
 from app.db.models.enrollments import Enrollment
 from app.db.models.audit_logs import AuditLog
+from app.db.models.students import Student
+from app.db.models.admin_users import AdminUser
+
+
+def _audit_result_for_event(event_type: str) -> str:
+    if event_type in {"processing_failed", "enrollment_failed"}:
+        return "failed"
+    if event_type in {"enrollment_validated", "enrollment_approved", "enrollment_rejected", "enrollment_reset", "processing_completed"}:
+        return "success"
+    return "recorded"
+
+
+@router.get("/audit-logs")
+async def list_audit_logs(
+    limit: int = 80,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    bounded_limit = max(1, min(limit, 200))
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        enrollment_rows = db.execute(
+            select(AuditLog, Student.student_id)
+            .outerjoin(Student, AuditLog.student_id == Student.id)
+            .order_by(desc(AuditLog.created_at))
+            .limit(bounded_limit)
+        ).all()
+
+        recognition_rows = db.execute(
+            select(RecognitionAuditLog, AdminUser.email)
+            .outerjoin(AdminUser, RecognitionAuditLog.searched_by_admin_id == AdminUser.id)
+            .order_by(desc(RecognitionAuditLog.created_at))
+            .limit(bounded_limit)
+        ).all()
+
+        events: list[dict[str, object]] = []
+        for audit, student_public_id in enrollment_rows:
+            events.append(
+                {
+                    "id": f"audit-{audit.id}",
+                    "timestamp": audit.created_at.isoformat() if audit.created_at else None,
+                    "action_type": audit.event_type,
+                    "affected_record": student_public_id,
+                    "operator_identity": "Backend workflow",
+                    "operation_result": _audit_result_for_event(audit.event_type),
+                    "source": "enrollment",
+                    "request_id": audit.request_id,
+                    "correlation_id": audit.correlation_id,
+                    "detail": audit.message,
+                }
+            )
+
+        for recognition, admin_email in recognition_rows:
+            result = "success" if recognition.accepted_match else "review_required"
+            affected_record = recognition.top_match_student_id or recognition.searched_student_id
+            events.append(
+                {
+                    "id": f"recognition-{recognition.id}",
+                    "timestamp": recognition.created_at.isoformat() if recognition.created_at else None,
+                    "action_type": "recognition_search_executed",
+                    "affected_record": affected_record,
+                    "operator_identity": admin_email or "System",
+                    "operation_result": result,
+                    "source": "recognition",
+                    "request_id": recognition.request_id,
+                    "correlation_id": None,
+                    "detail": (
+                        "Similarity scan accepted a candidate match."
+                        if recognition.accepted_match
+                        else "Similarity scan completed; manual verification may be required."
+                    ),
+                    "recognition": {
+                        "confidence_score": recognition.confidence_score,
+                        "cosine_distance": recognition.cosine_distance,
+                        "threshold_used": recognition.threshold_used,
+                        "processing_duration_ms": recognition.processing_duration_ms,
+                    },
+                }
+            )
+
+        events.sort(key=lambda item: str(item.get("timestamp") or ""), reverse=True)
+
+        return {
+            "total": len(events),
+            "events": events[:bounded_limit],
+        }
 
 @router.get("/enrollments/{student_id}")
 async def get_admin_enrollment_details(

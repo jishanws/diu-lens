@@ -13,6 +13,7 @@ import {
 } from '@/features/admin/api';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
 import { EnrollmentRecord } from '@/features/admin/auth/types';
+import { recordOperationEvent } from '@/features/admin/operations';
 import { useAdminToast } from '@/features/admin/ui/AdminToastProvider';
 import { cn } from '@/lib/utils';
 import { EnrollmentDetailsPanel } from './EnrollmentDetailsPanel';
@@ -29,7 +30,7 @@ function formatDate(value: string | null) {
 
 export function EnrollmentsView() {
   const router = useRouter();
-  const { token, clearSession } = useAdminAuth();
+  const { token, admin, clearSession } = useAdminAuth();
   const { showToast } = useAdminToast();
 
   const [enrollments, setEnrollments] = useState<EnrollmentRecord[]>([]);
@@ -131,6 +132,15 @@ export function EnrollmentsView() {
           variant: 'success',
         });
       }
+      recordOperationEvent({
+        actionType: 'verification_approved',
+        affectedRecord: studentId,
+        operatorIdentity: admin?.email || 'Unknown admin',
+        result: 'success',
+        detail: result.processing_attempted
+          ? 'Verification approved by admin; enrollment moved to approved processing queue.'
+          : 'Verification approval confirmed by admin workflow.',
+      });
       setSelectedStudentId(null);
       await loadData(false);
     } catch (errorValue) {
@@ -155,6 +165,15 @@ export function EnrollmentsView() {
         return;
       }
       showToast({ title: 'Enrollment rejected', message: result.message, variant: 'success' });
+      recordOperationEvent({
+        actionType: 'verification_rejected',
+        affectedRecord: studentId,
+        operatorIdentity: admin?.email || 'Unknown admin',
+        result: 'success',
+        detail: reason.trim()
+          ? `Manual review rejected enrollment: ${reason.trim()}`
+          : 'Manual review rejected enrollment.',
+      });
       setSelectedStudentId(null);
       await loadData(false);
     } catch (errorValue) {
@@ -263,7 +282,16 @@ export function EnrollmentsView() {
                         <button
                           type="button"
                           className="admin-btn-primary min-h-[44px] w-full sm:w-auto justify-center"
-                          onClick={() => setSelectedStudentId(item.student_id)}
+                          onClick={() => {
+                            setSelectedStudentId(item.student_id);
+                            recordOperationEvent({
+                              actionType: 'manual_review_opened',
+                              affectedRecord: item.student_id,
+                              operatorIdentity: admin?.email || 'Unknown admin',
+                              result: 'recorded',
+                              detail: 'Admin opened enrollment evidence for manual review.',
+                            });
+                          }}
                         >
                           <Eye className="size-3.5" />
                           View Details

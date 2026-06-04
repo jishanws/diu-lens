@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import re
+
+with open('/Users/jishan/Code/diu-lens/apps/web/features/admin/enrollments/EnrollmentDetailsPanel.tsx', 'r') as f:
+    content = f.read()
+
+# I will write the entirely new content for this file
+new_content = """import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, AlertCircle, Clock, ShieldCheck, 
@@ -483,3 +489,8 @@ export function EnrollmentDetailsPanel({
     </>
   );
 }
+"""
+
+with open('/Users/jishan/Code/diu-lens/apps/web/features/admin/enrollments/EnrollmentDetailsPanel.tsx', 'w') as f:
+    f.write(new_content)
+

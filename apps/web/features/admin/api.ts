@@ -61,6 +61,59 @@ export type RecognitionMatchResponse = ApiBusinessResponse & {
   weak_candidates: RecognitionMatchCandidate[];
 };
 
+export type AdminAuditEvent = {
+  id: string;
+  timestamp: string | null;
+  action_type: string;
+  affected_record: string | null;
+  operator_identity: string;
+  operation_result: 'success' | 'failed' | 'review_required' | 'recorded' | string;
+  source: 'enrollment' | 'recognition' | 'session' | string;
+  request_id: string | null;
+  correlation_id: string | null;
+  detail: string;
+  recognition?: {
+    confidence_score: number | null;
+    cosine_distance: number | null;
+    threshold_used: number | null;
+    processing_duration_ms: number | null;
+  };
+};
+
+export type SystemHealthResponse = {
+  current_status: string;
+  degraded_components: string[];
+  queue_depth: number;
+  active_workers: number;
+  retry_rate: number;
+  failed_task_rate: number;
+  avg_processing_duration: number | null;
+  avg_recognition_duration: number | null;
+  critical_events: string[];
+  recent_incidents: Array<{
+    id: number;
+    status: string;
+    created_at: string | null;
+    events: string[];
+  }>;
+};
+
+export type BiometricTaskRecord = {
+  id: number;
+  celery_task_id: string;
+  student_id: string;
+  task_type: string;
+  status: string;
+  retry_count: number;
+  started_at: string | null;
+  completed_at: string | null;
+  failed_at: string | null;
+  error_message: string | null;
+  worker_hostname: string | null;
+  processing_duration_ms: number | null;
+  created_at: string | null;
+};
+
 type RecognitionMatchOptions = {
   threshold?: number;
   topK?: number;
@@ -573,6 +626,129 @@ export async function checkApiHealth(): Promise<boolean> {
     console.error('[admin-api] health check failed', error);
     return false;
   }
+}
+
+export async function fetchSystemHealth(token: string): Promise<SystemHealthResponse> {
+  const { payload } = await requestJson('/admin/system-health', { token });
+
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Unable to load system health.');
+  }
+
+  const data = payload as Record<string, unknown>;
+  return {
+    current_status: typeof data.current_status === 'string' ? data.current_status : 'unknown',
+    degraded_components: Array.isArray(data.degraded_components)
+      ? data.degraded_components.filter((item): item is string => typeof item === 'string')
+      : [],
+    queue_depth: typeof data.queue_depth === 'number' ? data.queue_depth : 0,
+    active_workers: typeof data.active_workers === 'number' ? data.active_workers : 0,
+    retry_rate: typeof data.retry_rate === 'number' ? data.retry_rate : 0,
+    failed_task_rate: typeof data.failed_task_rate === 'number' ? data.failed_task_rate : 0,
+    avg_processing_duration:
+      typeof data.avg_processing_duration === 'number' ? data.avg_processing_duration : null,
+    avg_recognition_duration:
+      typeof data.avg_recognition_duration === 'number' ? data.avg_recognition_duration : null,
+    critical_events: Array.isArray(data.critical_events)
+      ? data.critical_events.filter((item): item is string => typeof item === 'string')
+      : [],
+    recent_incidents: Array.isArray(data.recent_incidents)
+      ? data.recent_incidents
+          .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+          .map((item) => ({
+            id: typeof item.id === 'number' ? item.id : 0,
+            status: typeof item.status === 'string' ? item.status : 'unknown',
+            created_at: typeof item.created_at === 'string' ? item.created_at : null,
+            events: Array.isArray(item.events)
+              ? item.events.filter((event): event is string => typeof event === 'string')
+              : [],
+          }))
+      : [],
+  };
+}
+
+export async function fetchBiometricTasks(
+  token: string,
+  limit = 20
+): Promise<BiometricTaskRecord[]> {
+  const { payload } = await requestJson(`/admin/biometric-tasks?limit=${limit}`, { token });
+
+  const tasks = payload && typeof payload === 'object' ? (payload as Record<string, unknown>).tasks : null;
+  if (!Array.isArray(tasks)) {
+    return [];
+  }
+
+  return tasks
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .map((item) => ({
+      id: typeof item.id === 'number' ? item.id : 0,
+      celery_task_id: typeof item.celery_task_id === 'string' ? item.celery_task_id : '',
+      student_id: typeof item.student_id === 'string' ? item.student_id : '',
+      task_type: typeof item.task_type === 'string' ? item.task_type : '',
+      status: typeof item.status === 'string' ? item.status : 'unknown',
+      retry_count: typeof item.retry_count === 'number' ? item.retry_count : 0,
+      started_at: typeof item.started_at === 'string' ? item.started_at : null,
+      completed_at: typeof item.completed_at === 'string' ? item.completed_at : null,
+      failed_at: typeof item.failed_at === 'string' ? item.failed_at : null,
+      error_message: typeof item.error_message === 'string' ? item.error_message : null,
+      worker_hostname: typeof item.worker_hostname === 'string' ? item.worker_hostname : null,
+      processing_duration_ms:
+        typeof item.processing_duration_ms === 'number' ? item.processing_duration_ms : null,
+      created_at: typeof item.created_at === 'string' ? item.created_at : null,
+    }));
+}
+
+export async function fetchAdminAuditEvents(
+  token: string,
+  limit = 80
+): Promise<AdminAuditEvent[]> {
+  const { payload } = await requestJson(`/admin/audit-logs?limit=${limit}`, { token });
+
+  const events = payload && typeof payload === 'object' ? (payload as Record<string, unknown>).events : null;
+  if (!Array.isArray(events)) {
+    return [];
+  }
+
+  return events
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .map((item) => {
+      const recognition = item.recognition;
+      return {
+        id: typeof item.id === 'string' ? item.id : crypto.randomUUID(),
+        timestamp: typeof item.timestamp === 'string' ? item.timestamp : null,
+        action_type: typeof item.action_type === 'string' ? item.action_type : 'event_recorded',
+        affected_record: typeof item.affected_record === 'string' ? item.affected_record : null,
+        operator_identity:
+          typeof item.operator_identity === 'string' ? item.operator_identity : 'Unknown operator',
+        operation_result:
+          typeof item.operation_result === 'string' ? item.operation_result : 'recorded',
+        source: typeof item.source === 'string' ? item.source : 'system',
+        request_id: typeof item.request_id === 'string' ? item.request_id : null,
+        correlation_id: typeof item.correlation_id === 'string' ? item.correlation_id : null,
+        detail: typeof item.detail === 'string' ? item.detail : 'Operational event recorded.',
+        recognition:
+          recognition && typeof recognition === 'object'
+            ? {
+                confidence_score:
+                  typeof (recognition as Record<string, unknown>).confidence_score === 'number'
+                    ? ((recognition as Record<string, unknown>).confidence_score as number)
+                    : null,
+                cosine_distance:
+                  typeof (recognition as Record<string, unknown>).cosine_distance === 'number'
+                    ? ((recognition as Record<string, unknown>).cosine_distance as number)
+                    : null,
+                threshold_used:
+                  typeof (recognition as Record<string, unknown>).threshold_used === 'number'
+                    ? ((recognition as Record<string, unknown>).threshold_used as number)
+                    : null,
+                processing_duration_ms:
+                  typeof (recognition as Record<string, unknown>).processing_duration_ms === 'number'
+                    ? ((recognition as Record<string, unknown>).processing_duration_ms as number)
+                    : null,
+              }
+            : undefined,
+      };
+    });
 }
 
 export type EnrollmentDetailsResponse = {

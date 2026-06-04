@@ -21,6 +21,7 @@ import {
   RecognitionMatchResponse,
 } from '@/features/admin/api';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
+import { recordOperationEvent } from '@/features/admin/operations';
 import { useAdminToast } from '@/features/admin/ui/AdminToastProvider';
 import { cn } from '@/lib/utils';
 
@@ -154,7 +155,7 @@ function CandidateCard({
 export function RecognitionView() {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const { token, clearSession } = useAdminAuth();
+  const { token, admin, clearSession } = useAdminAuth();
   const { showToast } = useAdminToast();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -264,18 +265,33 @@ export function RecognitionView() {
         return;
       }
       setResults(response);
+      recordOperationEvent({
+        actionType: 'similarity_scan_executed',
+        affectedRecord: response.candidates[0]?.student_id ?? response.weak_candidates[0]?.student_id ?? null,
+        operatorIdentity: admin?.email || 'Unknown admin',
+        result: response.match_found ? 'success' : 'review_required',
+        detail: response.match_found
+          ? `Candidate match returned from ${response.searched_embedding_rows} stored vectors.`
+          : `Similarity scan completed across ${response.searched_embedding_rows} stored vectors; no confident match returned.`,
+      });
       setCurrentPage(1);
     } catch (errorValue) {
       if (handleAuthFailure(errorValue)) return;
       const message = errorValue instanceof Error ? errorValue.message : 'Unable to run recognition match right now.';
       setErrorMessage(message);
       setResults(null);
+      recordOperationEvent({
+        actionType: 'similarity_scan_failed',
+        operatorIdentity: admin?.email || 'Unknown admin',
+        result: 'failed',
+        detail: message,
+      });
       showToast({ title: 'Request failed', message, variant: 'error' });
     } finally {
       setIsMatching(false);
       isRequestingRef.current = false;
     }
-  }, [handleAuthFailure, selectedFile, showToast, thresholdInput, token, topKInput]);
+  }, [admin?.email, handleAuthFailure, selectedFile, showToast, thresholdInput, token, topKInput]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -420,26 +436,23 @@ export function RecognitionView() {
             disabled={!hasImage || isMatching}
             onClick={() => { void runMatch(); }}
             className={cn(
-              "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-2xl p-4 min-h-[56px] transition-all duration-300",
+              "group relative flex w-full items-center justify-center gap-2.5 overflow-hidden rounded-[16px] p-4 min-h-[56px] transition-colors duration-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#6493b5]/40 focus-visible:ring-offset-2 focus-visible:ring-offset-[#080b0f]",
               !hasImage 
-                ? "cursor-not-allowed border border-white/[0.04] bg-white/[0.02] text-slate-500" 
+                ? "cursor-not-allowed border border-white/[0.04] bg-white/[0.02] text-slate-600" 
                 : isMatching
-                ? "cursor-wait border border-[#6493b5]/20 bg-[#6493b5]/10 text-[#6493b5] shadow-[0_0_20px_-5px_rgba(100, 147, 181,0.2)]"
-                : "border border-[#6493b5]/30 bg-gradient-to-b from-[#5C7D8F] to-[#2D3A42] text-white shadow-[0_0_25px_-5px_rgba(100, 147, 181,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] hover:from-[#6A8E9F] hover:to-[#384A54] hover:shadow-[0_0_35px_-5px_rgba(100, 147, 181,0.4)] active:scale-[0.98]"
+                ? "cursor-wait border border-[#6493b5]/10 bg-[#6493b5]/[0.02] text-[#6493b5]/60 shadow-none"
+                : "border border-[#6493b5]/15 bg-gradient-to-b from-[#1b252f] to-[#121921] text-slate-400 shadow-[0_2px_8px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.02)] hover:from-[#212d38] hover:to-[#171f29] hover:text-slate-300 hover:border-[#6493b5]/25 active:bg-[#121921] active:from-[#121921] active:to-[#121921] active:shadow-none"
             )}
           >
             {isMatching ? (
               <>
-                <Loader2 className="size-5 animate-spin" />
-                <span className="text-[1rem] font-medium tracking-wide">Scanning Identity Database...</span>
+                <Loader2 className="size-4 animate-spin opacity-60" />
+                <span className="text-[0.9rem] font-medium tracking-wide">Scanning Identity Database...</span>
               </>
             ) : (
               <>
-                <Search className="size-5" />
-                <span className="text-[1rem] font-medium tracking-wide">Initiate Recognition</span>
-                {hasImage && (
-                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 ease-in-out group-hover:translate-x-full" />
-                )}
+                <Search className="size-4 opacity-50" strokeWidth={2} />
+                <span className="text-[0.9rem] font-medium tracking-wide">Initiate Recognition</span>
               </>
             )}
           </button>

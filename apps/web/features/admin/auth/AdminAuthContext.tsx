@@ -3,6 +3,7 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { fetchCurrentAdmin, loginAdmin } from '@/features/admin/api';
 import { AdminUser } from '@/features/admin/auth/types';
+import { recordOperationEvent } from '@/features/admin/operations';
 
 const ADMIN_TOKEN_STORAGE_KEY = 'diu_lens_admin_access_token';
 
@@ -99,6 +100,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         setToken(accessToken);
         setAdmin(currentAdmin);
         setStatus('authenticated');
+        recordOperationEvent({
+          actionType: 'admin_login',
+          operatorIdentity: currentAdmin.email,
+          result: 'success',
+          detail: 'Admin authenticated and session profile restored.',
+        });
       } catch (error) {
         clearSession();
         return {

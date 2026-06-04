@@ -60,32 +60,7 @@ export default function AdminLoginPage() {
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_100%_120%_at_50%_50%,transparent_35%,#040608_100%)]" 
       />
 
-      {/* Subtle System Details (Corners) */}
-      <div className="pointer-events-none absolute left-6 top-6 sm:left-10 sm:top-10 opacity-30">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute right-6 top-6 sm:right-10 sm:top-10 opacity-30 rotate-90">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute left-6 bottom-6 sm:left-10 sm:bottom-10 opacity-30 -rotate-90">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      <div className="pointer-events-none absolute right-6 bottom-6 sm:right-10 sm:bottom-10 opacity-30 rotate-180">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M0 0H8V1H1V8H0V0Z" fill="#6493b5" />
-          <path d="M3 3H4V4H3V3Z" fill="#6493b5" />
-        </svg>
-      </div>
-      
+
       {/* ── Main Access Card ────────────────────────────────────────────── */}
       <motion.div
         className="relative z-10 flex w-full max-w-[24rem] sm:max-w-[26rem] flex-col items-center"
@@ -180,7 +155,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="mt-2 flex w-full h-[2.85rem] items-center justify-center gap-2 rounded-xl border border-[#6493b5]/20 bg-gradient-to-b from-[#6493b5]/90 to-[#4d728e]/90 px-6 text-[0.9rem] font-medium text-white shadow-[0_2px_4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 hover:from-[#6493b5] hover:to-[#557b98] hover:shadow-[0_4px_12px_-2px_rgba(100,147,181,0.2),inset_0_1px_0_rgba(255,255,255,0.15)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60"
+              className="mt-2 flex w-full h-[2.85rem] items-center justify-center gap-2 rounded-[16px] sm:rounded-[12px] md:rounded-[14px] border border-[#6493b5]/20 bg-gradient-to-b from-[#6493b5]/90 to-[#4d728e]/90 px-6 text-[0.9rem] font-medium text-white shadow-[0_2px_4px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.1)] transition-all duration-300 hover:from-[#6493b5] hover:to-[#557b98] hover:shadow-[0_4px_12px_-2px_rgba(100,147,181,0.2),inset_0_1px_0_rgba(255,255,255,0.15)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60"
             >
               {isLoggingIn ? (
                 <>
