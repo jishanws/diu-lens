@@ -93,7 +93,7 @@ export function StudentIdStep({
       </header>
 
       <div className="space-y-2">
-        <Label htmlFor="student-id" className="sr-only">
+        <Label htmlFor="student-id" className="landing-form-label text-[0.82rem] sm:text-[0.85rem] sr-only">
           Student ID
         </Label>
 
@@ -183,19 +183,19 @@ export function StudentIdStep({
         id="student-id-continue"
         type="submit"
         disabled={!canSubmit}
-        className="landing-button-bg landing-cta w-full gap-1.5 px-5 text-white"
+        className="landing-button-bg landing-cta group/button flex w-full items-center justify-center gap-2 px-5 text-white"
         aria-busy={isValidating}
       >
         {isValidating ? (
           <>
             <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-            Checking...
+            <span>Checking...</span>
           </>
         ) : (
           <>
-            Continue
+            <span>Continue</span>
             <ArrowRight
-              className="size-4 transition-transform duration-150 group-hover/button:translate-x-0.5"
+              className="size-4 opacity-90 transition-transform duration-200 group-hover/button:translate-x-0.5"
               aria-hidden="true"
             />
           </>

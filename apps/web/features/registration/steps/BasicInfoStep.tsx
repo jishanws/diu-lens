@@ -27,10 +27,10 @@ export function BasicInfoStep({
 }: BasicInfoStepProps) {
   return (
     <div className="flex h-full flex-col gap-5 sm:gap-6">
-      <header className="space-y-1.5">
-        <h2 className="landing-text-primary text-[1.22rem] font-semibold tracking-tight sm:text-[1.35rem]">
+      <header className="space-y-2">
+        <h3 className="landing-text-primary text-[1.22rem] leading-[1.15] font-semibold tracking-[-0.012em] sm:text-[1.35rem] sm:tracking-[-0.014em]">
           Basic Information
-        </h2>
+        </h3>
         <p className="landing-text-secondary text-[0.84rem] leading-[1.55] sm:text-[0.86rem]">
           Review your details before we begin the facial capture.
         </p>
@@ -44,11 +44,11 @@ export function BasicInfoStep({
         ) : null}
       </header>
 
-      <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/[0.07] bg-white/[0.03] p-4 sm:gap-[1.1rem] sm:p-[1.1rem] md:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
+      <div className="grid grid-cols-1 gap-5 rounded-[1rem] border border-white/[0.04] bg-white/[0.02] p-5 sm:gap-6 sm:p-6 md:grid-cols-2">
+        <div className="flex flex-col gap-2">
           <Label
             htmlFor="basic-student-id"
-            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
+            className="landing-form-label text-[0.82rem] sm:text-[0.85rem]"
           >
             Student ID
           </Label>
@@ -60,10 +60,10 @@ export function BasicInfoStep({
           />
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           <Label
             htmlFor="full-name"
-            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
+            className="landing-form-label text-[0.82rem] sm:text-[0.85rem]"
           >
             Full Name
           </Label>
@@ -77,10 +77,10 @@ export function BasicInfoStep({
           />
         </div>
 
-        <div className="col-span-1 flex flex-col gap-1.5 md:col-span-2">
+        <div className="col-span-1 flex flex-col gap-2 md:col-span-2">
           <Label
             htmlFor="phone-number"
-            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
+            className="landing-form-label text-[0.82rem] sm:text-[0.85rem]"
           >
             Phone Number
           </Label>
@@ -97,10 +97,10 @@ export function BasicInfoStep({
           />
         </div>
 
-        <div className="col-span-1 flex flex-col gap-1.5 md:col-span-2">
+        <div className="col-span-1 flex flex-col gap-2 md:col-span-2">
           <Label
             htmlFor="university-email"
-            className="landing-form-label text-[0.8rem] font-semibold sm:text-[0.82rem]"
+            className="landing-form-label text-[0.82rem] sm:text-[0.85rem]"
           >
             University Email
           </Label>
@@ -119,16 +119,16 @@ export function BasicInfoStep({
         </div>
       </div>
 
-      <div className="mt-auto flex flex-col gap-3 pt-1 sm:flex-row sm:gap-3">
+      <div className="mt-auto flex flex-col gap-3 pt-4 sm:flex-row sm:gap-4">
         <Button
           type="button"
           variant="outline"
           onClick={onBack}
           disabled={isSubmitting}
-          className="landing-cta-outline w-full sm:w-1/3 border-slate-300/80 bg-white/72 px-4 text-slate-700 hover:bg-slate-100 dark:border-white/12 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-900/85"
+          className="landing-cta-outline group/back flex items-center justify-center gap-2 w-full sm:w-[35%] border-slate-300/80 bg-white/72 px-4 text-slate-700 hover:bg-slate-100 dark:border-white/10 dark:bg-slate-900/40 dark:text-slate-300 dark:hover:bg-slate-900/60"
         >
-          <ArrowLeft className="size-4" />
-          Back
+          <ArrowLeft className="size-4 opacity-70 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
+          <span>Back</span>
         </Button>
         <Button
           type="button"
@@ -139,10 +139,10 @@ export function BasicInfoStep({
             !values.phoneNumber.trim() ||
             !values.universityEmail.trim()
           }
-          className="landing-button-bg landing-cta w-full sm:w-2/3 gap-2 px-5 text-white"
+          className="landing-button-bg landing-cta group/button flex items-center justify-center gap-2 w-full sm:w-[65%] px-5 text-white"
         >
-          {isSubmitting ? 'Continuing...' : 'Continue'}
-          <ArrowRight className="size-4 transition-transform duration-150 group-hover/button:translate-x-0.5" />
+          <span>{isSubmitting ? 'Continuing...' : 'Continue'}</span>
+          <ArrowRight className="size-4 opacity-90 transition-transform duration-200 group-hover/button:translate-x-0.5" />
         </Button>
       </div>
     </div>

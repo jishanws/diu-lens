@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CheckCircle2, Sparkles } from 'lucide-react';
+
 import { useEffect, useRef } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -37,15 +37,15 @@ function useParticles(canvasRef: React.RefObject<HTMLCanvasElement | null>) {
     };
 
     const COLORS = ['#34d399', '#06b6d4', '#818cf8', '#a78bfa', '#67e8f9'];
-    const COUNT = 28;
+    const COUNT = 14;
 
     const particles: Particle[] = Array.from({ length: COUNT }, () => ({
       x: Math.random() * W,
       y: Math.random() * H,
-      r: 1.2 + Math.random() * 2.2,
-      vx: (Math.random() - 0.5) * 0.38,
-      vy: -0.18 - Math.random() * 0.32,
-      alpha: 0.15 + Math.random() * 0.55,
+      r: 1.0 + Math.random() * 2.0,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.15 - Math.random() * 0.25,
+      alpha: 0.02 + Math.random() * 0.06,
       color: COLORS[Math.floor(Math.random() * COLORS.length)]!,
     }));
 
@@ -85,7 +85,7 @@ export function AlreadyRegisteredPanel({
 
   return (
     <motion.div
-      className="relative overflow-hidden rounded-[1.75rem] border border-white/[0.08] bg-gradient-to-b from-[#0d1728]/80 via-[#0b1422]/90 to-[#0d1728]/80 px-6 py-8 text-center shadow-[0_0_40px_rgba(16,185,129,0.06),inset_0_0_60px_rgba(16,185,129,0.05)] backdrop-blur-md sm:px-8 sm:py-10"
+      className="relative overflow-hidden rounded-[1.75rem] border border-white/[0.02] bg-gradient-to-b from-[#0d1728]/40 via-[#0b1422]/50 to-[#0d1728]/40 px-6 pb-10 pt-4 text-center backdrop-blur-md sm:px-8 sm:pb-12 sm:pt-6"
       initial={{ opacity: 0, scale: 0.93, y: 16 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       transition={{ duration: 0.42, ease: [0.32, 0.72, 0, 1] }}
@@ -103,111 +103,59 @@ export function AlreadyRegisteredPanel({
         className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-[#6493b5]/10 to-transparent"
       />
 
-      {/* Animated check ring */}
-      <div className="relative mx-auto mb-6 flex size-20 items-center justify-center sm:size-24">
-        {/* Pulsing outer ring */}
-        <motion.span
-          aria-hidden="true"
-          className="absolute inset-0 rounded-full border border-[#6493b5]/30"
-          animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0.15, 0.5] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* Second ring */}
-        <motion.span
-          aria-hidden="true"
-          className="absolute inset-2 rounded-full border border-[#6493b5]/20"
-          animate={{ scale: [1, 1.12, 1], opacity: [0.4, 0.1, 0.4] }}
-          transition={{ duration: 2.8, delay: 0.4, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* Solid centre */}
-        <motion.div
-          className="relative flex size-20 items-center justify-center rounded-2xl border border-white/[0.08] bg-gradient-to-br from-[#0d1728] to-[#08111f] shadow-[0_0_30px_rgba(16,185,129,0.15),inset_0_1px_0_rgba(255,255,255,0.1)] backdrop-blur-md"
-          initial={{ scale: 0, rotate: -20 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ delay: 0.18, duration: 0.48, ease: [0.32, 0.72, 0, 1] }}
-        >
-          {/* Glow blob */}
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 rounded-full bg-[#6493b5]/20 blur-md"
-          />
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.35, duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-          >
-            <CheckCircle2 className="relative size-7 text-[#6493b5] sm:size-8" strokeWidth={1.8} />
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Sparkles badge */}
+      {/* Unified Typography Hero Block */}
       <motion.div
-        className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[#6493b5]/25 bg-[#6493b5]/10 px-3 py-1 text-[0.7rem] font-medium tracking-wider text-[#6493b5] uppercase"
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.42, duration: 0.32 }}
-      >
-        <Sparkles className="size-3" aria-hidden="true" />
-        Already Enrolled
-      </motion.div>
-
-      {/* Text */}
-      <motion.div
-        className="space-y-3"
+        className="mt-0 flex flex-col items-center justify-center"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.34 }}
+        transition={{ delay: 0.2, duration: 0.4 }}
       >
-        <h2 className="text-[1.35rem] font-semibold tracking-tight text-white sm:text-[1.5rem]">
-          Congratulations{studentName ? ',' : '!'}
-          {studentName && (
-            <motion.span
-              className="mt-1 block bg-gradient-to-r from-[#D0DEE8] via-[#A0C3D7] to-[#7BA8C0] bg-clip-text text-transparent"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.58, duration: 0.4 }}
-            >
-              {studentName}!
-            </motion.span>
-          )}
-          {!studentName && ' 🎉'}
+        {studentName && (
+          <div className="text-[1.85rem] font-medium leading-tight tracking-tight text-white sm:text-[2.1rem]">
+            {studentName}
+          </div>
+        )}
+        {studentId && (
+          <div className="mt-0.5 flex items-center gap-1.5 text-[0.9rem] font-mono text-slate-400">
+            <span>Student ID</span>
+            <span className="opacity-40">•</span>
+            <span className="tracking-wide">{studentId}</span>
+          </div>
+        )}
+        <h2 className="mt-4 text-[0.7rem] font-medium tracking-widest text-[#6493b5]/80 uppercase">
+          Verification Successful
         </h2>
-        <p className="mx-auto max-w-[30ch] text-[0.88rem] leading-[1.6] text-slate-300">
-          Your biometric enrollment is complete.
-          {studentId && (
-            <span className="mt-2 block font-mono text-[0.85rem] tracking-wide text-[#6493b5]/80">
-              Student ID: {studentId}
-            </span>
-          )}
-        </p>
-        <p className="mx-auto max-w-[32ch] text-[0.78rem] leading-[1.55] text-slate-400">
-          You are verified and ready to use campus services.
-        </p>
       </motion.div>
 
-      {/* Divider */}
-      <motion.div
-        aria-hidden="true"
-        className="mx-auto my-6 h-px w-2/3 bg-gradient-to-r from-transparent via-[#6493b5]/25 to-transparent"
-        initial={{ opacity: 0, scaleX: 0 }}
-        animate={{ opacity: 1, scaleX: 1 }}
-        transition={{ delay: 0.62, duration: 0.36 }}
-      />
+      {/* Supporting Description */}
+      <motion.p
+        className="mx-auto mt-2 max-w-[24ch] text-[0.85rem] leading-relaxed text-slate-400"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.4 }}
+      >
+        Your identity has been successfully verified and enrolled. You are ready to use campus services.
+      </motion.p>
+
+
+
+
 
       {/* CTA */}
       <motion.div
-        initial={{ opacity: 0, y: 6 }}
+        className="mt-6 flex justify-center"
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7, duration: 0.3 }}
+        transition={{ delay: 0.4, duration: 0.4 }}
       >
         <Button
           id="already-registered-done"
           type="button"
+          variant="outline"
           onClick={onDone}
-          className="landing-button-bg landing-cta w-full gap-2 px-6 text-white"
+          className="group/button flex w-[200px] items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-6 py-[1.3rem] text-[0.9rem] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.2)] backdrop-blur-md transition-all hover:border-white/[0.12] hover:bg-white/[0.05] active:scale-[0.98]"
         >
-          Back to Home
+          <span>Back to Home</span>
         </Button>
       </motion.div>
     </motion.div>

@@ -26,17 +26,20 @@ export function VerifyPageClient() {
       {/* Minimal Trust Messaging Below */}
       <div 
         className={cn(
-          "mt-8 flex flex-wrap items-center justify-center gap-6 px-4 transition-all duration-700 ease-in-out",
+          "mt-4 flex flex-wrap items-center justify-center gap-4 px-4 transition-all duration-700 ease-in-out",
           isVerificationStep ? "opacity-0 translate-y-4 pointer-events-none absolute" : "opacity-100 translate-y-0 relative"
         )}
       >
-        <div className="flex items-center gap-2 text-[0.8rem] text-slate-400">
-          <ShieldCheck className="size-4 text-blue-400/80" />
-          <span>Secure biometric verification</span>
-        </div>
-        <div className="flex items-center gap-2 text-[0.8rem] text-slate-400">
-          <LockKeyhole className="size-4 text-emerald-400/80" />
-          <span>Encrypted identity protection</span>
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 px-5 py-2">
+          <div className="flex items-center gap-1.5 text-[0.65rem] font-medium tracking-wide text-slate-500/70">
+            <ShieldCheck className="size-3 opacity-50" aria-hidden="true" />
+            <span>Secure biometric verification</span>
+          </div>
+          <div className="hidden h-3 w-px bg-white/[0.04] sm:block" aria-hidden="true" />
+          <div className="flex items-center gap-1.5 text-[0.65rem] font-medium tracking-wide text-slate-500/70">
+            <LockKeyhole className="size-3 opacity-50" aria-hidden="true" />
+            <span>Encrypted identity protection</span>
+          </div>
         </div>
       </div>
     </div>

@@ -198,34 +198,34 @@
   --landing-grid-line: rgba(100, 147, 181, 0.04);
   --landing-card-bg: linear-gradient(
     180deg,
-    rgba(15, 23, 36, 0.8) 0%,
-    rgba(13, 19, 32, 0.85) 100%
+    rgba(15, 23, 36, 0.75) 0%,
+    rgba(10, 15, 26, 0.85) 100%
   );
-  --landing-card-border: rgba(100, 147, 181, 0.12);
+  --landing-card-border: rgba(255, 255, 255, 0.05);
   --landing-card-shadow:
-    0 20px 40px -12px rgba(4, 9, 15, 0.6),
-    0 0 16px rgba(100, 147, 181, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --landing-text-primary: #f1f5f9;
-  --landing-text-secondary: #8b9bb4;
+    0 24px 48px -12px rgba(0, 0, 0, 0.4),
+    0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --landing-text-primary: #f8fafc;
+  --landing-text-secondary: #94a3b8;
   --landing-text-muted: #64748b;
   --landing-accent: #6493b5;
   --landing-accent-hover: #75a4c6;
   --landing-progress-inactive: rgba(255, 255, 255, 0.04);
   --landing-progress-active: #6493b5;
   --landing-progress-glow: 0 0 6px rgba(100, 147, 181, 0.3);
-  --landing-input-bg: rgba(13, 19, 32, 0.7);
-  --landing-input-border: rgba(100, 147, 181, 0.15);
-  --landing-input-placeholder: rgba(100, 147, 181, 0.4);
-  --landing-focus-ring: rgba(100, 147, 181, 0.25);
-  --landing-input-text: #e2e8f0;
-  --landing-button-bg: linear-gradient(180deg, #6493b5 0%, #527c9a 100%);
+  --landing-input-bg: rgba(15, 23, 36, 0.6);
+  --landing-input-border: rgba(100, 147, 181, 0.1);
+  --landing-input-placeholder: rgba(148, 163, 184, 0.45);
+  --landing-focus-ring: rgba(100, 147, 181, 0.15);
+  --landing-input-text: #f1f5f9;
+  --landing-button-bg: linear-gradient(180deg, rgba(100, 147, 181, 0.95) 0%, rgba(82, 124, 154, 0.95) 100%);
   --landing-button-shadow:
-    0 9px 18px -14px rgba(100, 147, 181, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  --landing-card-blur: 16px;
+    0 8px 16px -8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --landing-card-blur: 24px;
   --landing-input-inset-shadow:
-    inset 0 1px 2px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.04);
+    inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.02);
   --landing-card-spotlight: none;
 }
 
@@ -389,10 +389,10 @@
   @media (hover: hover) and (pointer: fine) {
     .landing-card-surface:hover {
       transform: translateY(-1px);
-      border-color: rgba(255, 255, 255, 0.09);
+      border-color: rgba(255, 255, 255, 0.07);
       box-shadow:
-        0 14px 32px -10px rgba(0, 0, 0, 0.55),
-        0 1px 3px rgba(0, 0, 0, 0.2),
+        0 28px 56px -12px rgba(0, 0, 0, 0.45),
+        0 0 1px rgba(255, 255, 255, 0.08),
         inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
   }
@@ -552,6 +552,7 @@
 
   .landing-form-label {
     color: var(--landing-text-secondary);
+    font-weight: 500;
   }
 
   .landing-form-input {
@@ -562,8 +563,8 @@
     color: var(--landing-input-text);
     padding-left: 1rem;
     padding-right: 1rem;
-    font-size: 16px;
-    line-height: 1.25rem;
+    font-size: 0.9375rem;
+    font-weight: 400;
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease,
@@ -574,20 +575,22 @@
   @media (min-width: 640px) {
     .landing-form-input {
       height: 2.75rem;
-      font-size: 0.9rem;
+      font-size: 0.875rem;
     }
   }
 
   .landing-form-input::placeholder {
     color: var(--landing-input-placeholder);
+    font-weight: 400;
   }
 
   .landing-form-input:focus-visible,
   .landing-form-input:focus {
-    border-color: var(--landing-accent);
+    border-color: rgba(100, 147, 181, 0.4);
     box-shadow:
-      0 0 0 3px var(--landing-focus-ring),
-      0 0 8px rgba(100, 147, 181, 0.06);
+      0 0 0 2px var(--landing-focus-ring),
+      var(--landing-input-inset-shadow);
+    outline: none;
   }
 
   .landing-form-input-readonly {
@@ -598,7 +601,7 @@
   .landing-cta {
     height: 2.6rem;
     border-radius: 0.75rem;
-    font-weight: 600;
+    font-weight: 500;
     font-size: 0.9rem;
     letter-spacing: -0.01em;
     transition:
@@ -609,18 +612,22 @@
   }
 
   .landing-cta:hover {
-    filter: brightness(1.03);
+    filter: brightness(1.05);
     transform: translateY(-1px);
+    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   .landing-cta:active {
     transform: translateY(0);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .landing-cta:focus-visible {
     box-shadow:
-      0 0 0 3px var(--landing-focus-ring),
+      0 0 0 2px rgba(10, 15, 26, 1),
+      0 0 0 4px rgba(100, 147, 181, 0.4),
       var(--landing-button-shadow);
+    outline: none;
   }
 
   .landing-cta-outline {

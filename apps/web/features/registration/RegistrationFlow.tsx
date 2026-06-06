@@ -367,7 +367,13 @@ export function RegistrationFlow({
       );
     }
 
-    return <SuccessStep onDone={handleDone} />;
+    return (
+      <SuccessStep
+        studentId={values.studentId}
+        studentName={values.fullName}
+        onDone={handleDone}
+      />
+    );
   }, [
     activeStep,
     alreadyRegistered,

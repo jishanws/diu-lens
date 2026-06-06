@@ -30,8 +30,8 @@ function formatTimestamp(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return { date: 'Invalid timestamp', time: '-' };
   return {
-    date: new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(date),
-    time: new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(date),
+    date: new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(date),
+    time: new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).format(date),
   };
 }
 
@@ -40,9 +40,9 @@ function getActionLabel(type: string) {
     admin_login: 'Admin Login',
     admin_logout: 'Admin Logout',
     enrollment_created: 'Enrollment Submitted',
-    enrollment_validated: 'Enrollment Submitted',
-    enrollment_approved: 'Record Moved to Approved',
-    enrollment_rejected: 'Verification Rejected',
+    enrollment_validated: 'Enrollment Validated',
+    enrollment_approved: 'Enrollment Approved',
+    enrollment_rejected: 'Enrollment Rejected',
     enrollment_reset: 'Record Reset',
     processing_completed: 'Face Embedding Generated',
     processing_failed: 'Embedding Processing Failed',
@@ -55,7 +55,7 @@ function getActionLabel(type: string) {
     record_reset: 'Record Reset',
     face_embedding_generated: 'Face Embedding Generated',
   };
-  return labels[type] ?? type.replaceAll('_', ' ');
+  return labels[type] ?? type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 function getActionIcon(event: AdminAuditEvent) {
@@ -66,23 +66,39 @@ function getActionIcon(event: AdminAuditEvent) {
   if (event.action_type.includes('login') || event.action_type.includes('session')) {
     return <LockKeyhole className="size-3.5 text-slate-300" />;
   }
-  if (event.action_type.includes('review')) return <UserCheck className="size-3.5 text-amber-300" />;
+  if (event.action_type.includes('review') || event.action_type.includes('enrollment')) {
+    return <UserCheck className="size-3.5 text-amber-300" />;
+  }
   if (event.operation_result === 'success') return <CheckCircle2 className="size-3.5 text-emerald-300" />;
   return <FileText className="size-3.5 text-slate-400" />;
 }
 
+function resultText(result: string) {
+  if (result === 'success') return 'Success';
+  if (result === 'failed') return 'Failed';
+  if (result === 'rejected') return 'Rejected';
+  if (result === 'review_required' || result === 'warning') return 'Warning';
+  return 'Recorded';
+}
+
 function resultClass(result: string) {
-  if (result === 'success') return 'border-emerald-400/15 bg-emerald-500/[0.05] text-emerald-300';
-  if (result === 'failed') return 'border-rose-400/15 bg-rose-500/[0.05] text-rose-300';
-  if (result === 'review_required') return 'border-amber-400/15 bg-amber-500/[0.05] text-amber-300';
-  return 'border-slate-300/10 bg-slate-400/[0.04] text-slate-300';
+  if (result === 'success') return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)]';
+  if (result === 'failed' || result === 'rejected') return 'border-rose-500/20 bg-rose-500/10 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.05)]';
+  if (result === 'review_required' || result === 'warning') return 'border-amber-500/20 bg-amber-500/10 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.05)]';
+  return 'border-slate-500/20 bg-slate-500/10 text-slate-300 shadow-[0_0_10px_rgba(148,163,184,0.05)]';
 }
 
 function sourceLabel(source: string) {
-  if (source === 'session') return 'Console session';
+  if (source === 'session') return 'Console Session';
   if (source === 'recognition') return 'Recognition';
   if (source === 'enrollment') return 'Enrollment';
   return source;
+}
+
+function getOperatorDetails(identity: string, source: string) {
+  if (source === 'recognition') return { role: 'System Process', detail: 'Automated Match' };
+  if (identity.includes('@')) return { role: 'Admin', detail: identity.split('@')[0] };
+  return { role: 'Admin', detail: identity };
 }
 
 export function AuditView() {
@@ -141,13 +157,13 @@ export function AuditView() {
         setIsRefreshing(false);
       }
     },
-    [clearSession, router, token]
+    [clearSession, router, token, page, limit]
   );
 
   useEffect(() => {
     if (!token) return;
     void loadAuditEvents(true);
-  }, [loadAuditEvents, token, page, limit]);
+  }, [loadAuditEvents, token]);
 
   useEffect(() => {
     setSessionEvents(readSessionOperationalEvents());
@@ -194,56 +210,68 @@ export function AuditView() {
 
   return (
     <div className="flex h-full flex-col gap-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h2 className="text-xl font-medium tracking-tight text-slate-100">Audit & Activity Log</h2>
           <p className="mt-1.5 text-[0.85rem] text-slate-400">
             Persisted platform events and current console operations.
           </p>
         </div>
-        <button type="button" className="admin-btn-ghost h-10 px-4" disabled={filteredEvents.length === 0}>
-          <ArrowDownToLine className="size-4 opacity-70" />
-          <span className="hidden sm:inline">Export Current View</span>
-        </button>
       </div>
 
       <div className="admin-surface flex min-h-[520px] flex-1 flex-col overflow-hidden">
-        <div className="flex flex-col justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 p-4 sm:px-6 sm:py-5 sm:flex-row sm:items-center">
-          <div className="relative w-full sm:max-w-[320px]">
-            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search record, operator, request, or action..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="h-10 w-full rounded-md border border-white/[0.05] bg-black/20 pl-9 pr-4 text-[0.85rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40"
-            />
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 p-4 sm:px-6 sm:py-4">
+          <div className="flex-1 w-full xl:max-w-[380px]">
+            <div className="relative w-full">
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search record, operator, request, or action..."
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                className="h-9 w-full rounded-md border border-white/[0.08] bg-black/40 pl-9 pr-4 text-[0.8rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40 shadow-inner"
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-            {(['all', 'enrollment', 'recognition', 'session'] as AuditFilter[]).map((item) => (
+          
+          <div className="flex flex-wrap items-center gap-2 lg:gap-3">
+            <div className="flex items-center rounded-md border border-white/[0.06] bg-black/20 p-0.5">
+              {(['all', 'enrollment', 'recognition', 'session'] as AuditFilter[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setFilter(item)}
+                  className={cn(
+                    'min-h-8 shrink-0 rounded-[4px] px-3.5 text-[0.72rem] font-medium transition-all duration-200',
+                    filter === item
+                      ? 'bg-white/[0.08] text-slate-100 shadow-sm border border-white/[0.04]'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.03] border border-transparent'
+                  )}
+                >
+                  {item === 'all' ? 'All Sources' : sourceLabel(item)}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2">
               <button
-                key={item}
                 type="button"
-                onClick={() => setFilter(item)}
-                className={cn(
-                  'min-h-9 shrink-0 rounded-md border px-3 text-[0.72rem] font-medium transition-colors',
-                  filter === item
-                    ? 'border-[#6493b5]/20 bg-[#6493b5]/[0.09] text-[#a9c6d9]'
-                    : 'border-white/[0.04] bg-white/[0.02] text-slate-400 hover:text-slate-200'
-                )}
+                className="admin-btn-ghost min-h-9 px-3.5 text-[0.75rem] rounded-md border border-transparent hover:border-white/[0.05]"
+                disabled={isRefreshing}
+                onClick={() => loadAuditEvents(false)}
               >
-                {item === 'all' ? 'All Sources' : sourceLabel(item)}
+                <RefreshCw className={cn('size-3.5 mr-2 text-slate-400', isRefreshing && 'animate-spin')} />
+                Refresh
               </button>
-            ))}
-            <button
-              type="button"
-              className="admin-btn-ghost min-h-9 px-3 text-[0.72rem]"
-              disabled={isRefreshing}
-              onClick={() => loadAuditEvents(false)}
-            >
-              <RefreshCw className={cn('size-3.5', isRefreshing && 'animate-spin')} />
-              Refresh
-            </button>
+              <button 
+                type="button" 
+                className="admin-btn-ghost min-h-9 px-3.5 text-[0.75rem] rounded-md border border-transparent hover:border-white/[0.05]" 
+                disabled={filteredEvents.length === 0}
+              >
+                <ArrowDownToLine className="size-3.5 mr-2 text-slate-400" />
+                Export
+              </button>
+            </div>
           </div>
         </div>
 
@@ -263,94 +291,73 @@ export function AuditView() {
         ) : null}
 
         {!error && filteredEvents.length > 0 ? (
-          <div className="admin-workspace-scroll flex-1 overflow-auto">
-            <table className="hidden w-full min-w-[980px] border-collapse text-left md:table">
-              <thead className="sticky top-0 z-10 bg-white/[0.015] backdrop-blur-md">
-                <tr>
-                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Timestamp</th>
-                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Action</th>
-                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Affected Record</th>
-                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Operator</th>
-                  <th className="border-b border-white/[0.04] px-6 py-4 text-[0.65rem] font-semibold uppercase tracking-[0.15em] text-slate-400">Result</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                {filteredEvents.map((event) => {
-                  const timestamp = formatTimestamp(event.timestamp);
-                  return (
-                    <tr key={event.id} className="transition-all duration-200 hover:bg-white/[0.03] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className="font-mono text-[0.74rem] text-slate-300">{timestamp.date}</span>
-                          <span className="font-mono text-[0.68rem] text-slate-500">{timestamp.time}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-start gap-3">
-                          <div className="flex size-7 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015]">
-                            {getActionIcon(event)}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-[0.8rem] font-medium capitalize text-slate-200">{getActionLabel(event.action_type)}</p>
-                            <p className="mt-1 max-w-md truncate text-[0.68rem] text-slate-500">{event.detail}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-[0.78rem] text-slate-300">{event.affected_record || '-'}</span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-[0.75rem] font-medium text-slate-300">{event.operator_identity}</span>
-                          <span className="text-[0.64rem] uppercase tracking-widest text-slate-600">{sourceLabel(event.source)}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={cn('inline-flex rounded-full border px-2 py-1 text-[0.64rem] font-medium uppercase tracking-wider', resultClass(event.operation_result))}>
-                          {event.operation_result.replaceAll('_', ' ')}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            <div className="divide-y divide-white/[0.025] md:hidden">
+          <div className="admin-workspace-scroll flex-1 overflow-y-auto overflow-x-hidden">
+            <div className="flex flex-col divide-y divide-white/[0.03]">
               {filteredEvents.map((event) => {
                 const timestamp = formatTimestamp(event.timestamp);
+                const operator = getOperatorDetails(event.operator_identity, event.source);
+                
                 return (
-                  <article key={event.id} className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 gap-3">
-                        <div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.04] bg-[#0c1015]">
-                          {getActionIcon(event)}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-[0.84rem] font-medium capitalize text-slate-200">{getActionLabel(event.action_type)}</p>
-                          <p className="mt-1 text-[0.7rem] leading-5 text-slate-500">{event.detail}</p>
-                        </div>
+                  <article 
+                    key={event.id} 
+                    className="group flex flex-col md:flex-row md:items-center justify-between p-4 sm:p-5 transition-all duration-200 hover:bg-white/[0.015] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.02),inset_0_-1px_0_rgba(255,255,255,0.02)] gap-4 md:gap-6 lg:gap-8"
+                  >
+                    {/* LEFT: Event Title & Description */}
+                    <div className="flex flex-1 items-start gap-3.5 min-w-0">
+                      <div className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-md border border-white/[0.06] bg-white/[0.02] shadow-sm group-hover:bg-white/[0.04] transition-colors">
+                        {getActionIcon(event)}
                       </div>
-                      <span className={cn('shrink-0 rounded-full border px-2 py-1 text-[0.6rem] font-medium uppercase tracking-wider', resultClass(event.operation_result))}>
-                        {event.operation_result.replaceAll('_', ' ')}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[0.85rem] font-semibold tracking-tight text-slate-200 truncate">
+                          {getActionLabel(event.action_type)}
+                        </p>
+                        <p className="mt-0.5 text-[0.75rem] leading-relaxed text-slate-400 line-clamp-2 md:line-clamp-1 lg:line-clamp-2">
+                          {event.detail}
+                        </p>
+                      </div>
                     </div>
-                    <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg border border-white/[0.03] bg-white/[0.01] p-3">
-                      <div>
-                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Record</p>
-                        <p className="mt-1 font-mono text-[0.74rem] text-slate-300">{event.affected_record || '-'}</p>
+
+                    {/* Desktop/Tablet CENTER & RIGHT */}
+                    <div className="hidden md:flex shrink-0 items-center gap-8 lg:gap-16">
+                      {/* CENTER: Context */}
+                      <div className="flex flex-col gap-1 w-[160px] lg:w-[200px]">
+                        <span className="font-mono text-[0.75rem] text-slate-300 truncate">
+                          {event.affected_record || 'System Action'}
+                        </span>
+                        <span className="text-[0.68rem] text-slate-500 whitespace-nowrap">
+                          {timestamp.date} • {timestamp.time}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Operator</p>
-                        <p className="mt-1 truncate text-[0.74rem] text-slate-300">{event.operator_identity}</p>
+
+                      {/* RIGHT: Status & Operator */}
+                      <div className="flex flex-col items-end gap-1.5 w-[100px] lg:w-[120px]">
+                        <span className="text-[0.75rem] font-medium text-slate-300 truncate max-w-full capitalize">
+                          {operator.role === 'Admin' ? operator.detail : operator.role}
+                        </span>
+                        <span className={cn('inline-flex items-center justify-center min-w-[76px] rounded-[4px] border px-2 py-1 text-[0.62rem] font-medium tracking-wide', resultClass(event.operation_result))}>
+                          {resultText(event.operation_result)}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Time</p>
-                        <p className="mt-1 font-mono text-[0.7rem] text-slate-400">{timestamp.time}</p>
-                      </div>
-                      <div>
-                        <p className="text-[0.6rem] uppercase tracking-widest text-slate-500">Source</p>
-                        <p className="mt-1 text-[0.7rem] text-slate-400">{sourceLabel(event.source)}</p>
+                    </div>
+
+                    {/* Mobile: Card Layout Context */}
+                    <div className="md:hidden flex flex-col gap-2.5 mt-2 rounded-lg border border-white/[0.03] bg-white/[0.015] p-3.5">
+                      <p className="text-[0.75rem] flex items-start justify-between gap-4">
+                        <span className="text-slate-500 font-medium text-[0.65rem] uppercase tracking-wider mt-0.5">Record</span>
+                        <span className="font-mono text-slate-300 text-right break-all">{event.affected_record || 'System Action'}</span>
+                      </p>
+                      <p className="text-[0.75rem] flex items-center justify-between gap-4">
+                        <span className="text-slate-500 font-medium text-[0.65rem] uppercase tracking-wider">Operator</span>
+                        <span className="text-slate-300 truncate capitalize">{operator.role === 'Admin' ? operator.detail : operator.role}</span>
+                      </p>
+                      <p className="text-[0.75rem] flex items-center justify-between gap-4">
+                        <span className="text-slate-500 font-medium text-[0.65rem] uppercase tracking-wider">Time</span>
+                        <span className="text-slate-400 whitespace-nowrap">{timestamp.date} • {timestamp.time}</span>
+                      </p>
+                      <div className="pt-3 mt-1 border-t border-white/[0.04]">
+                        <span className={cn('inline-flex items-center justify-center rounded-[4px] border px-2 py-0.5 text-[0.6rem] font-medium tracking-wide', resultClass(event.operation_result))}>
+                          {resultText(event.operation_result)}
+                        </span>
                       </div>
                     </div>
                   </article>
@@ -404,3 +411,4 @@ export function AuditView() {
     </div>
   );
 }
+
