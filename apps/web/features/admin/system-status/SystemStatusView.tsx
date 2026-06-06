@@ -235,7 +235,7 @@ export function SystemStatusView() {
       if (tasksResult.status === 'fulfilled') setTasks(tasksResult.value);
       else nextErrors.push('Biometric task queue unavailable.');
 
-      if (auditResult.status === 'fulfilled') setBackendEvents(auditResult.value);
+      if (auditResult.status === 'fulfilled') setBackendEvents(auditResult.value.items);
       else nextErrors.push('Audit event stream unavailable.');
 
       setSessionEvents(readSessionOperationalEvents());

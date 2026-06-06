@@ -80,6 +80,13 @@ export type AdminAuditEvent = {
   };
 };
 
+export type AdminAuditLogsResponse = {
+  items: AdminAuditEvent[];
+  total: number;
+  page: number;
+  totalPages: number;
+};
+
 export type SystemHealthResponse = {
   current_status: string;
   degraded_components: string[];
@@ -700,16 +707,20 @@ export async function fetchBiometricTasks(
 
 export async function fetchAdminAuditEvents(
   token: string,
-  limit = 80
-): Promise<AdminAuditEvent[]> {
-  const { payload } = await requestJson(`/admin/audit-logs?limit=${limit}`, { token });
+  page = 1,
+  limit = 25
+): Promise<AdminAuditLogsResponse> {
+  const { payload } = await requestJson(`/admin/audit-logs?page=${page}&limit=${limit}`, { token });
 
-  const events = payload && typeof payload === 'object' ? (payload as Record<string, unknown>).events : null;
-  if (!Array.isArray(events)) {
-    return [];
+  const items = payload && typeof payload === 'object' ? (payload as Record<string, unknown>).items : null;
+  const total = payload && typeof payload === 'object' ? Number((payload as Record<string, unknown>).total) || 0 : 0;
+  const totalPages = payload && typeof payload === 'object' ? Number((payload as Record<string, unknown>).totalPages) || 1 : 1;
+
+  if (!Array.isArray(items)) {
+    return { items: [], total: 0, page, totalPages: 1 };
   }
 
-  return events
+  const parsedItems = items
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .map((item) => {
       const recognition = item.recognition;
@@ -749,6 +760,13 @@ export async function fetchAdminAuditEvents(
             : undefined,
       };
     });
+
+  return {
+    items: parsedItems,
+    total,
+    page,
+    totalPages
+  };
 }
 
 export type EnrollmentDetailsResponse = {

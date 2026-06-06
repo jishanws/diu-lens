@@ -97,6 +97,25 @@ export function AuditView() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState<number>(25);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Initialize limit from localStorage only on the client
+  useEffect(() => {
+    const saved = localStorage.getItem('audit-page-size');
+    if (saved) {
+      setLimit(parseInt(saved, 10));
+    }
+  }, []);
+
+  const handleLimitChange = (newLimit: number) => {
+    setLimit(newLimit);
+    setPage(1);
+    localStorage.setItem('audit-page-size', newLimit.toString());
+  };
+
   const loadAuditEvents = useCallback(
     async (showLoading: boolean) => {
       if (!token) return;
@@ -105,8 +124,10 @@ export function AuditView() {
       setError(null);
 
       try {
-        const events = await fetchAdminAuditEvents(token);
-        setBackendEvents(events);
+        const response = await fetchAdminAuditEvents(token, page, limit);
+        setBackendEvents(response.items);
+        setTotal(response.total);
+        setTotalPages(response.totalPages);
         setSessionEvents(readSessionOperationalEvents());
       } catch (errorValue) {
         if (errorValue instanceof AdminApiAuthError) {
@@ -126,7 +147,7 @@ export function AuditView() {
   useEffect(() => {
     if (!token) return;
     void loadAuditEvents(true);
-  }, [loadAuditEvents, token]);
+  }, [loadAuditEvents, token, page, limit]);
 
   useEffect(() => {
     setSessionEvents(readSessionOperationalEvents());
@@ -339,8 +360,45 @@ export function AuditView() {
           </div>
         ) : null}
 
-        <div className="border-t border-white/[0.04] bg-[#080b0f]/60 px-4 py-3 text-[0.74rem] text-slate-500 sm:px-6">
-          Showing {filteredEvents.length} of {allEvents.length} available operational events.
+        <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/[0.04] bg-[#080b0f]/60 px-4 py-4 sm:px-6 gap-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+             <div className="text-[0.74rem] text-slate-500 text-center sm:text-left">
+               Showing {filteredEvents.length > 0 ? (page - 1) * limit + 1 : 0}–{Math.min(page * limit, total)} of <strong className="text-slate-300">{total}</strong> logs
+             </div>
+             <div className="flex items-center gap-2">
+               <span className="text-[0.7rem] text-slate-500 uppercase tracking-widest">Rows:</span>
+               <select 
+                 className="bg-black/40 border border-white/[0.08] rounded-md text-[0.75rem] text-slate-300 py-1.5 px-2 outline-none focus:border-[#6493b5]/50 transition-colors"
+                 value={limit}
+                 onChange={(e) => handleLimitChange(Number(e.target.value))}
+                 disabled={isLoading}
+               >
+                 <option value={25}>25</option>
+                 <option value={50}>50</option>
+                 <option value={100}>100</option>
+               </select>
+             </div>
+          </div>
+          
+          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1 || isLoading}
+              className="admin-btn-ghost px-4 py-2 min-h-9 text-[0.75rem] disabled:opacity-40 transition-opacity"
+            >
+              ← Previous
+            </button>
+            <span className="text-[0.75rem] text-slate-500 font-medium">
+              Page <strong className="text-slate-200">{page}</strong> of <strong className="text-slate-200">{totalPages}</strong>
+            </span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages || isLoading}
+              className="admin-btn-ghost px-4 py-2 min-h-9 text-[0.75rem] disabled:opacity-40 transition-opacity"
+            >
+              Next →
+            </button>
+          </div>
         </div>
       </div>
     </div>

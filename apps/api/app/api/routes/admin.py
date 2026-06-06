@@ -46,7 +46,7 @@ async def list_admin_enrollments(
     }
 
 
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, literal_column, union_all
 from app.core.task_db import create_biometric_task_record, BiometricTask
 from app.db.session import get_session_factory
 
@@ -403,77 +403,116 @@ def _audit_result_for_event(event_type: str) -> str:
 
 @router.get("/audit-logs")
 async def list_audit_logs(
-    limit: int = 80,
+    page: int = 1,
+    limit: int = 25,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ) -> dict[str, object]:
     require_admin(credentials)
-    bounded_limit = max(1, min(limit, 200))
+    page = max(1, page)
+    bounded_limit = max(1, min(limit, 100))
+    offset = (page - 1) * bounded_limit
+
     session_factory = get_session_factory()
     with session_factory() as db:
-        enrollment_rows = db.execute(
-            select(AuditLog, Student.student_id)
-            .outerjoin(Student, AuditLog.student_id == Student.id)
-            .order_by(desc(AuditLog.created_at))
+        audit_q = select(
+            AuditLog.id.label("log_id"),
+            AuditLog.created_at.label("created_at"),
+            literal_column("'enrollment'").label("log_type")
+        )
+        rec_q = select(
+            RecognitionAuditLog.id.label("log_id"),
+            RecognitionAuditLog.created_at.label("created_at"),
+            literal_column("'recognition'").label("log_type")
+        )
+        combined = union_all(audit_q, rec_q).cte("combined_logs")
+
+        total = db.scalar(select(func.count()).select_from(combined)) or 0
+        total_pages = max(1, (total + bounded_limit - 1) // bounded_limit) if total > 0 else 1
+
+        page_records = db.execute(
+            select(combined.c.log_id, combined.c.log_type)
+            .order_by(desc(combined.c.created_at))
+            .offset(offset)
             .limit(bounded_limit)
         ).all()
 
-        recognition_rows = db.execute(
-            select(RecognitionAuditLog, AdminUser.email)
-            .outerjoin(AdminUser, RecognitionAuditLog.searched_by_admin_id == AdminUser.id)
-            .order_by(desc(RecognitionAuditLog.created_at))
-            .limit(bounded_limit)
-        ).all()
+        enrollment_ids = [r.log_id for r in page_records if r.log_type == 'enrollment']
+        recognition_ids = [r.log_id for r in page_records if r.log_type == 'recognition']
 
-        events: list[dict[str, object]] = []
-        for audit, student_public_id in enrollment_rows:
-            events.append(
-                {
-                    "id": f"audit-{audit.id}",
-                    "timestamp": audit.created_at.isoformat() if audit.created_at else None,
-                    "action_type": audit.event_type,
-                    "affected_record": student_public_id,
-                    "operator_identity": "Backend workflow",
-                    "operation_result": _audit_result_for_event(audit.event_type),
-                    "source": "enrollment",
-                    "request_id": audit.request_id,
-                    "correlation_id": audit.correlation_id,
-                    "detail": audit.message,
-                }
-            )
+        enrollment_map = {}
+        if enrollment_ids:
+            enrollment_rows = db.execute(
+                select(AuditLog, Student.student_id)
+                .outerjoin(Student, AuditLog.student_id == Student.id)
+                .where(AuditLog.id.in_(enrollment_ids))
+            ).all()
+            for row in enrollment_rows:
+                enrollment_map[row[0].id] = row
 
-        for recognition, admin_email in recognition_rows:
-            result = "success" if recognition.accepted_match else "review_required"
-            affected_record = recognition.top_match_student_id or recognition.searched_student_id
-            events.append(
-                {
-                    "id": f"recognition-{recognition.id}",
-                    "timestamp": recognition.created_at.isoformat() if recognition.created_at else None,
-                    "action_type": "recognition_search_executed",
-                    "affected_record": affected_record,
-                    "operator_identity": admin_email or "System",
-                    "operation_result": result,
-                    "source": "recognition",
-                    "request_id": recognition.request_id,
-                    "correlation_id": None,
-                    "detail": (
-                        "Similarity scan accepted a candidate match."
-                        if recognition.accepted_match
-                        else "Similarity scan completed; manual verification may be required."
-                    ),
-                    "recognition": {
-                        "confidence_score": recognition.confidence_score,
-                        "cosine_distance": recognition.cosine_distance,
-                        "threshold_used": recognition.threshold_used,
-                        "processing_duration_ms": recognition.processing_duration_ms,
-                    },
-                }
-            )
+        recognition_map = {}
+        if recognition_ids:
+            recognition_rows = db.execute(
+                select(RecognitionAuditLog, AdminUser.email)
+                .outerjoin(AdminUser, RecognitionAuditLog.searched_by_admin_id == AdminUser.id)
+                .where(RecognitionAuditLog.id.in_(recognition_ids))
+            ).all()
+            for row in recognition_rows:
+                recognition_map[row[0].id] = row
 
-        events.sort(key=lambda item: str(item.get("timestamp") or ""), reverse=True)
+        items: list[dict[str, object]] = []
+        for r in page_records:
+            if r.log_type == 'enrollment':
+                if r.log_id in enrollment_map:
+                    audit, student_public_id = enrollment_map[r.log_id]
+                    items.append(
+                        {
+                            "id": f"audit-{audit.id}",
+                            "timestamp": audit.created_at.isoformat() if audit.created_at else None,
+                            "action_type": audit.event_type,
+                            "affected_record": student_public_id,
+                            "operator_identity": "Backend workflow",
+                            "operation_result": _audit_result_for_event(audit.event_type),
+                            "source": "enrollment",
+                            "request_id": audit.request_id,
+                            "correlation_id": audit.correlation_id,
+                            "detail": audit.message,
+                        }
+                    )
+            elif r.log_type == 'recognition':
+                if r.log_id in recognition_map:
+                    recognition, admin_email = recognition_map[r.log_id]
+                    result = "success" if recognition.accepted_match else "review_required"
+                    affected_record = recognition.top_match_student_id or recognition.searched_student_id
+                    items.append(
+                        {
+                            "id": f"recognition-{recognition.id}",
+                            "timestamp": recognition.created_at.isoformat() if recognition.created_at else None,
+                            "action_type": "recognition_search_executed",
+                            "affected_record": affected_record,
+                            "operator_identity": admin_email or "System",
+                            "operation_result": result,
+                            "source": "recognition",
+                            "request_id": recognition.request_id,
+                            "correlation_id": None,
+                            "detail": (
+                                "Similarity scan accepted a candidate match."
+                                if recognition.accepted_match
+                                else "Similarity scan completed; manual verification may be required."
+                            ),
+                            "recognition": {
+                                "confidence_score": recognition.confidence_score,
+                                "cosine_distance": recognition.cosine_distance,
+                                "threshold_used": recognition.threshold_used,
+                                "processing_duration_ms": recognition.processing_duration_ms,
+                            },
+                        }
+                    )
 
         return {
-            "total": len(events),
-            "events": events[:bounded_limit],
+            "items": items,
+            "total": total,
+            "page": page,
+            "totalPages": total_pages,
         }
 
 @router.get("/enrollments/{student_id}")

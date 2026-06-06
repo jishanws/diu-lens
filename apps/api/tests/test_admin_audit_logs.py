@@ -62,7 +62,7 @@ def test_admin_audit_logs_endpoint_normalizes_enrollment_and_recognition_events(
 
     assert response.status_code == 200, response.text
     payload = response.json()
-    events = payload["events"]
+    events = payload["items"]
 
     assert len(events) >= 2
     enrollment_event = next(event for event in events if event["id"].startswith("audit-"))
