@@ -139,7 +139,8 @@ export function BasicInfoStep({
             !values.phoneNumber.trim() ||
             !values.universityEmail.trim()
           }
-          className="landing-button-bg landing-cta group/button flex items-center justify-center gap-2 w-full sm:w-[65%] px-5 text-white"
+          size="cta"
+          className="w-full sm:w-[65%]"
         >
           <span>{isSubmitting ? 'Continuing...' : 'Continue'}</span>
           <ArrowRight className="size-4 opacity-90 transition-transform duration-200 group-hover/button:translate-x-0.5" />

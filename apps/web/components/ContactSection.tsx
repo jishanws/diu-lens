@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Clock, Mail, MapPin, Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
 const CONTACT_INFO = [
@@ -272,22 +273,15 @@ export function ContactSection() {
                   </div>
 
                   {/* Submit */}
-                  <button
+                  <Button
                     type="submit"
+                    size="cta"
                     disabled={isSubmitting}
-                    className="landing-cta group relative mt-1 flex w-full items-center justify-center gap-2 overflow-hidden bg-gradient-to-b from-[#6493b5] to-[#527c9a] text-white shadow-[0_4px_14px_-4px_rgba(100,147,181,0.3),inset_0_1px_0_rgba(255,255,255,0.1)] hover:from-[#75a4c6] hover:to-[#6493b5] hover:shadow-[0_6px_18px_-4px_rgba(100,147,181,0.35)] disabled:opacity-60 disabled:pointer-events-none"
+                    className="mt-1 w-full"
                   >
-                    <span className="relative z-10 flex items-center gap-2">
-                      <div
-                        aria-hidden="true"
-                        className="absolute inset-0 bg-white/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                      />
-                      <Send className="relative size-[0.9rem] opacity-80" />
-                      <span className="relative">
-                        {isSubmitting ? 'Sending…' : 'Send Message'}
-                      </span>
-                    </span>
-                  </button>
+                    <Send className="opacity-80" />
+                    <span>{isSubmitting ? 'Sending…' : 'Send Message'}</span>
+                  </Button>
                 </form>
               )}
             </div>

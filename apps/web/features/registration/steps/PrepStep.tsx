@@ -44,7 +44,8 @@ export function PrepStep({ onContinue }: PrepStepProps) {
       <Button
         type="button"
         onClick={onContinue}
-        className="landing-button-bg landing-cta w-full px-5 text-white sm:w-auto"
+        size="cta"
+        className="w-full sm:w-auto"
       >
         Start Verification
       </Button>

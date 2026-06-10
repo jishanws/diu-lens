@@ -523,8 +523,9 @@ export function GuidedEnrollmentCapture({
                 resetPermission();
                 void requestAccess();
               }}
+              size="cta"
               disabled={permissionState === 'requesting'}
-              className="landing-button-bg landing-cta h-11 w-full rounded-xl text-sm text-white"
+              className="w-full"
             >
               <Camera className="size-4" />
               {permissionButtonLabel}
@@ -544,7 +545,8 @@ export function GuidedEnrollmentCapture({
             !state.canSubmit ||
             isSubmittingCompletion
           }
-          className="landing-button-bg landing-cta h-10 min-w-[9.5rem] rounded-xl px-5 text-sm text-white disabled:opacity-40"
+          size="cta"
+          className="min-w-[9.5rem]"
         >
           {isSubmittingCompletion ? (
             <>

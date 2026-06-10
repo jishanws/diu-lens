@@ -49,16 +49,16 @@ def test_degraded_queue_backlog(db_session_factory, monkeypatch):
         assert "queue" in diagnostics["degraded_components"]
 
 
-def test_critical_redis_failure(db_session_factory, monkeypatch):
+def test_degraded_redis_failure(db_session_factory, monkeypatch):
     monkeypatch.setattr("app.core.health_intelligence.check_redis_health", lambda: False)
     
     with db_session_factory() as db:
         diagnostics = gather_system_diagnostics(db)
-        assert diagnostics["overall_status"] == "critical"
+        assert diagnostics["overall_status"] == "degraded"
         assert "redis" in diagnostics["degraded_components"]
 
 
-def test_critical_no_workers_with_tasks(db_session_factory, monkeypatch):
+def test_degraded_no_workers_with_tasks(db_session_factory, monkeypatch):
     monkeypatch.setattr("app.core.health_intelligence.check_redis_health", lambda: True)
     monkeypatch.setattr("app.core.health_intelligence.get_active_workers", lambda: 0)
     
@@ -66,7 +66,7 @@ def test_critical_no_workers_with_tasks(db_session_factory, monkeypatch):
         populate_test_tasks(db, count=1, status="queued")
         
         diagnostics = gather_system_diagnostics(db)
-        assert diagnostics["overall_status"] == "critical"
+        assert diagnostics["overall_status"] == "degraded"
         assert "celery_workers" in diagnostics["degraded_components"]
 
 

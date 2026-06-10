@@ -183,7 +183,8 @@ export function StudentIdStep({
         id="student-id-continue"
         type="submit"
         disabled={!canSubmit}
-        className="landing-button-bg landing-cta group/button flex w-full items-center justify-center gap-2 px-5 text-white"
+        size="cta"
+        className="w-full"
         aria-busy={isValidating}
       >
         {isValidating ? (

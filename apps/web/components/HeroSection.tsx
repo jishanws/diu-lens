@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export function HeroSection() {
   return (
@@ -20,17 +21,13 @@ export function HeroSection() {
         </p>
       </div>
 
-      <div className="group relative mt-12 flex w-full flex-col items-center justify-center sm:mt-14 sm:w-auto md:mt-16">
-        {/* Extremely subtle ambient reflection */}
-        <div className="absolute inset-0 z-0 rounded-[16px] bg-[#6493b5]/[0.03] blur-[6px] transition-[background-color,filter] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:bg-[#6493b5]/[0.05] group-hover:blur-[8px] sm:rounded-[12px] md:rounded-[14px]" />
-        
-        <Link
-          href="/verify"
-          className="relative z-10 flex h-[3.2rem] w-full max-w-[20rem] items-center justify-center gap-[0.45rem] rounded-[16px] bg-[#08111f]/10 bg-gradient-to-b from-[#6493b5]/[0.22] to-[#6493b5]/[0.08] px-6 text-[1rem] font-medium tracking-normal text-white/90 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04),0_2px_6px_-1px_rgba(0,0,0,0.3)] ring-1 ring-[#6493b5]/[0.15] ring-inset backdrop-blur-xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] sm:h-[2.8rem] sm:w-auto sm:max-w-none sm:gap-[0.5rem] sm:rounded-[12px] sm:px-[1.85rem] sm:text-[0.88rem] md:h-[3.15rem] md:gap-[0.55rem] md:rounded-[14px] md:px-[2.25rem] md:text-[0.95rem] hover:-translate-y-[1px] hover:bg-[#08111f]/20 hover:from-[#6493b5]/[0.28] hover:to-[#6493b5]/[0.12] hover:text-white hover:shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06),0_4px_12px_-2px_rgba(0,0,0,0.4)] hover:ring-[#6493b5]/[0.25]"
-        >
-          Start Verification
-          <ArrowRight className="h-[0.85rem] w-[0.85rem] stroke-[1.5px] opacity-60 transition-opacity duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:opacity-100 md:h-[0.9rem] md:w-[0.9rem]" />
-        </Link>
+      <div className="mt-12 flex w-full flex-col items-center justify-center sm:mt-14 sm:w-auto md:mt-16">
+        <Button asChild size="hero" className="z-10 w-full max-w-[20rem] sm:w-auto opacity-[0.55] hover:opacity-100 transition-opacity duration-300">
+          <Link href="/verify">
+            Start Verification
+            <ArrowRight className="stroke-[1.5px]" />
+          </Link>
+        </Button>
       </div>
     </section>
   );

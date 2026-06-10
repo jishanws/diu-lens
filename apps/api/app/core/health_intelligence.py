@@ -96,7 +96,8 @@ def gather_system_diagnostics(db: Session) -> dict[str, Any]:
     degraded_components = []
     
     if not redis_healthy:
-        overall_status = "critical"
+        if overall_status != "critical":
+            overall_status = "degraded"
         critical_events.append("Redis connectivity failed.")
         degraded_components.append("redis")
         
@@ -106,7 +107,8 @@ def gather_system_diagnostics(db: Session) -> dict[str, Any]:
         degraded_components.append("postgres")
         
     if active_workers == 0 and redis_healthy and total_recent_tasks > 0:
-        overall_status = "critical"
+        if overall_status != "critical":
+            overall_status = "degraded"
         critical_events.append("No active workers detected while tasks exist.")
         degraded_components.append("celery_workers")
         

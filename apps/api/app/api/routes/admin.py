@@ -49,6 +49,33 @@ async def list_admin_enrollments(
 from sqlalchemy import select, desc, func, literal_column, union_all
 from app.core.task_db import create_biometric_task_record, BiometricTask
 from app.db.session import get_session_factory
+from app.db.models.admin_users import AdminUser
+from app.core.config import settings
+from app.core.approval_hygiene import NEAR_DUPLICATE_DHASH_MAX_DISTANCE
+
+@router.get("/config")
+async def get_system_config(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    
+    session_factory = get_session_factory()
+    with session_factory() as db:
+        admin_count = db.scalar(select(func.count()).select_from(AdminUser)) or 0
+        
+    return {
+        "verification": {
+            "auto_approval_threshold": settings.face_match_distance_threshold,
+            "minimum_face_quality_blur": settings.enrollment_min_blur_variance,
+            "duplicate_enrollment_sensitivity": NEAR_DUPLICATE_DHASH_MAX_DISTANCE,
+        },
+        "security": {
+            "session_timeout_minutes": settings.access_token_expire_minutes,
+        },
+        "administrators": {
+            "active_admin_accounts": admin_count,
+        }
+    }
 
 @router.get("/biometric-tasks")
 async def list_biometric_tasks(

@@ -621,6 +621,31 @@ export async function matchRecognitionProbe(
   return parseRecognitionResponse(payload);
 }
 
+export interface SystemConfig {
+  verification: {
+    auto_approval_threshold: number;
+    minimum_face_quality_blur: number;
+    duplicate_enrollment_sensitivity: number;
+  };
+  security: {
+    session_timeout_minutes: number;
+  };
+  administrators: {
+    active_admin_accounts: number;
+  };
+}
+
+export async function fetchSystemConfig(token: string): Promise<SystemConfig | null> {
+  try {
+    const { payload } = await requestJson('/admin/config', { token });
+    if (!payload || typeof payload !== 'object') return null;
+    return payload as unknown as SystemConfig;
+  } catch (error) {
+    console.error('[admin-api] config fetch failed', error);
+    return null;
+  }
+}
+
 export async function checkApiHealth(): Promise<boolean> {
   try {
     const response = await request('/health', {

@@ -1,17 +1,32 @@
 'use client';
 
-import { Save, Shield, Sliders, Lock, Database } from 'lucide-react';
+import { Save, Shield, Database, Users, Fingerprint, Settings as SettingsIcon, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
+import { fetchSystemConfig, SystemConfig } from '@/features/admin/api';
 
 export function SettingsView() {
-  const [activeTab, setActiveTab] = useState('biometric');
+  const [activeTab, setActiveTab] = useState('verification');
+  const { token } = useAdminAuth();
+  const [config, setConfig] = useState<SystemConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!token) return;
+    fetchSystemConfig(token).then((data) => {
+      setConfig(data);
+      setIsLoading(false);
+    });
+  }, [token]);
 
   const tabs = [
-    { id: 'biometric', label: 'Biometric Engine', icon: Sliders },
-    { id: 'security', label: 'System Security', icon: Shield },
-    { id: 'access', label: 'Admin Access', icon: Lock },
-    { id: 'audit', label: 'Data & Audit', icon: Database },
+    { id: 'verification', label: 'Verification', icon: Fingerprint },
+    { id: 'enrollment', label: 'Enrollment', icon: SettingsIcon },
+    { id: 'security', label: 'Security', icon: Shield },
+    { id: 'administrators', label: 'Administrators', icon: Users },
+    { id: 'retention', label: 'Data Retention', icon: Database },
+    { id: 'maintenance', label: 'Maintenance', icon: Wrench },
   ];
 
   return (
@@ -23,7 +38,7 @@ export function SettingsView() {
           <p className="mt-1.5 text-[0.85rem] text-slate-400">Secure platform parameters and infrastructure settings.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="admin-btn-primary group h-9 px-5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 hover:border-emerald-500/30 hover:text-emerald-300">
+          <button className="admin-btn-primary group h-9 px-5 bg-[#6493b5]/10 text-[#6493b5] border border-[#6493b5]/20 hover:bg-[#6493b5]/20 hover:border-[#6493b5]/30 hover:text-white transition-colors" disabled={isLoading}>
             <Save className="size-4" />
             <span className="font-semibold tracking-wide">Save Configuration</span>
           </button>
@@ -56,114 +71,115 @@ export function SettingsView() {
         {/* Configuration Area */}
         <div className="flex-1 flex flex-col gap-6">
           
-          {activeTab === 'biometric' && (
+          {isLoading ? (
+            <div className="flex h-40 items-center justify-center rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5)]">
+              <div className="size-6 animate-spin rounded-full border-2 border-[#6493b5] border-t-transparent" />
+            </div>
+          ) : (
             <>
-              {/* Panel 1 */}
-              <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
-                <div className="mb-6 pb-5 border-b border-white/[0.04]">
-                  <h3 className="text-[1rem] font-medium text-slate-200">Matching Thresholds</h3>
-                  <p className="mt-1 text-[0.75rem] text-slate-500">Configure global parameters for cosine distance confidence mapping.</p>
-                </div>
-                
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                    <div>
-                      <h4 className="text-[0.85rem] font-medium text-slate-300">High Confidence Boundary</h4>
-                      <p className="text-[0.7rem] text-slate-500 mt-0.5">Maximum distance to automatically approve matches.</p>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                       <input type="number" defaultValue="0.25" step="0.01" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
-                    </div>
+              {activeTab === 'verification' && (
+                <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                  <div className="mb-6 pb-5 border-b border-white/[0.04]">
+                    <h3 className="text-[1rem] font-medium text-slate-200">Verification Policies</h3>
+                    <p className="mt-1 text-[0.75rem] text-slate-500">Global parameters for face matching confidence and quality.</p>
                   </div>
                   
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                    <div>
-                      <h4 className="text-[0.85rem] font-medium text-slate-300">Review Threshold</h4>
-                      <p className="text-[0.7rem] text-slate-500 mt-0.5">Distance triggering manual administrative review.</p>
+                  <div className="flex flex-col gap-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      <div>
+                        <h4 className="text-[0.85rem] font-medium text-slate-300">Auto Approval Threshold</h4>
+                        <p className="text-[0.7rem] text-slate-500 mt-0.5">Maximum cosine distance to automatically approve face matches.</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                         <input type="number" readOnly value={config?.verification?.auto_approval_threshold ?? ''} className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:outline-none opacity-80 cursor-not-allowed" />
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                       <input type="number" defaultValue="0.38" step="0.01" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
+                    
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      <div>
+                        <h4 className="text-[0.85rem] font-medium text-slate-300">Minimum Face Quality (Blur Variance)</h4>
+                        <p className="text-[0.7rem] text-slate-500 mt-0.5">Threshold below which enrollment images are rejected as blurry.</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                         <input type="number" readOnly value={config?.verification?.minimum_face_quality_blur ?? ''} className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:outline-none opacity-80 cursor-not-allowed" />
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Panel 2 */}
-              <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
-                <div className="mb-6 pb-5 border-b border-white/[0.04]">
-                  <h3 className="text-[1rem] font-medium text-slate-200">Processing Engine</h3>
-                  <p className="mt-1 text-[0.75rem] text-slate-500">Resource allocation for Celery workers and embedding extraction.</p>
-                </div>
-                
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                    <div>
-                      <h4 className="text-[0.85rem] font-medium text-slate-300">GPU Acceleration</h4>
-                      <p className="text-[0.7rem] text-slate-500 mt-0.5">Force extraction tasks to CUDA devices when available.</p>
-                    </div>
-                    <div className="relative inline-flex h-6 sm:h-5 w-11 sm:w-9 cursor-pointer rounded-full bg-[#6493b5] shrink-0 mt-2 sm:mt-0">
-                       <div className="absolute left-[2px] top-[2px] h-5 sm:h-4 w-5 sm:w-4 translate-x-5 sm:translate-x-4 rounded-full bg-white transition-transform" />
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                      <div>
+                        <h4 className="text-[0.85rem] font-medium text-slate-300">Duplicate Enrollment Sensitivity</h4>
+                        <p className="text-[0.7rem] text-slate-500 mt-0.5">Maximum perceptual hash distance to trigger duplicate review.</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                         <input type="number" readOnly value={config?.verification?.duplicate_enrollment_sensitivity ?? ''} className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:outline-none opacity-80 cursor-not-allowed" />
+                      </div>
                     </div>
                   </div>
+                </div>
+              )}
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                    <div>
-                      <h4 className="text-[0.85rem] font-medium text-slate-300">Max Worker Concurrency</h4>
-                      <p className="text-[0.7rem] text-slate-500 mt-0.5">Limit concurrent face detection processes.</p>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                       <input type="number" defaultValue="4" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
-                    </div>
-                  </div>
+              {activeTab === 'security' && (
+                <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                   <div className="mb-6 pb-5 border-b border-white/[0.04] flex items-center gap-3">
+                      <Shield className="size-5 text-[#6493b5]" />
+                      <div>
+                        <h3 className="text-[1rem] font-medium text-slate-200">Security Policies</h3>
+                        <p className="mt-1 text-[0.75rem] text-slate-500">Platform-wide security enforcement.</p>
+                      </div>
+                   </div>
+                   
+                   <div className="flex flex-col gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                        <div>
+                          <h4 className="text-[0.85rem] font-medium text-slate-300">Session Timeout (Minutes)</h4>
+                          <p className="text-[0.7rem] text-slate-500 mt-0.5">Idle time before automatic logout.</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                           <input type="number" readOnly value={config?.security?.session_timeout_minutes ?? ''} className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:outline-none opacity-80 cursor-not-allowed" />
+                        </div>
+                      </div>
+                   </div>
                 </div>
-              </div>
+              )}
+
+              {activeTab === 'administrators' && (
+                <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                   <div className="mb-6 pb-5 border-b border-white/[0.04] flex items-center gap-3">
+                      <Users className="size-5 text-[#6493b5]" />
+                      <div>
+                        <h3 className="text-[1rem] font-medium text-slate-200">Role Management</h3>
+                        <p className="mt-1 text-[0.75rem] text-slate-500">Overview of administrative accounts and access levels.</p>
+                      </div>
+                   </div>
+                   
+                   <div className="flex flex-col gap-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                        <div>
+                          <h4 className="text-[0.85rem] font-medium text-slate-300">Active Admin Accounts</h4>
+                          <p className="text-[0.7rem] text-slate-500 mt-0.5">Total number of active administrative identities in the system.</p>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 sm:mt-0">
+                           <input type="number" readOnly value={config?.administrators?.active_admin_accounts ?? ''} className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:outline-none opacity-80 cursor-not-allowed" />
+                        </div>
+                      </div>
+                   </div>
+                </div>
+              )}
+
+              {/* Empty / Unimplemented states for other operational tabs */}
+              {(activeTab === 'enrollment' || activeTab === 'retention' || activeTab === 'maintenance') && (
+                <div className="flex flex-col items-center justify-center p-12 text-center h-[300px] rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
+                    <div className="relative mb-6 flex size-16 items-center justify-center rounded-full border border-white/[0.03] bg-[#080b0f] shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
+                      <div className="absolute inset-0 rounded-full border-t border-white/[0.05]" />
+                      <SettingsIcon className="size-6 text-slate-600/40" />
+                    </div>
+                    <h3 className="text-[0.95rem] font-medium tracking-wide text-slate-300">Managed by Environment</h3>
+                    <p className="mt-2.5 max-w-[320px] text-[0.8rem] leading-relaxed text-slate-500">
+                      There are currently no runtime-configurable settings exposed for this category. System parameters are managed securely via environment configuration or automated policies.
+                    </p>
+                </div>
+              )}
             </>
-          )}
-
-          {activeTab === 'security' && (
-            <div className="rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 p-5 sm:p-7 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
-               <div className="mb-6 pb-5 border-b border-white/[0.04] flex items-center gap-3">
-                  <Shield className="size-5 text-[#6493b5]" />
-                  <div>
-                    <h3 className="text-[1rem] font-medium text-slate-200">Security Policies</h3>
-                    <p className="mt-1 text-[0.75rem] text-slate-500">Platform-wide security enforcement.</p>
-                  </div>
-               </div>
-               
-               <div className="flex flex-col gap-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                    <div>
-                      <h4 className="text-[0.85rem] font-medium text-slate-300">Require MFA for Admins</h4>
-                      <p className="text-[0.7rem] text-slate-500 mt-0.5">Enforce multi-factor authentication for console access.</p>
-                    </div>
-                    <div className="relative inline-flex h-6 sm:h-5 w-11 sm:w-9 cursor-pointer rounded-full bg-[#6493b5] shrink-0 mt-2 sm:mt-0">
-                       <div className="absolute left-[2px] top-[2px] h-5 sm:h-4 w-5 sm:w-4 translate-x-5 sm:translate-x-4 rounded-full bg-white transition-transform" />
-                    </div>
-                  </div>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-                    <div>
-                      <h4 className="text-[0.85rem] font-medium text-slate-300">Session Timeout (Minutes)</h4>
-                      <p className="text-[0.7rem] text-slate-500 mt-0.5">Idle time before automatic logout.</p>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 sm:mt-0">
-                       <input type="number" defaultValue="30" className="h-10 sm:h-9 w-full sm:w-24 rounded-md border border-white/[0.06] bg-black/40 px-3 text-center text-[0.85rem] font-mono text-slate-200 focus:border-[#6493b5]/50 focus:outline-none" />
-                    </div>
-                  </div>
-               </div>
-            </div>
-          )}
-
-          {(activeTab === 'access' || activeTab === 'audit') && (
-            <div className="flex flex-col items-center justify-center p-12 text-center h-[300px] rounded-[1.25rem] border border-white/[0.04] bg-[#0c1015]/60 shadow-[0_8px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.02)]">
-                <div className="relative mb-6 flex size-16 items-center justify-center rounded-full border border-white/[0.03] bg-[#080b0f] shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
-                  <div className="absolute inset-0 rounded-full border-t border-white/[0.05]" />
-                  <Lock className="size-6 text-slate-600/40" />
-                </div>
-                <h3 className="text-[0.95rem] font-medium tracking-wide text-slate-300">Module Restricted</h3>
-                <p className="mt-2.5 max-w-[280px] text-[0.8rem] leading-relaxed text-slate-500">
-                  This configuration panel requires Super Administrator privileges to access.
-                </p>
-            </div>
           )}
 
         </div>
