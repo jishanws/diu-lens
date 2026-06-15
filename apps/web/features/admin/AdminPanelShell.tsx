@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode, useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -89,15 +89,53 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { admin, logout } = useAdminAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
 
   // Focus management and escape key handling
   useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isMobileMenuOpen) {
+      if (e.key === 'Escape') {
         setIsMobileMenuOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
+
+    const drawer = drawerRef.current;
+    if (drawer) {
+      const focusableElements = drawer.querySelectorAll<HTMLElement>(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusableElements.length > 0) {
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        firstElement.focus();
+
+        const handleTabKey = (e: KeyboardEvent) => {
+          if (e.key === 'Tab') {
+            if (e.shiftKey) {
+              if (document.activeElement === firstElement) {
+                e.preventDefault();
+                lastElement.focus();
+              }
+            } else {
+              if (document.activeElement === lastElement) {
+                e.preventDefault();
+                firstElement.focus();
+              }
+            }
+          }
+        };
+        window.addEventListener('keydown', handleTabKey);
+        
+        return () => {
+          window.removeEventListener('keydown', handleKeyDown);
+          window.removeEventListener('keydown', handleTabKey);
+        };
+      }
+    }
+
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isMobileMenuOpen]);
 
@@ -260,6 +298,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
             />
             {/* Drawer */}
             <motion.div
+              ref={drawerRef}
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}

@@ -4,8 +4,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 import { fetchCurrentAdmin, loginAdmin } from '@/features/admin/api';
 import { AdminUser } from '@/features/admin/auth/types';
 import { recordOperationEvent } from '@/features/admin/operations';
-
-const ADMIN_TOKEN_STORAGE_KEY = 'diu_lens_admin_access_token';
+import { clearAdminTokenCookie, readAdminTokenCookie, storeAdminTokenCookie } from '@/features/admin/auth/actions';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
@@ -26,18 +25,6 @@ type AdminAuthContextValue = {
 
 const AdminAuthContext = createContext<AdminAuthContextValue | undefined>(undefined);
 
-function storeToken(token: string) {
-  localStorage.setItem(ADMIN_TOKEN_STORAGE_KEY, token);
-}
-
-function readStoredToken() {
-  return localStorage.getItem(ADMIN_TOKEN_STORAGE_KEY);
-}
-
-function clearStoredToken() {
-  localStorage.removeItem(ADMIN_TOKEN_STORAGE_KEY);
-}
-
 export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [admin, setAdmin] = useState<AdminUser | null>(null);
@@ -45,7 +32,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   const clearSession = useCallback(() => {
-    clearStoredToken();
+    void clearAdminTokenCookie();
     setToken(null);
     setAdmin(null);
     setStatus('unauthenticated');
@@ -63,14 +50,18 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession]);
 
   useEffect(() => {
-    const storedToken = readStoredToken();
+    async function loadToken() {
+      const storedToken = await readAdminTokenCookie();
 
-    if (!storedToken) {
-      setStatus('unauthenticated');
-      return;
+      if (!storedToken) {
+        setStatus('unauthenticated');
+        return;
+      }
+
+      void restoreSession(storedToken);
     }
-
-    void restoreSession(storedToken);
+    
+    void loadToken();
   }, [restoreSession]);
 
   const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
@@ -93,7 +84,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      storeToken(accessToken);
+      await storeAdminTokenCookie(accessToken);
 
       try {
         const currentAdmin = await fetchCurrentAdmin(accessToken);

@@ -116,6 +116,12 @@ export function StudentIdStep({
             required
           />
 
+          {/* Screen reader live region for status announcements */}
+          <div aria-live="polite" className="sr-only">
+            {isValidating && 'Checking student ID...'}
+            {isValid && 'Student ID is valid.'}
+          </div>
+
           {/* Trailing status icon */}
           <AnimatePresence mode="wait">
             {isValidating && (

@@ -385,6 +385,15 @@ export function GuidedEnrollmentCapture({
     state.modelErrorMessage,
   ]);
 
+  const [debouncedStatusText, setDebouncedStatusText] = useState(statusText);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedStatusText(statusText);
+    }, 1500);
+    return () => clearTimeout(handler);
+  }, [statusText]);
+
   const permissionButtonLabel =
     permissionState === 'requesting' ? 'Starting camera...' : 'Enable camera';
 
@@ -496,13 +505,18 @@ export function GuidedEnrollmentCapture({
           </div>
 
           {/* STATUS MESSAGE */}
-          <div className="min-h-[2.2rem] px-1 text-center">
+          <div className="min-h-[2.2rem] px-1 text-center" aria-hidden="true">
             <p
               className="text-[0.85rem] leading-[1.5] font-medium transition-colors duration-300"
               style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(100, 147, 181, 0.9)' : 'rgba(148,163,184,0.9)' }}
             >
               {statusText}
             </p>
+          </div>
+          
+          {/* SCREEN READER DEBOUNCED STATUS */}
+          <div className="sr-only" aria-live="polite" aria-atomic="true">
+            {debouncedStatusText}
           </div>
 
           {/* LIVE HEALTH INDICATORS */}

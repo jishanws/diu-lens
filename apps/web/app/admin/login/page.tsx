@@ -19,7 +19,10 @@ export default function AdminLoginPage() {
   const getNextPath = () => {
     if (typeof window === 'undefined') return '/admin/enrollments';
     const next = new URLSearchParams(window.location.search).get('next');
-    return next || '/admin/enrollments';
+    if (next && next.startsWith('/admin/') && !next.includes('://')) {
+      return next;
+    }
+    return '/admin/enrollments';
   };
 
   useEffect(() => {

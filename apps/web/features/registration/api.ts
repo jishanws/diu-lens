@@ -413,14 +413,11 @@ async function submitEnrollmentRequest(
       !normalizedPayload.phone ||
       !normalizedPayload.university_email
     ) {
-      console.error('[enroll] invalid payload', normalizedPayload);
       return {
         success: false,
         message: 'Missing required fields for enrollment submission.',
       };
     }
-
-    console.log('🚀 sending enroll request', normalizedPayload);
 
     const response = await request('/enroll', {
       method: 'POST',
@@ -430,11 +427,8 @@ async function submitEnrollmentRequest(
       },
       body: JSON.stringify(normalizedPayload),
     });
-    console.log('✅ response received', response);
-
     return await parseEnrollmentResponse(response, errorMessage);
   } catch (error) {
-    console.error('❌ enroll failed', error);
     throw error;
   }
 }
@@ -451,12 +445,7 @@ async function submitEnrollmentCompletionRequest(
       stage: string,
       details: Record<string, unknown> = {}
     ) => {
-      const nowMs = performance.now();
-      console.log('[verification-timing]', stage, {
-        nowMs: Number(nowMs.toFixed(2)),
-        elapsedMs: Number((nowMs - requestStartMs).toFixed(2)),
-        ...details,
-      });
+      // Timing logs removed for production
     };
 
     const anglesSummary = REQUIRED_VERIFICATION_ANGLES.map((angle) => ({
@@ -472,11 +461,6 @@ async function submitEnrollmentCompletionRequest(
       (total, entry) => total + entry.accepted_shots,
       0
     );
-    console.log('[verification] request start', {
-      student_id: payload.student_id,
-      total_required_shots: totalRequiredShots,
-      total_accepted_shots: totalAcceptedShots,
-    });
     const metadataWithFrames: EnrollmentCompletionPayload = {
       ...payload,
       total_required_shots: totalRequiredShots,
@@ -494,10 +478,6 @@ async function submitEnrollmentCompletionRequest(
     const formData = new FormData();
     formData.append('metadata', JSON.stringify(metadataWithFrames));
     formData.append('student_id', payload.student_id);
-    console.log('[verification] form data seed', {
-      student_id: payload.student_id,
-      metadata_keys: Object.keys(metadataWithFrames),
-    });
 
     let appendedFiles = 0;
     let totalUploadBytes = 0;
@@ -539,14 +519,6 @@ async function submitEnrollmentCompletionRequest(
           };
         }
 
-        console.log('[verification] capture input', {
-          angle,
-          index,
-          isFile: capture instanceof File,
-          size: capture.size,
-          type: capture.type,
-        });
-
         if (capture.size <= 0) {
           return {
             success: false,
@@ -569,15 +541,7 @@ async function submitEnrollmentCompletionRequest(
           };
         }
 
-        console.log(angle, capture.size, capture.type);
         const sizeKb = Math.round(capture.size / 1024);
-        console.log('[verification-upload]', angle, sizeKb, 'KB');
-        console.log('[verification] attaching capture', {
-          angle,
-          index,
-          size: capture.size,
-          type: capture.type,
-        });
         const extension = normalizedType === 'image/png' ? 'png' : 'jpg';
         const fileName = `${angle}_${index + 1}.${extension}`;
         const fileToAppend =
@@ -591,13 +555,6 @@ async function submitEnrollmentCompletionRequest(
           };
         }
         formData.append(angle, fileToAppend, fileName);
-        console.log('[verification] appended file', {
-          angle,
-          index,
-          fileName,
-          size: fileToAppend.size,
-          type: fileToAppend.type,
-        });
         appendedFiles += 1;
         totalUploadBytes += capture.size;
         logTiming('each file appended', {
@@ -628,16 +585,8 @@ async function submitEnrollmentCompletionRequest(
       },
       {}
     );
-    console.log('[verification] form data summary', {
-      total_keys: formEntries.length,
-      file_entries: fileEntries.length,
-      file_counts_by_key: fileCountsByKey,
-      all_keys: formEntries.map(([key]) => key),
-    });
-    console.log('[verification] files attached', { appendedFiles });
     const totalKb = Math.round(totalUploadBytes / 1024);
     const totalMb = Number((totalUploadBytes / (1024 * 1024)).toFixed(2));
-    console.log('[verification-upload] total', totalKb, 'KB', `${totalMb} MB`);
     logTiming('upload size summary', {
       appendedFiles,
       totalKb,
@@ -648,12 +597,12 @@ async function submitEnrollmentCompletionRequest(
     const requestOptions: RequestInit = {
       method: 'POST',
       body: formData,
+      headers: {
+        Accept: 'application/json',
+        'X-CSRF-Token': '1', // Protects against simple cross-origin multipart POSTs
+      },
     };
-    console.log('[verification] request init', {
-      headers: requestOptions.headers ?? null,
-      isFormData: formData instanceof FormData,
-      formEntryCount: formEntries.length,
-    });
+
     const response = await request('/enroll/verification', requestOptions);
     logTiming('response headers received', {
       status: response.status,
@@ -682,11 +631,6 @@ async function parseEnrollmentResponse(
   logPrefix = 'enroll'
 ): Promise<EnrollmentSubmissionResult> {
   const rawText = await response.text();
-  console.log(`[${logPrefix}] raw response`, {
-    status: response.status,
-    ok: response.ok,
-    body: rawText,
-  });
 
   const statusLabel = response.status
     ? `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`

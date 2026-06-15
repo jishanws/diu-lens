@@ -168,7 +168,6 @@ export function RegistrationFlow({
   }, [validationState.status, values.studentId]);
 
   const handleBasicInfoContinue = useCallback(async () => {
-    console.log('[registration] handleBasicInfoContinue called');
 
     // Bypass guard: Step 2 must not open unless the current student ID
     // was explicitly validated in this session.
@@ -176,17 +175,11 @@ export function RegistrationFlow({
       validationState.status !== 'valid' ||
       validatedStudentIdRef.current !== values.studentId.trim()
     ) {
-      console.warn('[registration] Step 2 blocked: student ID not validated', {
-        validationStatus: validationState.status,
-        validatedId: validatedStudentIdRef.current,
-        currentId: values.studentId,
-      });
       setActiveStep(0);
       return;
     }
 
     if (isSubmittingBasicInfo) {
-      console.log('[registration] submission blocked: request already in flight');
       return;
     }
 
@@ -195,7 +188,6 @@ export function RegistrationFlow({
     const universityEmail = values.universityEmail.trim();
 
     if (!fullName || !phoneNumber || !universityEmail) {
-      console.log('[registration] submission blocked: missing required basic info fields');
       setBasicInfoError(GENERIC_ENROLLMENT_ERROR);
       return;
     }
@@ -204,7 +196,6 @@ export function RegistrationFlow({
     setIsSubmittingBasicInfo(true);
 
     try {
-      console.log('[registration] calling submitEnrollment');
       const result = await submitEnrollment({
         student_id: values.studentId,
         full_name: fullName,
@@ -220,7 +211,6 @@ export function RegistrationFlow({
       setVerificationError(null);
       setActiveStep(2);
     } catch (error) {
-      console.error('[registration] basic info submit failed', error);
       setBasicInfoError(toErrorMessage(error, GENERIC_ENROLLMENT_ERROR));
     } finally {
       setIsSubmittingBasicInfo(false);
@@ -239,12 +229,7 @@ export function RegistrationFlow({
     async (summary: VerificationCompletionSummary) => {
       const completionStartMs = performance.now();
       const logTiming = (stage: string, details: Record<string, unknown> = {}) => {
-        const nowMs = performance.now();
-        console.log('[verification-timing]', stage, {
-          nowMs: Number(nowMs.toFixed(2)),
-          elapsedMs: Number((nowMs - completionStartMs).toFixed(2)),
-          ...details,
-        });
+        // Timing logs removed for production
       };
       if (isCompletingRegistration) {
         logTiming('verification submit ignored due to in-flight completion');
@@ -254,9 +239,6 @@ export function RegistrationFlow({
       setVerificationError(null);
       setIsCompletingRegistration(true);
       logTiming('verification completion submit started', {
-        student_id: values.studentId,
-      });
-      console.log('[verification] completion submit start', {
         student_id: values.studentId,
       });
 
@@ -281,16 +263,13 @@ export function RegistrationFlow({
         );
 
         if (!result.success) {
-          console.warn('[verification] completion submit rejected', result);
           setVerificationError(toFriendlyVerificationMessage(result.message));
           return;
         }
 
-        console.log('[verification] completion submit succeeded', result);
         setActiveStep(3);
         logTiming('ui completion state updated', { activeStep: 3 });
       } catch (error) {
-        console.error('[verification] completion submit failed', error);
         setVerificationError(
           toErrorMessage(error, GENERIC_REGISTRATION_COMPLETION_ERROR)
         );
@@ -396,6 +375,9 @@ export function RegistrationFlow({
 
   const stepContent = (
     <div className="flex min-h-0 flex-col">
+      <div aria-live="polite" className="sr-only">
+        {`Step ${activeStep + 1} of ${registrationStepMeta.length}: ${registrationStepMeta[activeStep]?.title || 'Success'}`}
+      </div>
       <AnimatePresence
         mode="wait"
         initial={false}

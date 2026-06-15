@@ -1099,6 +1099,12 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
     verification_logger.info("[verification-timing] route entered")
     verification_logger.info("[verification] request start path=/enroll/verification")
     try:
+        if not request.headers.get("x-csrf-token"):
+            raise HTTPException(
+                status_code=403,
+                detail="Missing CSRF protection header",
+            )
+            
         content_type = request.headers.get("content-type", "").lower()
         if "multipart/form-data" not in content_type:
             raise HTTPException(

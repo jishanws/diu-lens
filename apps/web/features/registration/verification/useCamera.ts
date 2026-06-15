@@ -104,6 +104,12 @@ export function useCamera(): CameraHookResult {
   }, []);
 
   useEffect(() => {
+    return () => {
+      stopStream();
+    };
+  }, [stopStream]);
+
+  useEffect(() => {
     const videoElement = videoElementRef.current;
 
     if (!videoElement) {
