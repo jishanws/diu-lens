@@ -5,6 +5,10 @@ from typing import Any, Literal
 import cv2
 import numpy as np
 
+from app.core.enrollment_validation_config import (
+    ENROLLMENT_VALIDATION_CONFIG,
+    EnrollmentValidationConfig,
+)
 
 EyesVisibleStatus = Literal["passed", "failed", "not_yet_implemented"]
 
@@ -33,6 +37,8 @@ _FACE_CASCADE = cv2.CascadeClassifier(
 )
 logger = logging.getLogger("diu_lens.opencv")
 _STRICT_FACE_DETECTION_ANGLES: set[str] = {"front"}
+_INSIGHTFACE_ANALYZER: Any = None
+_INSIGHTFACE_INIT_FAILED = False
 
 
 def _default_report(file_name: str, angle: str) -> dict[str, Any]:
@@ -159,6 +165,10 @@ def extract_image_quality_metadata(
         "face_area_ratio": None,
         "center_offset": None,
         "detection_confidence": None,
+        "face_box": None,
+        "yaw": None,
+        "pitch": None,
+        "roll": None,
     }
     if not image_bytes:
         return metadata
@@ -218,6 +228,361 @@ def extract_image_quality_metadata(
         )
 
     return metadata
+
+
+def _append_failure(report: dict[str, Any], reason: str) -> None:
+    reasons = report.get("failure_reasons")
+    if not isinstance(reasons, list):
+        reasons = []
+    reasons.append(reason)
+    report["failure_reasons"] = reasons
+
+
+def _try_load_insightface_analyzer() -> Any | None:
+    global _INSIGHTFACE_ANALYZER
+    global _INSIGHTFACE_INIT_FAILED
+
+    if _INSIGHTFACE_ANALYZER is not None:
+        return _INSIGHTFACE_ANALYZER
+    if _INSIGHTFACE_INIT_FAILED:
+        return None
+
+    try:
+        from insightface.app import FaceAnalysis
+        from app.core.config import settings
+
+        analyzer = FaceAnalysis(
+            name=settings.insightface_model_pack,
+            root=settings.insightface_root,
+            providers=["CPUExecutionProvider"],
+        )
+        analyzer.prepare(ctx_id=-1, det_size=(640, 640))
+        _INSIGHTFACE_ANALYZER = analyzer
+        return analyzer
+    except Exception as exc:  # noqa: BLE001
+        _INSIGHTFACE_INIT_FAILED = True
+        logger.warning("[enrollment-validation] InsightFace unavailable: %r", exc)
+        return None
+
+
+def _detect_faces_for_enrollment(image: np.ndarray) -> list[dict[str, Any]]:
+    analyzer = _try_load_insightface_analyzer()
+    if analyzer is not None:
+        try:
+            faces = analyzer.get(image)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[enrollment-validation] InsightFace detection failed: %r", exc)
+            faces = []
+        detected: list[dict[str, Any]] = []
+        for face in faces:
+            bbox = getattr(face, "bbox", None)
+            if bbox is None or len(bbox) < 4:
+                continue
+            pose = getattr(face, "pose", None)
+            yaw = pitch = roll = None
+            if pose is not None and len(pose) >= 3:
+                try:
+                    pitch = float(pose[0])
+                    yaw = float(pose[1])
+                    roll = float(pose[2])
+                except (TypeError, ValueError):
+                    yaw = pitch = roll = None
+            detected.append(
+                {
+                    "bbox": [float(v) for v in bbox[:4]],
+                    "det_score": float(getattr(face, "det_score", 0.0) or 0.0),
+                    "yaw": yaw,
+                    "pitch": pitch,
+                    "roll": roll,
+                    "landmarks": getattr(face, "kps", None),
+                }
+            )
+        return detected
+
+    if _FACE_CASCADE.empty():
+        return []
+
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    faces = _FACE_CASCADE.detectMultiScale(
+        gray,
+        scaleFactor=1.1,
+        minNeighbors=5,
+        minSize=(40, 40),
+    )
+    return [
+        {
+            "bbox": [float(x), float(y), float(x + w), float(y + h)],
+            "det_score": 1.0,
+            "yaw": 0.0,
+            "pitch": 0.0,
+            "roll": 0.0,
+            "landmarks": None,
+        }
+        for x, y, w, h in faces
+    ]
+
+
+def _eyes_visible(face: dict[str, Any], face_box: list[float]) -> bool:
+    landmarks = face.get("landmarks")
+    if landmarks is not None:
+        try:
+            points = np.asarray(landmarks, dtype=float)
+            return points.shape[0] >= 2 and np.isfinite(points[:2]).all()
+        except (TypeError, ValueError):
+            return False
+    x1, y1, x2, y2 = face_box
+    return (x2 - x1) > 0 and (y2 - y1) > 0
+
+
+def _pose_matches(angle: str, yaw: float | None, pitch: float | None) -> bool:
+    threshold = ENROLLMENT_VALIDATION_CONFIG.pose_thresholds.get(angle)
+    if threshold is None:
+        return False
+    if yaw is None or pitch is None:
+        return False
+    return (
+        threshold.yaw_min <= yaw <= threshold.yaw_max
+        and threshold.pitch_min <= pitch <= threshold.pitch_max
+    )
+
+
+def compute_phash(image: np.ndarray, hash_size: int = 8, highfreq_factor: int = 4) -> str:
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    resized = cv2.resize(gray, (hash_size * highfreq_factor, hash_size * highfreq_factor))
+    dct = cv2.dct(np.float32(resized))
+    low_freq = dct[:hash_size, :hash_size]
+    median = float(np.median(low_freq[1:, 1:]))
+    bits = low_freq > median
+    value = 0
+    for bit in bits.flatten():
+        value = (value << 1) | int(bool(bit))
+    return f"{value:0{hash_size * hash_size // 4}x}"
+
+
+def phash_distance(left: str | None, right: str | None) -> int | None:
+    if not left or not right:
+        return None
+    try:
+        return int(int(left, 16) ^ int(right, 16)).bit_count()
+    except ValueError:
+        return None
+
+
+def _normalized_score(value: float, low: float, high: float) -> float:
+    if high <= low:
+        return 0.0
+    return max(0.0, min(1.0, (value - low) / (high - low)))
+
+
+def _quality_score(
+    *,
+    det_score: float,
+    blur_score: float,
+    brightness_score: float,
+    face_area_ratio: float,
+    center_offset: float,
+    yaw: float | None,
+    pitch: float | None,
+    angle: str,
+    config: EnrollmentValidationConfig,
+) -> float:
+    detection_component = _normalized_score(det_score, config.min_detection_score, 1.0)
+    blur_component = _normalized_score(blur_score, config.min_blur_variance, config.min_blur_variance * 3.0)
+    brightness_mid = (config.min_brightness + config.max_brightness) / 2.0
+    brightness_half_range = max(1.0, (config.max_brightness - config.min_brightness) / 2.0)
+    brightness_component = max(0.0, 1.0 - abs(brightness_score - brightness_mid) / brightness_half_range)
+    face_mid = (config.min_face_area_ratio + config.max_face_area_ratio) / 2.0
+    face_half_range = max(0.001, (config.max_face_area_ratio - config.min_face_area_ratio) / 2.0)
+    face_size_component = max(0.0, 1.0 - abs(face_area_ratio - face_mid) / face_half_range)
+    center_component = max(0.0, 1.0 - center_offset / max(config.max_center_offset, 0.001))
+    pose_component = 0.0
+    threshold = config.pose_thresholds.get(angle)
+    if threshold is not None and yaw is not None and pitch is not None:
+        yaw_mid = (threshold.yaw_min + threshold.yaw_max) / 2.0
+        pitch_mid = (threshold.pitch_min + threshold.pitch_max) / 2.0
+        yaw_half = max(1.0, (threshold.yaw_max - threshold.yaw_min) / 2.0)
+        pitch_half = max(1.0, (threshold.pitch_max - threshold.pitch_min) / 2.0)
+        yaw_score = max(0.0, 1.0 - abs(yaw - yaw_mid) / yaw_half)
+        pitch_score = max(0.0, 1.0 - abs(pitch - pitch_mid) / pitch_half)
+        pose_component = (yaw_score + pitch_score) / 2.0
+    score = (
+        detection_component * 20.0
+        + blur_component * 20.0
+        + brightness_component * 15.0
+        + face_size_component * 15.0
+        + center_component * 15.0
+        + pose_component * 15.0
+    )
+    return round(max(0.0, min(100.0, score)), 2)
+
+
+def validate_enrollment_image(
+    image_bytes: bytes,
+    file_name: str,
+    angle: str,
+    config: EnrollmentValidationConfig = ENROLLMENT_VALIDATION_CONFIG,
+) -> dict[str, Any]:
+    report = _default_report(file_name=file_name, angle=angle)
+    report["image_size_bytes"] = len(image_bytes)
+    report.update(
+        {
+            "detection_score": None,
+            "blur_score": None,
+            "brightness_score": None,
+            "face_box": None,
+            "yaw": None,
+            "pitch": None,
+            "roll": None,
+            "quality_score": None,
+            "perceptual_hash": None,
+            "duplicate_distance": None,
+            "replay_flags": [],
+            "crop_alignment_success": False,
+        }
+    )
+
+    if not image_bytes:
+        _append_failure(report, "missing_image_data")
+        return _finalize_strict_enrollment_report(report)
+
+    try:
+        image_array = np.frombuffer(image_bytes, dtype=np.uint8)
+        image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    except cv2.error:
+        logger.exception("[enrollment-validation] decode failed file=%s", file_name)
+        _append_failure(report, "invalid_image_data")
+        return _finalize_strict_enrollment_report(report)
+
+    if image is None:
+        _append_failure(report, "invalid_image_data")
+        return _finalize_strict_enrollment_report(report)
+
+    report["readable"] = True
+    report["decoded_shape"] = [int(v) for v in image.shape]
+    height, width = image.shape[:2]
+    report["dimensions"] = f"{width}x{height}"
+    report["dimensions_ok"] = width >= config.min_width and height >= config.min_height
+    if not report["dimensions_ok"]:
+        _append_failure(
+            report,
+            f"image_too_small(min:{config.min_width}x{config.min_height},got:{width}x{height})",
+        )
+
+    try:
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        blur_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        brightness_score = float(gray.mean())
+        report["perceptual_hash"] = compute_phash(image)
+    except cv2.error:
+        _append_failure(report, "image_processing_failed")
+        return _finalize_strict_enrollment_report(report)
+
+    report["blur_score"] = blur_score
+    report["brightness_score"] = brightness_score
+    report["brightness"] = brightness_score
+    report["blur_ok"] = blur_score >= config.min_blur_variance
+    report["brightness_ok"] = config.min_brightness <= brightness_score <= config.max_brightness
+    if not report["blur_ok"]:
+        _append_failure(report, f"image_blurry(score:{blur_score:.2f},min:{config.min_blur_variance:.2f})")
+    if not report["brightness_ok"]:
+        _append_failure(
+            report,
+            f"invalid_brightness(value:{brightness_score:.2f},range:{config.min_brightness:.2f}-{config.max_brightness:.2f})",
+        )
+
+    try:
+        faces = _detect_faces_for_enrollment(image)
+    except cv2.error:
+        logger.exception("[enrollment-validation] detector failed file=%s", file_name)
+        _append_failure(report, "face_detector_failed")
+        return _finalize_strict_enrollment_report(report)
+
+    report["face_count"] = len(faces)
+    report["face_detected"] = len(faces) > 0
+    report["multiple_faces_detected"] = len(faces) > 1
+    if len(faces) == 0:
+        _append_failure(report, "face_not_detected")
+        return _finalize_strict_enrollment_report(report)
+    if len(faces) > 1:
+        _append_failure(report, f"multiple_faces_detected(count:{len(faces)})")
+
+    face = max(
+        faces,
+        key=lambda item: max(0.0, item["bbox"][2] - item["bbox"][0])
+        * max(0.0, item["bbox"][3] - item["bbox"][1]),
+    )
+    x1, y1, x2, y2 = [float(v) for v in face["bbox"]]
+    face_w = max(0.0, x2 - x1)
+    face_h = max(0.0, y2 - y1)
+    face_area_ratio = (face_w * face_h) / max(float(width * height), 1.0)
+    center_offset = float(
+        np.hypot(((x1 + x2) / 2.0 / max(width, 1)) - 0.5, ((y1 + y2) / 2.0 / max(height, 1)) - 0.5)
+    )
+    edge_margin = min(x1 / max(width, 1), y1 / max(height, 1), (width - x2) / max(width, 1), (height - y2) / max(height, 1))
+    det_score = float(face.get("det_score") or 0.0)
+    yaw = face.get("yaw")
+    pitch = face.get("pitch")
+    roll = face.get("roll")
+
+    report["face_box"] = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
+    report["face_area_ratio"] = face_area_ratio
+    report["center_offset"] = center_offset
+    report["max_center_offset"] = config.max_center_offset
+    report["detection_score"] = det_score
+    report["detection_confidence"] = det_score
+    report["yaw"] = yaw
+    report["pitch"] = pitch
+    report["roll"] = roll
+    report["quality_score"] = _quality_score(
+        det_score=det_score,
+        blur_score=blur_score,
+        brightness_score=brightness_score,
+        face_area_ratio=face_area_ratio,
+        center_offset=center_offset,
+        yaw=yaw,
+        pitch=pitch,
+        angle=angle,
+        config=config,
+    )
+    report["face_centered"] = center_offset <= config.max_center_offset
+    report["crop_alignment_success"] = bool(face_w > 0 and face_h > 0)
+    report["eyes_visible"] = "passed" if _eyes_visible(face, [x1, y1, x2, y2]) else "failed"
+
+    if det_score < config.min_detection_score:
+        _append_failure(report, f"detection_score_too_low(score:{det_score:.2f},min:{config.min_detection_score:.2f})")
+    if face_area_ratio < config.min_face_area_ratio:
+        _append_failure(report, f"face_too_small(ratio:{face_area_ratio:.3f},min:{config.min_face_area_ratio:.3f})")
+    if face_area_ratio > config.max_face_area_ratio:
+        _append_failure(report, f"face_too_large(ratio:{face_area_ratio:.3f},max:{config.max_face_area_ratio:.3f})")
+    if not report["face_centered"]:
+        _append_failure(report, f"face_off_center(center_offset:{center_offset:.3f},max:{config.max_center_offset:.3f})")
+    if edge_margin < config.min_edge_margin_ratio:
+        _append_failure(report, f"face_too_close_to_edge(margin:{edge_margin:.3f},min:{config.min_edge_margin_ratio:.3f})")
+    if report["eyes_visible"] != "passed":
+        _append_failure(report, "eyes_not_visible")
+    if not _pose_matches(angle, yaw, pitch):
+        _append_failure(report, f"wrong_pose(angle:{angle},yaw:{yaw},pitch:{pitch})")
+    if not report["crop_alignment_success"]:
+        _append_failure(report, "crop_alignment_failed")
+
+    return _finalize_strict_enrollment_report(report)
+
+
+def _finalize_strict_enrollment_report(report: dict[str, Any]) -> dict[str, Any]:
+    failure_reasons_raw = report.get("failure_reasons", [])
+    failure_reasons = (
+        [str(reason) for reason in failure_reasons_raw]
+        if isinstance(failure_reasons_raw, list)
+        else []
+    )
+    report["failure_reasons"] = failure_reasons
+    report["blocking_reasons"] = failure_reasons
+    report["non_blocking_reasons"] = []
+    report["is_blocking_failure"] = bool(failure_reasons)
+    report["passed"] = not failure_reasons
+    report["final_decision"] = "reject" if failure_reasons else "accept"
+    report["blocker"] = _reason_code(failure_reasons[0]) if failure_reasons else "ready"
+    return report
 
 
 def validate_uploaded_image_integrity(

@@ -159,7 +159,17 @@ class Settings:
     redis_url: str
     enrollment_min_blur_variance: float
     enrollment_min_brightness: float
+    enrollment_max_brightness: float
     enrollment_min_face_area_ratio: float
+    enrollment_max_face_area_ratio: float
+    enrollment_min_detection_score: float
+    enrollment_max_center_offset: float
+    enrollment_min_edge_margin_ratio: float
+    enrollment_min_width: int
+    enrollment_min_height: int
+    enrollment_required_samples_per_angle: int
+    enrollment_stability_duration_ms: int
+    enrollment_liveness_challenge_count: int
 
 
 _environment = _get_env("APP_ENV", "development").lower()
@@ -224,7 +234,17 @@ settings = Settings(
     bootstrap_admin_password=os.getenv("BOOTSTRAP_ADMIN_PASSWORD"),
     bootstrap_admin_full_name=os.getenv("BOOTSTRAP_ADMIN_FULL_NAME"),
     redis_url=_redis_url,
-    enrollment_min_blur_variance=float(os.getenv("ENROLLMENT_MIN_BLUR_VARIANCE", "30.0")),
-    enrollment_min_brightness=float(os.getenv("ENROLLMENT_MIN_BRIGHTNESS", "40.0")),
-    enrollment_min_face_area_ratio=float(os.getenv("ENROLLMENT_MIN_FACE_AREA_RATIO", "0.08")),
+    enrollment_min_blur_variance=float(os.getenv("ENROLLMENT_MIN_BLUR_VARIANCE", "45.0")),
+    enrollment_min_brightness=float(os.getenv("ENROLLMENT_MIN_BRIGHTNESS", "70.0")),
+    enrollment_max_brightness=float(os.getenv("ENROLLMENT_MAX_BRIGHTNESS", "200.0")),
+    enrollment_min_face_area_ratio=float(os.getenv("ENROLLMENT_MIN_FACE_AREA_RATIO", "0.09")),
+    enrollment_max_face_area_ratio=float(os.getenv("ENROLLMENT_MAX_FACE_AREA_RATIO", "0.35")),
+    enrollment_min_detection_score=float(os.getenv("ENROLLMENT_MIN_DETECTION_SCORE", "0.55")),
+    enrollment_max_center_offset=float(os.getenv("ENROLLMENT_MAX_CENTER_OFFSET", "0.24")),
+    enrollment_min_edge_margin_ratio=float(os.getenv("ENROLLMENT_MIN_EDGE_MARGIN_RATIO", "0.03")),
+    enrollment_min_width=int(os.getenv("ENROLLMENT_MIN_WIDTH", "320")),
+    enrollment_min_height=int(os.getenv("ENROLLMENT_MIN_HEIGHT", "240")),
+    enrollment_required_samples_per_angle=int(os.getenv("ENROLLMENT_REQUIRED_SAMPLES_PER_ANGLE", "3")),
+    enrollment_stability_duration_ms=int(os.getenv("ENROLLMENT_STABILITY_DURATION_MS", "650")),
+    enrollment_liveness_challenge_count=int(os.getenv("ENROLLMENT_LIVENESS_CHALLENGE_COUNT", "3")),
 )

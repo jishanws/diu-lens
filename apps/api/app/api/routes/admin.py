@@ -1,4 +1,6 @@
+import json
 import logging
+from collections import Counter
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -22,6 +24,7 @@ from app.core.embeddings_db import (
 )
 from app.core.face_pipeline import FacePipelineError, process_student_images
 from app.core.storage import get_storage_service
+from app.db.models import Enrollment, EnrollmentImage
 from app.db.models.recognition_audit_logs import RecognitionAuditLog
 
 
@@ -76,6 +79,77 @@ async def get_system_config(
             "active_admin_accounts": admin_count,
         }
     }
+
+
+@router.get("/enrollments/{student_id}/samples")
+async def inspect_enrollment_samples(
+    student_id: str,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+) -> dict[str, object]:
+    require_admin(credentials)
+    session_factory = get_session_factory()
+    storage = get_storage_service()
+    with session_factory() as db:
+        enrollment = db.scalar(
+            select(Enrollment)
+            .where(Enrollment.student_id == student_id)
+            .order_by(desc(Enrollment.id))
+            .limit(1)
+        )
+        if enrollment is None:
+            return JSONResponse(
+                status_code=404,
+                content={"success": False, "message": "Enrollment not found."},
+            )
+
+        rows = db.scalars(
+            select(EnrollmentImage)
+            .where(EnrollmentImage.enrollment_id == enrollment.id)
+            .order_by(EnrollmentImage.angle.asc(), EnrollmentImage.image_index.asc(), EnrollmentImage.id.asc())
+        ).all()
+
+        samples = []
+        for row in rows:
+            preview_available = False
+            if row.file_path:
+                resolved = storage.resolve_relative_path(row.file_path)
+                preview_available = resolved.exists() and resolved.is_file()
+            samples.append(
+                {
+                    "id": row.id,
+                    "student_id": student_id,
+                    "capture_angle": row.angle,
+                    "image_index": row.image_index,
+                    "file_path": row.file_path,
+                    "preview_available": preview_available,
+                    "detection_score": row.detection_confidence,
+                    "blur_score": row.blur_score,
+                    "brightness_score": row.brightness,
+                    "face_box": row.face_box,
+                    "face_area_ratio": row.face_area_ratio,
+                    "center_offset": row.center_offset,
+                    "yaw": row.yaw,
+                    "pitch": row.pitch,
+                    "roll": row.roll,
+                    "quality_score": row.quality_score,
+                    "capture_latency_ms": row.capture_latency_ms,
+                    "perceptual_hash": row.perceptual_hash,
+                    "duplicate_distance": row.duplicate_distance,
+                    "replay_flags": row.replay_flags,
+                    "validation_status": row.validation_status,
+                    "rejection_reason": row.rejection_reason,
+                    "accepted": row.passed_validation,
+                    "timestamp": row.captured_at.isoformat() if row.captured_at else None,
+                }
+            )
+
+        return {
+            "success": True,
+            "student_id": student_id,
+            "enrollment_id": enrollment.id,
+            "validation_passed": enrollment.validation_passed,
+            "samples": samples,
+        }
 
 @router.get("/biometric-tasks")
 async def list_biometric_tasks(
@@ -428,6 +502,90 @@ def _audit_result_for_event(event_type: str) -> str:
     return "recorded"
 
 
+def _sample_threshold_recommendations(samples: list[EnrollmentImage]) -> list[dict[str, object]]:
+    recommendations: list[dict[str, object]] = []
+    if not samples:
+        return [
+            {
+                "metric": "sample_size",
+                "recommendation": "Collect calibration and enrollment samples from real DIU devices before tuning thresholds.",
+            }
+        ]
+
+    def values(attr: str) -> list[float]:
+        result: list[float] = []
+        for sample in samples:
+            value = getattr(sample, attr, None)
+            if isinstance(value, int | float):
+                result.append(float(value))
+        return result
+
+    blur_values = values("blur_score")
+    brightness_values = values("brightness")
+    quality_values = values("quality_score")
+    face_values = values("face_area_ratio")
+    center_values = values("center_offset")
+
+    if quality_values and sum(quality_values) / len(quality_values) < 75:
+        recommendations.append(
+            {
+                "metric": "quality_score",
+                "recommendation": "Do not lower thresholds yet; identify the dominant failing metric and improve capture conditions.",
+                "observed_average": round(sum(quality_values) / len(quality_values), 2),
+            }
+        )
+    if blur_values and min(blur_values) < settings.enrollment_min_blur_variance * 1.2:
+        recommendations.append(
+            {
+                "metric": "blur",
+                "recommendation": "Increase hold-still guidance or camera focus checks before changing blur threshold.",
+                "observed_min": round(min(blur_values), 2),
+                "threshold": settings.enrollment_min_blur_variance,
+            }
+        )
+    if brightness_values and (
+        min(brightness_values) < settings.enrollment_min_brightness + 10
+        or max(brightness_values) > settings.enrollment_max_brightness - 10
+    ):
+        recommendations.append(
+            {
+                "metric": "lighting",
+                "recommendation": "Tune room lighting and camera exposure before considering brightness threshold changes.",
+                "observed_range": [round(min(brightness_values), 2), round(max(brightness_values), 2)],
+                "threshold_range": [
+                    settings.enrollment_min_brightness,
+                    settings.enrollment_max_brightness,
+                ],
+            }
+        )
+    if face_values and min(face_values) < settings.enrollment_min_face_area_ratio * 1.15:
+        recommendations.append(
+            {
+                "metric": "distance",
+                "recommendation": "Students are near the minimum face size. Improve distance guidance or camera placement.",
+                "observed_min": round(min(face_values), 3),
+                "threshold": settings.enrollment_min_face_area_ratio,
+            }
+        )
+    if center_values and max(center_values) > settings.enrollment_max_center_offset * 0.9:
+        recommendations.append(
+            {
+                "metric": "centering",
+                "recommendation": "Improve framing overlay alignment. Keep the current centering threshold strict.",
+                "observed_max": round(max(center_values), 3),
+                "threshold": settings.enrollment_max_center_offset,
+            }
+        )
+    if not recommendations:
+        recommendations.append(
+            {
+                "metric": "overall",
+                "recommendation": "Stored samples are comfortably within thresholds. Continue collecting more device-specific data.",
+            }
+        )
+    return recommendations
+
+
 @router.get("/audit-logs")
 async def list_audit_logs(
     page: int = 1,
@@ -602,10 +760,50 @@ async def get_enrollments_metrics(
             select(func.min(Enrollment.updated_at))
             .where(Enrollment.status == "validated")
         )
+        total_enrollment_attempts = db.scalar(select(func.count(Enrollment.id))) or 0
+        accepted_enrollments = db.scalar(
+            select(func.count(Enrollment.id)).where(Enrollment.validation_passed.is_(True))
+        ) or 0
+        failed_attempts = db.scalar(
+            select(func.count(AuditLog.id)).where(AuditLog.event_type == "enrollment_failed")
+        ) or 0
+        samples = db.scalars(select(EnrollmentImage)).all()
+        quality_scores = [
+            float(sample.quality_score)
+            for sample in samples
+            if isinstance(sample.quality_score, int | float)
+        ]
+        rejection_counter: Counter[str] = Counter()
+        replay_counter: Counter[str] = Counter()
+        for sample in samples:
+            if sample.rejection_reason:
+                rejection_counter.update([sample.rejection_reason])
+            if sample.replay_flags:
+                try:
+                    flags = json.loads(sample.replay_flags)
+                except json.JSONDecodeError:
+                    flags = []
+                if isinstance(flags, list):
+                    replay_counter.update(str(flag) for flag in flags)
 
         return {
             "pending_review": pending_review,
             "approved_today": approved_today,
             "rejected_today": rejected_today,
-            "oldest_pending_timestamp": oldest_pending_timestamp.isoformat() if oldest_pending_timestamp else None
+            "oldest_pending_timestamp": oldest_pending_timestamp.isoformat() if oldest_pending_timestamp else None,
+            "enrollment_quality": {
+                "total_attempts": total_enrollment_attempts,
+                "accepted_enrollments": accepted_enrollments,
+                "failed_attempts": failed_attempts,
+                "acceptance_rate": round((accepted_enrollments / total_enrollment_attempts) * 100.0, 2)
+                if total_enrollment_attempts
+                else 0,
+                "total_samples": len(samples),
+                "average_quality_score": round(sum(quality_scores) / len(quality_scores), 2)
+                if quality_scores
+                else None,
+                "rejection_reasons": dict(rejection_counter),
+                "replay_flags": dict(replay_counter),
+                "threshold_recommendations": _sample_threshold_recommendations(samples),
+            },
         }

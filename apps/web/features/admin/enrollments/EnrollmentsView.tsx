@@ -226,6 +226,32 @@ export function EnrollmentsView() {
     if (hours > 0) return `${hours}h ${minutes}m`;
     return `${minutes}m`;
   }, [metrics?.oldest_pending_timestamp]);
+  const quality = metrics?.enrollment_quality;
+  const topRejectionReasons = useMemo(() => {
+    return Object.entries(quality?.rejection_reasons ?? {})
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4);
+  }, [quality?.rejection_reasons]);
+
+  const exportQualityReport = useCallback(() => {
+    if (!metrics || typeof window === 'undefined') return;
+    const payload = {
+      exported_at: new Date().toISOString(),
+      report_type: 'enrollment-quality-calibration',
+      metrics,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `diu-lens-enrollment-quality-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }, [metrics]);
 
   if (isLoading) {
     return (
@@ -244,6 +270,55 @@ export function EnrollmentsView() {
         <MetricCard title="Approved" value={metrics?.approved_today ?? 0} tone="approved" />
         <MetricCard title="Rejected" value={metrics?.rejected_today ?? 0} tone="rejected" />
         <MetricCard title="Oldest" value={oldestPendingDisplay} tone="default" />
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-[1fr_1.25fr]">
+        <div className="admin-surface p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-[0.85rem] font-medium text-slate-200">Enrollment Quality</h2>
+            <div className="flex items-center gap-2">
+              <span className="rounded-md border border-white/[0.05] bg-white/[0.02] px-2 py-1 text-[0.65rem] text-slate-400">
+                {quality?.total_samples ?? 0} samples
+              </span>
+              <button
+                type="button"
+                onClick={exportQualityReport}
+                disabled={!metrics}
+                className="rounded-md border border-[#6493b5]/20 bg-[#6493b5]/10 px-2 py-1 text-[0.65rem] font-medium text-[#8ab4d3] transition hover:bg-[#6493b5]/15 disabled:opacity-40"
+              >
+                Export
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <MetricCard title="Acceptance" value={`${quality?.acceptance_rate ?? 0}%`} tone="approved" />
+            <MetricCard title="Avg Score" value={quality?.average_quality_score ?? '--'} tone="default" />
+            <MetricCard title="Failed" value={quality?.failed_attempts ?? 0} tone="rejected" />
+          </div>
+          {topRejectionReasons.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {topRejectionReasons.map(([reason, count]) => (
+                <span key={reason} className="rounded-full border border-rose-500/15 bg-rose-500/[0.06] px-2 py-1 text-[0.65rem] text-rose-200/80">
+                  {reason}: {count}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <p className="mt-3 rounded-xl border border-amber-500/15 bg-amber-500/[0.06] p-3 text-[0.72rem] leading-5 text-amber-100/80">
+            Active liveness is a first defensive layer against simple photo or screen replay. It is not full enterprise presentation attack detection.
+          </p>
+        </div>
+        <div className="admin-surface p-4">
+          <h2 className="mb-3 text-[0.85rem] font-medium text-slate-200">Threshold Recommendations</h2>
+          <div className="grid gap-2">
+            {(quality?.threshold_recommendations ?? []).slice(0, 3).map((item, index) => (
+              <div key={`${item.metric}-${index}`} className="rounded-xl border border-white/[0.04] bg-white/[0.015] p-3">
+                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-[#6493b5]/80">{item.metric}</p>
+                <p className="mt-1 text-[0.78rem] leading-5 text-slate-300">{item.recommendation}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Queue card */}

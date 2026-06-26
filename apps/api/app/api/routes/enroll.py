@@ -2,13 +2,15 @@ import json
 import logging
 import re
 import traceback
+import csv
+import io
 from collections import Counter
 from datetime import datetime, timezone
 from time import perf_counter
 from typing import Literal, cast
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, ValidationError
 
 from app.core.enrollment_db import (
@@ -26,9 +28,10 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.image_validation import (
     build_validation_summary,
-    extract_image_quality_metadata,
-    validate_uploaded_image_integrity,
+    phash_distance,
+    validate_enrollment_image,
 )
+from app.core.enrollment_validation_config import ENROLLMENT_VALIDATION_CONFIG
 from app.core.storage import (
     ALLOWED_ANGLES,
     ALLOWED_IMAGE_CONTENT_TYPES,
@@ -39,9 +42,9 @@ from app.core.storage import (
 )
 
 
-MIN_IMAGES_PER_ANGLE = 2
-MAX_IMAGES_PER_ANGLE = 5
-REQUIRED_IMAGES_PER_ANGLE = 3
+MIN_IMAGES_PER_ANGLE = ENROLLMENT_VALIDATION_CONFIG.required_samples_per_angle
+MAX_IMAGES_PER_ANGLE = ENROLLMENT_VALIDATION_CONFIG.required_samples_per_angle
+REQUIRED_IMAGES_PER_ANGLE = ENROLLMENT_VALIDATION_CONFIG.required_samples_per_angle
 EXPECTED_REQUIRED_ANGLES: tuple[str, ...] = REQUIRED_CAPTURE_ANGLES
 EXPECTED_TOTAL_SHOTS = len(EXPECTED_REQUIRED_ANGLES) * REQUIRED_IMAGES_PER_ANGLE
 EYES_VISIBLE_VALUES: tuple[str, ...] = ("passed", "failed", "not_yet_implemented")
@@ -83,6 +86,7 @@ class AngleCaptureSummary(BaseModel):
 
 class FrameMetadata(BaseModel):
     captured_at: int | None = Field(default=None, ge=0)
+    capture_latency_ms: int | None = Field(default=None, ge=0)
 
 
 class AngleFrameMetadata(BaseModel):
@@ -99,6 +103,7 @@ class EnrollmentRequest(BaseModel):
         pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$",
         description="University email address",
     )
+    liveness_passed: bool = False
     verification_completed: bool = False
     total_required_shots: int = Field(default=0, ge=0)
     total_accepted_shots: int = Field(default=0, ge=0)
@@ -230,6 +235,9 @@ def _validate_final_multipart_metadata(payload: EnrollmentRequest) -> None:
             "verification_completed must be true for final multipart enrollment"
         )
 
+    if not payload.liveness_passed:
+        raise _bad_request("liveness_passed must be true for final multipart enrollment")
+
     if payload.total_required_shots != EXPECTED_TOTAL_SHOTS:
         raise _bad_request(
             f"total_required_shots must be exactly {EXPECTED_TOTAL_SHOTS}"
@@ -312,15 +320,15 @@ def _validate_file_counts(
 
 def _capture_timestamps_by_angle(
     payload: EnrollmentRequest,
-) -> dict[str, list[int | None]]:
-    mapping: dict[str, list[int | None]] = {
+) -> dict[str, list[FrameMetadata]]:
+    mapping: dict[str, list[FrameMetadata]] = {
         angle: [] for angle in EXPECTED_REQUIRED_ANGLES
     }
     for entry in payload.frame_metadata_by_angle:
         angle = str(entry.angle)
         if angle not in mapping:
             continue
-        mapping[angle] = [frame.captured_at for frame in entry.frames]
+        mapping[angle] = list(entry.frames)
     return mapping
 
 
@@ -347,11 +355,23 @@ def _build_frame_metadata_by_path(
                 quality = {}
             metadata_by_path[str(path)] = {
                 "captured_at": quality.get("captured_at"),
+                "capture_latency_ms": quality.get("capture_latency_ms"),
+                "image_index": quality.get("image_index", index + 1),
+                "validation_status": quality.get("validation_status"),
+                "rejection_reason": quality.get("rejection_reason"),
                 "blur_score": quality.get("blur_score"),
                 "brightness": quality.get("brightness"),
                 "face_area_ratio": quality.get("face_area_ratio"),
                 "center_offset": quality.get("center_offset"),
                 "detection_confidence": quality.get("detection_confidence"),
+                "face_box": quality.get("face_box"),
+                "yaw": quality.get("yaw"),
+                "pitch": quality.get("pitch"),
+                "roll": quality.get("roll"),
+                "quality_score": quality.get("quality_score"),
+                "perceptual_hash": quality.get("perceptual_hash"),
+                "duplicate_distance": quality.get("duplicate_distance"),
+                "replay_flags": quality.get("replay_flags"),
             }
 
     return metadata_by_path
@@ -403,13 +423,128 @@ def _dimensions_from_report(report: dict[str, object]) -> str:
     return "unknown"
 
 
+def _threshold_recommendations_from_reports(
+    image_reports: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    recommendations: list[dict[str, object]] = []
+    if not image_reports:
+        return recommendations
+
+    def values_for(key: str) -> list[float]:
+        values: list[float] = []
+        for report in image_reports:
+            value = report.get(key)
+            if isinstance(value, int | float):
+                values.append(float(value))
+        return values
+
+    blur_values = values_for("blur_score")
+    brightness_values = values_for("brightness_score")
+    face_values = values_for("face_area_ratio")
+    center_values = values_for("center_offset")
+    quality_values = values_for("quality_score")
+
+    if blur_values and min(blur_values) < ENROLLMENT_VALIDATION_CONFIG.min_blur_variance:
+        recommendations.append(
+            {
+                "metric": "blur",
+                "recommendation": "Improve camera focus or require the student to hold still longer.",
+                "observed_min": round(min(blur_values), 2),
+                "threshold": ENROLLMENT_VALIDATION_CONFIG.min_blur_variance,
+            }
+        )
+    if brightness_values and (
+        min(brightness_values) < ENROLLMENT_VALIDATION_CONFIG.min_brightness
+        or max(brightness_values) > ENROLLMENT_VALIDATION_CONFIG.max_brightness
+    ):
+        recommendations.append(
+            {
+                "metric": "brightness",
+                "recommendation": "Adjust room lighting before changing thresholds.",
+                "observed_range": [round(min(brightness_values), 2), round(max(brightness_values), 2)],
+                "threshold_range": [
+                    ENROLLMENT_VALIDATION_CONFIG.min_brightness,
+                    ENROLLMENT_VALIDATION_CONFIG.max_brightness,
+                ],
+            }
+        )
+    if face_values and min(face_values) < ENROLLMENT_VALIDATION_CONFIG.min_face_area_ratio:
+        recommendations.append(
+            {
+                "metric": "face_size",
+                "recommendation": "Move the camera closer or guide students closer to the camera.",
+                "observed_min": round(min(face_values), 3),
+                "threshold": ENROLLMENT_VALIDATION_CONFIG.min_face_area_ratio,
+            }
+        )
+    if center_values and max(center_values) > ENROLLMENT_VALIDATION_CONFIG.max_center_offset:
+        recommendations.append(
+            {
+                "metric": "centering",
+                "recommendation": "Improve UI framing guidance or camera mounting position.",
+                "observed_max": round(max(center_values), 3),
+                "threshold": ENROLLMENT_VALIDATION_CONFIG.max_center_offset,
+            }
+        )
+    if quality_values and sum(quality_values) / len(quality_values) < 70:
+        recommendations.append(
+            {
+                "metric": "quality_score",
+                "recommendation": "Collect more samples on this device before considering threshold changes.",
+                "observed_average": round(sum(quality_values) / len(quality_values), 2),
+                "target": 70,
+            }
+        )
+    if not recommendations:
+        recommendations.append(
+            {
+                "metric": "overall",
+                "recommendation": "Current device samples are within configured thresholds. Keep validation strict.",
+            }
+        )
+    return recommendations
+
+
+def _summarize_reports(image_reports: list[dict[str, object]]) -> dict[str, object]:
+    total = len(image_reports)
+    accepted = sum(1 for report in image_reports if bool(report.get("passed")))
+    quality_scores = [
+        float(report["quality_score"])
+        for report in image_reports
+        if isinstance(report.get("quality_score"), int | float)
+    ]
+    reason_counts: dict[str, int] = {}
+    for report in image_reports:
+        if bool(report.get("passed")):
+            continue
+        reasons = report.get("failure_reasons")
+        if isinstance(reasons, list):
+            for reason in reasons:
+                code = str(reason).split("(", 1)[0]
+                reason_counts[code] = reason_counts.get(code, 0) + 1
+    return {
+        "total_samples": total,
+        "accepted_samples": accepted,
+        "rejected_samples": total - accepted,
+        "acceptance_rate": round((accepted / total) * 100.0, 2) if total else 0,
+        "average_quality_score": round(sum(quality_scores) / len(quality_scores), 2)
+        if quality_scores
+        else None,
+        "rejection_reasons": reason_counts,
+        "threshold_recommendations": _threshold_recommendations_from_reports(image_reports),
+    }
+
+
 async def _validate_files(
     files_by_angle: dict[str, list[UploadFile]],
-    capture_timestamps_by_angle: dict[str, list[int | None]],
+    capture_timestamps_by_angle: dict[str, list[FrameMetadata]],
 ) -> dict[str, object]:
     image_reports: list[dict[str, object]] = []
     total_uploaded_bytes = 0
     quality_by_angle: dict[str, list[dict[str, object]]] = {
+        angle: [] for angle in EXPECTED_REQUIRED_ANGLES
+    }
+    reports_by_angle: dict[str, list[dict[str, object]]] = {
         angle: [] for angle in EXPECTED_REQUIRED_ANGLES
     }
 
@@ -438,29 +573,73 @@ async def _validate_files(
             total_uploaded_bytes += len(sample)
 
             file_name = upload.filename or "unknown"
-            image_report = validate_uploaded_image_integrity(
+            image_report = validate_enrollment_image(
                 image_bytes=sample,
                 file_name=file_name,
                 angle=angle,
             )
-            quality = extract_image_quality_metadata(sample)
             captured_at_rows = capture_timestamps_by_angle.get(angle, [])
-            captured_at = (
-                captured_at_rows[index]
-                if index < len(captured_at_rows)
+            frame_metadata = captured_at_rows[index] if index < len(captured_at_rows) else None
+            captured_at = frame_metadata.captured_at if frame_metadata is not None else None
+            capture_latency_ms = (
+                frame_metadata.capture_latency_ms if frame_metadata is not None else None
+            )
+            previous_hashes = [
+                str(report.get("perceptual_hash"))
+                for report in reports_by_angle[angle]
+                if report.get("perceptual_hash")
+            ]
+            current_hash = (
+                str(image_report.get("perceptual_hash"))
+                if image_report.get("perceptual_hash")
                 else None
             )
+            duplicate_distances = [
+                distance
+                for distance in (
+                    phash_distance(current_hash, previous_hash)
+                    for previous_hash in previous_hashes
+                )
+                if distance is not None
+            ]
+            duplicate_distance = min(duplicate_distances) if duplicate_distances else None
+            replay_flags: list[str] = []
+            if duplicate_distance is not None and duplicate_distance <= 4:
+                replay_flags.append("near_duplicate_frame")
+                reasons = image_report.setdefault("failure_reasons", [])
+                if isinstance(reasons, list):
+                    reasons.append(f"near_duplicate_frame(phash_distance:{duplicate_distance})")
+                image_report["passed"] = False
+                image_report["is_blocking_failure"] = True
+                image_report["final_decision"] = "reject"
+                image_report["blocker"] = "near_duplicate_frame"
+            image_report["duplicate_distance"] = duplicate_distance
+            image_report["replay_flags"] = replay_flags
+            image_report["capture_latency_ms"] = capture_latency_ms
             quality_by_angle[angle].append(
                 {
                     "file_name": file_name,
+                    "image_index": index + 1,
                     "captured_at": captured_at,
-                    "blur_score": quality.get("blur_score"),
-                    "brightness": quality.get("brightness"),
-                    "face_area_ratio": quality.get("face_area_ratio"),
-                    "center_offset": quality.get("center_offset"),
-                    "detection_confidence": quality.get("detection_confidence"),
+                    "capture_latency_ms": capture_latency_ms,
+                    "validation_status": "accepted" if image_report.get("passed") else "rejected",
+                    "rejection_reason": image_report.get("blocker"),
+                    "blur_score": image_report.get("blur_score"),
+                    "brightness": image_report.get("brightness_score"),
+                    "face_area_ratio": image_report.get("face_area_ratio"),
+                    "center_offset": image_report.get("center_offset"),
+                    "detection_confidence": image_report.get("detection_score"),
+                    "face_box": image_report.get("face_box"),
+                    "yaw": image_report.get("yaw"),
+                    "pitch": image_report.get("pitch"),
+                    "roll": image_report.get("roll"),
+                    "quality_score": image_report.get("quality_score"),
+                    "perceptual_hash": image_report.get("perceptual_hash"),
+                    "duplicate_distance": duplicate_distance,
+                    "replay_flags": replay_flags,
                 }
             )
+            reports_by_angle[angle].append(image_report)
             blocking_reasons = image_report.get("blocking_reasons", [])
             non_blocking_reasons = image_report.get("non_blocking_reasons", [])
             if not isinstance(blocking_reasons, list):
@@ -491,6 +670,25 @@ async def _validate_files(
                     image_report.get("blocker", "unknown"),
                 )
             image_reports.append(image_report)
+
+    all_hashes = [
+        str(report.get("perceptual_hash"))
+        for report in image_reports
+        if report.get("perceptual_hash")
+    ]
+    unique_hashes = set(all_hashes)
+    if len(all_hashes) >= EXPECTED_TOTAL_SHOTS and len(unique_hashes) <= max(3, len(all_hashes) // 3):
+        for report in image_reports:
+            flags = report.setdefault("replay_flags", [])
+            if isinstance(flags, list):
+                flags.append("low_perceptual_motion_sequence")
+            reasons = report.setdefault("failure_reasons", [])
+            if isinstance(reasons, list):
+                reasons.append("low_perceptual_motion_sequence")
+            report["passed"] = False
+            report["is_blocking_failure"] = True
+            report["final_decision"] = "reject"
+            report["blocker"] = "low_perceptual_motion_sequence"
 
     summary = build_validation_summary(image_reports)
     verification_logger.info(
@@ -532,6 +730,150 @@ async def _validate_files(
         )
 
     return summary
+
+
+@router.post("/enroll/calibration", response_model=None)
+async def calibrate_enrollment_capture(request: Request) -> dict[str, object] | Response:
+    try:
+        form_data = await request.form()
+    except Exception as exc:
+        raise _bad_request(f"Invalid multipart payload: {exc}") from exc
+
+    default_angle = str(form_data.get("angle") or "front").strip().lower()
+    if default_angle not in EXPECTED_REQUIRED_ANGLES:
+        raise _bad_request(f"Unsupported calibration angle: {default_angle}")
+
+    uploads: list[tuple[str, UploadFile]] = []
+    for key in form_data.keys():
+        if key in {"angle", "metadata"}:
+            continue
+        for item in form_data.getlist(key):
+            if not hasattr(item, "filename") or not hasattr(item, "read"):
+                continue
+            angle = key if key in EXPECTED_REQUIRED_ANGLES else default_angle
+            uploads.append((angle, cast(UploadFile, item)))
+
+    if not uploads:
+        raise _bad_request("No calibration images were provided.")
+
+    reports: list[dict[str, object]] = []
+    previous_hashes_by_angle: dict[str, list[str]] = {angle: [] for angle in EXPECTED_REQUIRED_ANGLES}
+    try:
+        for angle, upload in uploads:
+            content_type = (upload.content_type or "").lower()
+            if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+                raise _bad_request(f"Unsupported file type for calibration angle: {angle}")
+            sample = await upload.read(MAX_UPLOAD_IMAGE_SIZE_BYTES + 1)
+            if not sample:
+                raise _bad_request(f"Calibration file is empty for angle: {angle}")
+            if len(sample) > MAX_UPLOAD_IMAGE_SIZE_BYTES:
+                raise _bad_request(f"Calibration file too large for angle: {angle}")
+            report = validate_enrollment_image(sample, upload.filename or "calibration", angle)
+            current_hash = str(report.get("perceptual_hash")) if report.get("perceptual_hash") else None
+            distances = [
+                distance
+                for distance in (
+                    phash_distance(current_hash, previous_hash)
+                    for previous_hash in previous_hashes_by_angle[angle]
+                )
+                if distance is not None
+            ]
+            duplicate_distance = min(distances) if distances else None
+            report["duplicate_distance"] = duplicate_distance
+            if duplicate_distance is not None and duplicate_distance <= 4:
+                flags = report.setdefault("replay_flags", [])
+                if isinstance(flags, list):
+                    flags.append("near_duplicate_frame")
+            if current_hash:
+                previous_hashes_by_angle[angle].append(current_hash)
+            reports.append(report)
+    finally:
+        for _, upload in uploads:
+            await upload.close()
+
+    payload = {
+        "success": True,
+        "mode": "calibration",
+        "persisted": False,
+        "thresholds": {
+            "min_detection_score": ENROLLMENT_VALIDATION_CONFIG.min_detection_score,
+            "min_face_area_ratio": ENROLLMENT_VALIDATION_CONFIG.min_face_area_ratio,
+            "max_face_area_ratio": ENROLLMENT_VALIDATION_CONFIG.max_face_area_ratio,
+            "max_center_offset": ENROLLMENT_VALIDATION_CONFIG.max_center_offset,
+            "min_blur_variance": ENROLLMENT_VALIDATION_CONFIG.min_blur_variance,
+            "brightness_range": [
+                ENROLLMENT_VALIDATION_CONFIG.min_brightness,
+                ENROLLMENT_VALIDATION_CONFIG.max_brightness,
+            ],
+            "pose_thresholds": {
+                angle: threshold.__dict__
+                for angle, threshold in ENROLLMENT_VALIDATION_CONFIG.pose_thresholds.items()
+            },
+        },
+        "summary": _summarize_reports(reports),
+        "reports": reports,
+    }
+    export_format = str(request.query_params.get("export", "")).strip().lower()
+    if export_format == "csv":
+        output = io.StringIO()
+        writer = csv.DictWriter(
+            output,
+            fieldnames=[
+                "file_name",
+                "angle",
+                "passed",
+                "blocker",
+                "quality_score",
+                "detection_score",
+                "blur_score",
+                "brightness_score",
+                "face_area_ratio",
+                "center_offset",
+                "yaw",
+                "pitch",
+                "roll",
+                "duplicate_distance",
+                "replay_flags",
+            ],
+        )
+        writer.writeheader()
+        for report in reports:
+            writer.writerow(
+                {
+                    "file_name": report.get("file_name"),
+                    "angle": report.get("angle"),
+                    "passed": report.get("passed"),
+                    "blocker": report.get("blocker"),
+                    "quality_score": report.get("quality_score"),
+                    "detection_score": report.get("detection_score"),
+                    "blur_score": report.get("blur_score"),
+                    "brightness_score": report.get("brightness_score"),
+                    "face_area_ratio": report.get("face_area_ratio"),
+                    "center_offset": report.get("center_offset"),
+                    "yaw": report.get("yaw"),
+                    "pitch": report.get("pitch"),
+                    "roll": report.get("roll"),
+                    "duplicate_distance": report.get("duplicate_distance"),
+                    "replay_flags": "|".join(
+                        str(flag)
+                        for flag in (
+                            report.get("replay_flags", [])
+                            if isinstance(report.get("replay_flags"), list)
+                            else []
+                        )
+                        if flag
+                    ),
+                }
+            )
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": "attachment; filename=diu-lens-enrollment-calibration.csv"
+            },
+        )
+
+    return payload
 
 
 async def _close_upload_files(files_by_angle: dict[str, list[UploadFile]]) -> None:

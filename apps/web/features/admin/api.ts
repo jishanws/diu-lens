@@ -824,6 +824,16 @@ export type EnrollmentDetailsResponse = {
     blur_score: number | null;
     brightness: number | null;
     detection_confidence: number | null;
+    face_area_ratio?: number | null;
+    center_offset?: number | null;
+    yaw?: number | null;
+    pitch?: number | null;
+    roll?: number | null;
+    quality_score?: number | null;
+    capture_latency_ms?: number | null;
+    perceptual_hash?: string | null;
+    duplicate_distance?: number | null;
+    replay_flags?: string | null;
     is_best: boolean;
   }>;
   supplementary_images: Array<{
@@ -833,6 +843,16 @@ export type EnrollmentDetailsResponse = {
     blur_score: number | null;
     brightness: number | null;
     detection_confidence: number | null;
+    face_area_ratio?: number | null;
+    center_offset?: number | null;
+    yaw?: number | null;
+    pitch?: number | null;
+    roll?: number | null;
+    quality_score?: number | null;
+    capture_latency_ms?: number | null;
+    perceptual_hash?: string | null;
+    duplicate_distance?: number | null;
+    replay_flags?: string | null;
     is_best: boolean;
   }>;
   duplicate_candidates: Array<{
@@ -877,6 +897,21 @@ export type EnrollmentsMetricsResponse = {
   approved_today: number;
   rejected_today: number;
   oldest_pending_timestamp: string | null;
+  enrollment_quality?: {
+    total_attempts: number;
+    accepted_enrollments: number;
+    failed_attempts: number;
+    acceptance_rate: number;
+    total_samples: number;
+    average_quality_score: number | null;
+    rejection_reasons: Record<string, number>;
+    replay_flags: Record<string, number>;
+    threshold_recommendations: Array<{
+      metric: string;
+      recommendation: string;
+      [key: string]: unknown;
+    }>;
+  };
 };
 
 export async function fetchEnrollmentMetrics(

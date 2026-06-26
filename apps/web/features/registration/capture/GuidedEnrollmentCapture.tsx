@@ -32,7 +32,7 @@ function getStorageKey(studentId: string) {
   return `diu-lens-capture:${normalized || 'unknown'}`;
 }
 
-function getAngleLabel(angle: VerificationAngle) {
+function getAngleLabel(angle: VerificationAngle | string) {
   if (angle === 'natural_front') return 'Natural Front';
   return angle.charAt(0).toUpperCase() + angle.slice(1);
 }
@@ -285,6 +285,7 @@ export function GuidedEnrollmentCapture({
     try {
       const uploadAngles = guidedAngles;
       const summary: VerificationCompletionSummary = {
+        livenessPassed: state.liveness.completed,
         verificationCompleted: true,
         totalRequiredShots,
         totalAcceptedShots: uploadAngles.reduce(
@@ -314,6 +315,7 @@ export function GuidedEnrollmentCapture({
     onComplete,
     state.canSubmit,
     state.capturedCount,
+    state.liveness.completed,
     studentId,
   ]);
 
@@ -410,10 +412,16 @@ export function GuidedEnrollmentCapture({
                 className="mb-[0.2rem] text-[0.63rem] font-semibold tracking-[0.12em] uppercase"
                 style={{ color: 'rgba(100, 147, 181, 0.7)' }}
               >
-                Face Verification
+                {state.liveness.completed ? 'Face Verification' : 'Liveness Check'}
               </p>
               <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
-                {getAngleLabel(state.currentAngle)}
+                {state.liveness.completed
+                  ? getAngleLabel(state.currentAngle)
+                  : state.liveness.currentChallenge === 'blink'
+                    ? 'Blink'
+                    : state.liveness.currentChallenge
+                      ? getAngleLabel(state.liveness.currentChallenge)
+                      : 'Liveness'}
               </h3>
             </div>
 
@@ -422,6 +430,14 @@ export function GuidedEnrollmentCapture({
               className="flex items-center gap-[0.28rem] pt-1"
               aria-label={`Step ${captureAngles.indexOf(state.currentAngle) + 1} of ${captureAngles.length}`}
             >
+              <span
+                className={cn(
+                  'mr-1 rounded-full transition-all duration-300',
+                  state.liveness.completed
+                    ? 'h-[5px] w-[5px] bg-emerald-300'
+                    : 'biometric-dot-active h-[6px] w-[6px] bg-amber-300'
+                )}
+              />
               {captureAngles.map((angle, i) => {
                 const currentIdx = captureAngles.indexOf(state.currentAngle);
                 const isDone = i < currentIdx;
@@ -523,8 +539,10 @@ export function GuidedEnrollmentCapture({
           {streamActive && !permissionBlocked && !state.canSubmit && (
             <div className="flex justify-center flex-wrap gap-2 mt-2 px-2">
               <HealthBadge label="Visibility" active={state.feedback.readiness.faceDetected && state.feedback.readiness.singleFace} />
+              <HealthBadge label="Eyes" active={state.feedback.readiness.eyesVisible} />
               <HealthBadge label="Framing" active={state.feedback.readiness.faceLargeEnough && state.feedback.readiness.centered} />
               <HealthBadge label="Lighting" active={state.feedback.readiness.brightnessOk} />
+              <HealthBadge label="Liveness" active={state.feedback.readiness.livenessPassed} />
               <HealthBadge label="Angle" active={state.feedback.readiness.angleMatch} />
             </div>
           )}

@@ -54,6 +54,10 @@ FACE_MATCH_TOP_K=5
 FACE_MATCH_CANDIDATE_POOL_LIMIT=200
 ```
 
+Enrollment validation thresholds are centralized in `app/core/enrollment_validation_config.py`
+and can be tuned with `ENROLLMENT_*` environment variables. Do not lower core
+validation gates to make registration faster; collect calibration data first.
+
 ## 4. Run the server
 
 ```bash
@@ -64,6 +68,8 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 - Health check: `GET http://127.0.0.1:8000/health`
 - Enrollment placeholder: `POST http://127.0.0.1:8000/enroll`
+- Enrollment calibration, no persistence: `POST http://127.0.0.1:8000/enroll/calibration`
+- Enrollment calibration CSV export: `POST http://127.0.0.1:8000/enroll/calibration?export=csv`
 - DB debug check: `GET http://127.0.0.1:8000/debug/db`
 - Admin processing trigger: `POST http://127.0.0.1:8000/admin/enrollments/{student_id}/process`
 - Debug processing trigger (super-admin): `POST http://127.0.0.1:8000/debug/process/{student_id}`
@@ -73,6 +79,25 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - Admin login: `POST http://127.0.0.1:8000/auth/admin/login`
 - Admin me: `GET http://127.0.0.1:8000/auth/admin/me`
 - Face matching: `POST http://127.0.0.1:8000/admin/recognition/match`
+
+### Enrollment Calibration Notes
+
+`/enroll/calibration` runs the same backend validation used by final enrollment,
+but does not create students, enrollments, image rows, or embeddings. The response
+includes per-image raw metrics, `quality_score`, pHash duplicate distance, replay
+flags, and threshold recommendations.
+
+`quality_score` is a diagnostic 0-100 score combining detector confidence, blur,
+brightness, face size, centering, and pose closeness. It never overrides a hard
+rejection gate.
+
+pHash duplicate detection rejects visually near-identical frames, including frames
+that differ by compression or metadata. It is a basic replay heuristic.
+
+Active liveness is a first defensive layer against simple photo/screen replay. It
+is not enterprise presentation attack detection (PAD).
+
+See `docs/enrollment-threshold-tuning.md` for the DIU real-device testing process.
 
 ## 6. Bootstrap first super admin
 

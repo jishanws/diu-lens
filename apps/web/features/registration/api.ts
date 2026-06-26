@@ -189,13 +189,14 @@ export type AngleCaptureSummaryPayload = {
 };
 
 export type EnrollmentCompletionPayload = EnrollmentPayload & {
+  liveness_passed?: boolean;
   verification_completed: boolean;
   total_required_shots: number;
   total_accepted_shots: number;
   angles: AngleCaptureSummaryPayload[];
   frame_metadata_by_angle?: {
     angle: string;
-    frames: { captured_at: number }[];
+    frames: { captured_at: number; capture_latency_ms?: number }[];
   }[];
 };
 
@@ -440,14 +441,6 @@ async function submitEnrollmentCompletionRequest(
   errorMessage: string
 ) {
   try {
-    const requestStartMs = performance.now();
-    const logTiming = (
-      stage: string,
-      details: Record<string, unknown> = {}
-    ) => {
-      // Timing logs removed for production
-    };
-
     const anglesSummary = REQUIRED_VERIFICATION_ANGLES.map((angle) => ({
       angle,
       accepted_shots: capturesByAngle[angle]?.length ?? 0,
@@ -470,17 +463,16 @@ async function submitEnrollmentCompletionRequest(
         angle,
         frames: (frameMetadataByAngle[angle] ?? []).map((frame) => ({
           captured_at: frame.capturedAt,
+          capture_latency_ms: frame.captureLatencyMs,
         })),
       })),
     };
 
-    logTiming('FormData creation started');
     const formData = new FormData();
     formData.append('metadata', JSON.stringify(metadataWithFrames));
     formData.append('student_id', payload.student_id);
 
     let appendedFiles = 0;
-    let totalUploadBytes = 0;
 
     for (const angle of REQUIRED_VERIFICATION_ANGLES) {
       const captures = capturesByAngle[angle];
@@ -541,7 +533,6 @@ async function submitEnrollmentCompletionRequest(
           };
         }
 
-        const sizeKb = Math.round(capture.size / 1024);
         const extension = normalizedType === 'image/png' ? 'png' : 'jpg';
         const fileName = `${angle}_${index + 1}.${extension}`;
         const fileToAppend =
@@ -556,14 +547,6 @@ async function submitEnrollmentCompletionRequest(
         }
         formData.append(angle, fileToAppend, fileName);
         appendedFiles += 1;
-        totalUploadBytes += capture.size;
-        logTiming('each file appended', {
-          angle,
-          index,
-          sizeKb,
-          fileType: capture.type,
-          appendedFiles,
-        });
       }
     }
 
@@ -574,26 +557,6 @@ async function submitEnrollmentCompletionRequest(
           'No captured verification images found. Please retake the guided shots.',
       };
     }
-    const formEntries = Array.from(formData.entries());
-    const fileEntries = formEntries.filter(
-      ([, value]) => value instanceof Blob
-    );
-    const fileCountsByKey = fileEntries.reduce<Record<string, number>>(
-      (acc, [key]) => {
-        acc[key] = (acc[key] ?? 0) + 1;
-        return acc;
-      },
-      {}
-    );
-    const totalKb = Math.round(totalUploadBytes / 1024);
-    const totalMb = Number((totalUploadBytes / (1024 * 1024)).toFixed(2));
-    logTiming('upload size summary', {
-      appendedFiles,
-      totalKb,
-      totalMb,
-    });
-
-    logTiming('fetch request started');
     const requestOptions: RequestInit = {
       method: 'POST',
       body: formData,
@@ -604,20 +567,12 @@ async function submitEnrollmentCompletionRequest(
     };
 
     const response = await request('/enroll/verification', requestOptions);
-    logTiming('response headers received', {
-      status: response.status,
-      ok: response.ok,
-    });
 
     const parsed = await parseEnrollmentResponse(
       response,
       errorMessage,
       'verification'
     );
-    logTiming('response body parsed', {
-      success: parsed.success,
-      message: parsed.message,
-    });
     return parsed;
   } catch (error) {
     console.error('[verification] request failed', error);

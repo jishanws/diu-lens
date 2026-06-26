@@ -1,0 +1,146 @@
+from __future__ import annotations
+
+import cv2
+import numpy as np
+
+from app.api.routes import enroll
+from app.core import image_validation
+from app.db.models import Enrollment
+
+
+def _jpeg_bytes(*, brightness: int = 128, pattern: bool = True) -> bytes:
+    image = np.full((480, 640, 3), brightness, dtype=np.uint8)
+    if pattern:
+        for y in range(0, 480, 16):
+            color = 255 if (y // 16) % 2 == 0 else 40
+            image[y : y + 8, :, :] = color
+        cv2.rectangle(image, (220, 120), (420, 360), (230, 230, 230), -1)
+        cv2.circle(image, (280, 210), 12, (20, 20, 20), -1)
+        cv2.circle(image, (360, 210), 12, (20, 20, 20), -1)
+    ok, encoded = cv2.imencode(".jpg", image)
+    assert ok
+    return encoded.tobytes()
+
+
+def _face(*, yaw: float = 0.0, pitch: float = 0.0, score: float = 0.92) -> dict[str, object]:
+    return {
+        "bbox": [220.0, 120.0, 420.0, 360.0],
+        "det_score": score,
+        "yaw": yaw,
+        "pitch": pitch,
+        "roll": 0.0,
+        "landmarks": np.array([[280.0, 210.0], [360.0, 210.0]], dtype=float),
+    }
+
+
+def test_wrong_pose_rejected(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=0, pitch=0)])
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
+
+    assert report["passed"] is False
+    assert report["blocker"] == "wrong_pose"
+
+
+def test_front_pose_not_accepted_as_left_or_right(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=0, pitch=0)])
+
+    left = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
+    right = image_validation.validate_enrollment_image(_jpeg_bytes(), "right.jpg", "right")
+
+    assert left["passed"] is False
+    assert right["passed"] is False
+    assert left["blocker"] == "wrong_pose"
+    assert right["blocker"] == "wrong_pose"
+
+
+def test_blurry_image_rejected(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(pattern=False), "front.jpg", "front")
+
+    assert report["passed"] is False
+    assert report["blocker"] == "image_blurry"
+
+
+def test_dark_image_rejected(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
+
+    report = image_validation.validate_enrollment_image(
+        _jpeg_bytes(brightness=20, pattern=False),
+        "front.jpg",
+        "front",
+    )
+
+    assert report["passed"] is False
+    assert any(str(reason).startswith("invalid_brightness") for reason in report["failure_reasons"])
+
+
+def test_multiple_faces_rejected(monkeypatch) -> None:
+    monkeypatch.setattr(
+        image_validation,
+        "_detect_faces_for_enrollment",
+        lambda image: [_face(), {**_face(), "bbox": [30.0, 100.0, 160.0, 260.0]}],
+    )
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "front.jpg", "front")
+
+    assert report["passed"] is False
+    assert report["blocker"] == "multiple_faces_detected"
+
+
+def test_no_face_rejected(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [])
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "front.jpg", "front")
+
+    assert report["passed"] is False
+    assert report["blocker"] == "face_not_detected"
+
+
+def test_valid_capture_structure_requires_exactly_15_samples() -> None:
+    assert enroll.EXPECTED_REQUIRED_ANGLES == ("front", "left", "right", "up", "down")
+    assert enroll.REQUIRED_IMAGES_PER_ANGLE == 3
+    assert enroll.EXPECTED_TOTAL_SHOTS == 15
+
+
+def test_quality_score_and_phash_are_reported(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "front.jpg", "front")
+
+    assert report["quality_score"] is not None
+    assert 0 <= float(report["quality_score"]) <= 100
+    assert isinstance(report["perceptual_hash"], str)
+    assert image_validation.phash_distance(report["perceptual_hash"], report["perceptual_hash"]) == 0
+
+
+def test_calibration_mode_does_not_persist_enrollment(
+    client,
+    db_session_factory,
+    monkeypatch,
+) -> None:
+    def fake_validate(image_bytes: bytes, file_name: str, angle: str):
+        return {
+            "file_name": file_name,
+            "angle": angle,
+            "passed": True,
+            "failure_reasons": [],
+            "quality_score": 88.0,
+            "perceptual_hash": "0f0f0f0f0f0f0f0f",
+        }
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", fake_validate)
+
+    response = client.post(
+        "/enroll/calibration",
+        data={"angle": "front"},
+        files={"images": ("sample.jpg", _jpeg_bytes(), "image/jpeg")},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["persisted"] is False
+    assert payload["summary"]["total_samples"] == 1
+    with db_session_factory() as db:
+        assert db.query(Enrollment).count() == 0

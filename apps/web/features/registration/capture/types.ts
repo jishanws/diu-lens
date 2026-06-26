@@ -5,6 +5,7 @@ export type CapturedShot = {
   blob: Blob;
   previewUrl: string;
   capturedAt: number;
+  captureLatencyMs?: number;
   dataUrl: string;
   quality: {
     selectionScore?: number;
@@ -26,9 +27,11 @@ export type CaptureReadiness = {
   singleFace: boolean;
   faceLargeEnough: boolean;
   centered: boolean;
+  eyesVisible: boolean;
   sharpEnough: boolean;
   brightnessOk: boolean;
   angleMatch: boolean;
+  livenessPassed: boolean;
 };
 
 export type CaptureFeedback = {
@@ -41,6 +44,8 @@ export type CaptureFeedback = {
     | 'lighting_low'
     | 'lighting_high'
     | 'wrong_angle'
+    | 'liveness'
+    | 'eyes_hidden'
     | 'hold_steady'
     | 'ready'
     | 'cooldown'
@@ -61,12 +66,21 @@ export type FaceCaptureState = {
   canSubmit: boolean;
   isAutoCapturing: boolean;
   feedback: CaptureFeedback;
+  liveness: {
+    completed: boolean;
+    failed: boolean;
+    currentChallenge: string | null;
+    completedCount: number;
+    requiredCount: number;
+    message: string;
+  };
 };
 
 export type RestoreCaptureShot = {
   angle: VerificationAngle;
   dataUrl: string;
   capturedAt: number;
+  captureLatencyMs?: number;
 };
 
 export type CapturePersistencePayload = {

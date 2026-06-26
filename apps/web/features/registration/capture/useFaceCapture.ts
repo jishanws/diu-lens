@@ -6,13 +6,18 @@ import {
   getRequiredFramesForAngle,
   MIN_FACE_AREA_RATIO,
   MAX_FACE_AREA_RATIO,
+  MAX_CENTER_OFFSET,
   POST_CAPTURE_COOLDOWN_MS,
   STABILITY_WINDOW_MS,
   GUIDANCE_STICK_MS,
   captureStorageVersion,
-  naturalFrontAngle,
   perAngleInstruction,
 } from '@/features/registration/capture/constants';
+import {
+  enrollmentValidationConfig,
+  livenessChallengePool,
+  type LivenessChallenge,
+} from '@/features/registration/capture/enrollmentValidationConfig';
 import { useAngleProgress } from '@/features/registration/capture/useAngleProgress';
 import type {
   CapturePersistencePayload,
@@ -57,6 +62,7 @@ type FaceLandmarker = {
 const detectionIntervalMs = 90;
 const MIN_CAPTURE_FILE_SIZE_BYTES = 10 * 1024;
 const BURST_CAPTURE_GAP_MS = 500;
+const LIVENESS_HOLD_MS = enrollmentValidationConfig.livenessHoldMs;
 
 let faceLandmarkerPromise: Promise<FaceLandmarker> | null = null;
 
@@ -73,6 +79,11 @@ function emptyCapturedShots(): CapturedShotsByAngle {
     down: [],
     natural_front: [],
   };
+}
+
+function makeLivenessSequence(): LivenessChallenge[] {
+  const shuffled = [...livenessChallengePool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, enrollmentValidationConfig.livenessChallengeCount);
 }
 
 function isAngleComplete(
@@ -108,6 +119,7 @@ function getStoragePayload(
           angle,
           dataUrl: shot.dataUrl,
           capturedAt: shot.capturedAt,
+          captureLatencyMs: shot.captureLatencyMs,
         }))
       )
       .filter((entry) => entry.dataUrl.length > 0),
@@ -223,38 +235,56 @@ function isRoughAngleMatch(
   pitch: number,
   marginBoost: number = 0
 ) {
-  if (angle === naturalFrontAngle) return true;
-  const yawMargin = 8 + marginBoost;
-  const pitchMargin = 8 + marginBoost;
+  if (angle === 'natural_front') return true;
+  const threshold = ANGLE_THRESHOLDS[angle];
+  if (!threshold) return false;
+  const yawMargin = marginBoost;
+  const pitchMargin = marginBoost;
 
-  if (angle === 'front') {
-    return (
-      Math.abs(yaw) <= ANGLE_THRESHOLDS.frontYawAbs + yawMargin &&
-      Math.abs(pitch) <= ANGLE_THRESHOLDS.frontPitchAbs + pitchMargin
-    );
-  }
-  if (angle === 'left') {
-    return (
-      yaw >= ANGLE_THRESHOLDS.leftYaw - yawMargin &&
-      Math.abs(pitch) <= ANGLE_THRESHOLDS.sidePitchAbs + pitchMargin
-    );
-  }
-  if (angle === 'right') {
-    return (
-      yaw <= ANGLE_THRESHOLDS.rightYaw + yawMargin &&
-      Math.abs(pitch) <= ANGLE_THRESHOLDS.sidePitchAbs + pitchMargin
-    );
-  }
-  if (angle === 'up') {
-    return (
-      pitch <= ANGLE_THRESHOLDS.upPitch + pitchMargin &&
-      Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin
-    );
-  }
   return (
-    pitch >= ANGLE_THRESHOLDS.downPitch - pitchMargin &&
-    Math.abs(yaw) <= ANGLE_THRESHOLDS.verticalYawAbs + yawMargin
+    yaw >= threshold.yawMin - yawMargin &&
+    yaw <= threshold.yawMax + yawMargin &&
+    pitch >= threshold.pitchMin - pitchMargin &&
+    pitch <= threshold.pitchMax + pitchMargin
   );
+}
+
+function challengeMatched(
+  challenge: LivenessChallenge,
+  yaw: number,
+  pitch: number,
+  landmarks: LandmarkPoint[]
+) {
+  if (challenge === 'blink') {
+    return areEyesClosed(landmarks);
+  }
+  return isRoughAngleMatch(challenge, yaw, pitch, 3);
+}
+
+function areEyesVisible(landmarks: LandmarkPoint[]) {
+  return Boolean(
+    getLandmark(landmarks, 33) &&
+      getLandmark(landmarks, 263) &&
+      getLandmark(landmarks, 159) &&
+      getLandmark(landmarks, 386)
+  );
+}
+
+function areEyesClosed(landmarks: LandmarkPoint[]) {
+  const leftTop = getLandmark(landmarks, 159);
+  const leftBottom = getLandmark(landmarks, 145);
+  const rightTop = getLandmark(landmarks, 386);
+  const rightBottom = getLandmark(landmarks, 374);
+  const leftOuter = getLandmark(landmarks, 33);
+  const leftInner = getLandmark(landmarks, 133);
+  const rightInner = getLandmark(landmarks, 362);
+  const rightOuter = getLandmark(landmarks, 263);
+  if (!leftTop || !leftBottom || !rightTop || !rightBottom || !leftOuter || !leftInner || !rightInner || !rightOuter) {
+    return false;
+  }
+  const leftOpen = Math.abs(leftTop.y - leftBottom.y) / Math.max(0.001, Math.abs(leftInner.x - leftOuter.x));
+  const rightOpen = Math.abs(rightTop.y - rightBottom.y) / Math.max(0.001, Math.abs(rightOuter.x - rightInner.x));
+  return leftOpen < 0.12 && rightOpen < 0.12;
 }
 
 function getDynamicAngleGuidance(
@@ -270,33 +300,33 @@ function getDynamicAngleGuidance(
     return { instruction: 'Move back', liveMessage: 'Face too close' };
   }
 
-  if (angle === naturalFrontAngle) return { instruction: 'Look naturally', liveMessage: 'Look at the camera naturally' };
+  if (angle === 'natural_front') return { instruction: 'Look naturally', liveMessage: 'Look at the camera naturally' };
   
   if (angle === 'front') {
-    if (yaw < -15) return { instruction: 'Look right', liveMessage: 'Turn slightly right' };
-    if (yaw > 15) return { instruction: 'Look left', liveMessage: 'Turn slightly left' };
-    if (pitch < -15) return { instruction: 'Look down', liveMessage: 'Look slightly down' };
-    if (pitch > 15) return { instruction: 'Look up', liveMessage: 'Look slightly up' };
+    if (yaw < ANGLE_THRESHOLDS.front.yawMin) return { instruction: 'Look right', liveMessage: 'Turn slightly right' };
+    if (yaw > ANGLE_THRESHOLDS.front.yawMax) return { instruction: 'Look left', liveMessage: 'Turn slightly left' };
+    if (pitch < ANGLE_THRESHOLDS.front.pitchMin) return { instruction: 'Look down', liveMessage: 'Look slightly down' };
+    if (pitch > ANGLE_THRESHOLDS.front.pitchMax) return { instruction: 'Look up', liveMessage: 'Look slightly up' };
     return { instruction: 'Look forward', liveMessage: 'Look forward' };
   }
   if (angle === 'left') {
-    if (yaw < ANGLE_THRESHOLDS.leftYaw - 8) return { instruction: 'Look left', liveMessage: 'Turn more left' };
-    if (pitch < -15 || pitch > 15) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
+    if (yaw > ANGLE_THRESHOLDS.left.yawMax) return { instruction: 'Turn slightly left', liveMessage: 'Turn slightly left' };
+    if (pitch < ANGLE_THRESHOLDS.left.pitchMin || pitch > ANGLE_THRESHOLDS.left.pitchMax) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
     return { instruction: 'Look left', liveMessage: 'Look left' };
   }
   if (angle === 'right') {
-    if (yaw > ANGLE_THRESHOLDS.rightYaw + 8) return { instruction: 'Look right', liveMessage: 'Turn more right' };
-    if (pitch < -15 || pitch > 15) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
+    if (yaw < ANGLE_THRESHOLDS.right.yawMin) return { instruction: 'Turn slightly right', liveMessage: 'Turn slightly right' };
+    if (pitch < ANGLE_THRESHOLDS.right.pitchMin || pitch > ANGLE_THRESHOLDS.right.pitchMax) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
     return { instruction: 'Look right', liveMessage: 'Look right' };
   }
   if (angle === 'up') {
-    if (pitch > ANGLE_THRESHOLDS.upPitch + 8) return { instruction: 'Look up', liveMessage: 'Look higher' };
-    if (yaw < -15 || yaw > 15) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
+    if (pitch > ANGLE_THRESHOLDS.up.pitchMax) return { instruction: 'Look up', liveMessage: 'Look higher' };
+    if (yaw < ANGLE_THRESHOLDS.up.yawMin || yaw > ANGLE_THRESHOLDS.up.yawMax) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
     return { instruction: 'Look up', liveMessage: 'Look up' };
   }
   if (angle === 'down') {
-    if (pitch < ANGLE_THRESHOLDS.downPitch - 8) return { instruction: 'Look down', liveMessage: 'Look lower' };
-    if (yaw < -15 || yaw > 15) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
+    if (pitch < ANGLE_THRESHOLDS.down.pitchMin) return { instruction: 'Look down', liveMessage: 'Look lower' };
+    if (yaw < ANGLE_THRESHOLDS.down.yawMin || yaw > ANGLE_THRESHOLDS.down.yawMax) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
     return { instruction: 'Look down', liveMessage: 'Look down' };
   }
 
@@ -304,7 +334,7 @@ function getDynamicAngleGuidance(
 }
 
 function getAngleGuidance(angle: VerificationAngle) {
-  if (angle === naturalFrontAngle) return 'Look at the camera naturally';
+  if (angle === 'natural_front') return 'Look at the camera naturally';
   if (angle === 'front') return 'Look forward';
   if (angle === 'left') return 'Look left';
   if (angle === 'right') return 'Look right';
@@ -369,6 +399,9 @@ export function useFaceCapture({
   const persistenceEnabledRef = useRef(true);
   const consecutiveFailuresRef = useRef<number>(0);
   const stableSinceRef = useRef<number>(0);
+  const livenessSequenceRef = useRef<LivenessChallenge[]>(makeLivenessSequence());
+  const livenessIndexRef = useRef(0);
+  const livenessMatchedSinceRef = useRef(0);
   const lastGuidanceRef = useRef<{ instruction: string; liveMessage: string; timestamp: number }>({
     instruction: '',
     liveMessage: '',
@@ -393,10 +426,20 @@ export function useFaceCapture({
       singleFace: false,
       faceLargeEnough: false,
       centered: true,
+      eyesVisible: false,
       sharpEnough: true,
       brightnessOk: true,
       angleMatch: false,
+      livenessPassed: false,
     },
+  });
+  const [livenessState, setLivenessState] = useState<FaceCaptureState['liveness']>({
+    completed: false,
+    failed: false,
+    currentChallenge: livenessSequenceRef.current[0] ?? null,
+    completedCount: 0,
+    requiredCount: livenessSequenceRef.current.length,
+    message: 'Complete liveness check',
   });
 
   const {
@@ -452,6 +495,7 @@ export function useFaceCapture({
           previewUrl: toBlobUrl(blob),
           dataUrl: shot.dataUrl,
           capturedAt: shot.capturedAt,
+          captureLatencyMs: shot.captureLatencyMs,
           quality: {
             yaw: 0,
             pitch: 0,
@@ -551,7 +595,7 @@ export function useFaceCapture({
   );
 
   const captureAngle = useCallback(
-    async (targetAngle: VerificationAngle, force: boolean) => {
+    async (targetAngle: VerificationAngle, force: boolean, captureLatencyMs?: number) => {
       if (!videoElement) return false;
       if (finalizedRef.current) return false;
       if (isAngleComplete(latestShotsRef.current, targetAngle)) return false;
@@ -578,20 +622,26 @@ export function useFaceCapture({
               0,
               (box.maxX - box.minX) * (box.maxY - box.minY)
             );
+            const centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
+            const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
+            if (
+              centerOffset > MAX_CENTER_OFFSET ||
+              edgeMargin < enrollmentValidationConfig.minEdgeMarginRatio ||
+              !areEyesVisible(landmarks)
+            ) {
+              continue;
+            }
             const pose = estimateYawPitch(landmarks);
             yaw = pose.yaw;
             pitch = pose.pitch;
           }
 
           const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
-          const angleOk =
-            force || targetAngle === naturalFrontAngle
-              ? true
-              : isRoughAngleMatch(targetAngle, yaw, pitch, marginBoost);
-          const sizeOk =
-            force || targetAngle === naturalFrontAngle
-              ? true
-              : faceAreaRatio >= MIN_FACE_AREA_RATIO;
+          const angleOk = isRoughAngleMatch(targetAngle, yaw, pitch, marginBoost);
+          const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
+          if (force || !angleOk || !sizeOk) {
+            continue;
+          }
 
           const snapshot = await captureSnapshot();
           if (snapshot) {
@@ -603,8 +653,10 @@ export function useFaceCapture({
           }
           if (snapshot && snapshot.size >= MIN_CAPTURE_FILE_SIZE_BYTES) {
             const dataUrl = await blobToDataUrl(snapshot);
+            if (candidates.some((candidate) => candidate.dataUrl === dataUrl)) {
+              continue;
+            }
             const warnings: string[] = [];
-            if (force) warnings.push('manual_fallback');
             if (!angleOk) warnings.push('angle');
             if (!sizeOk) warnings.push('face_size');
             candidates.push({
@@ -613,6 +665,7 @@ export function useFaceCapture({
               dataUrl,
               previewUrl: toBlobUrl(snapshot),
               capturedAt: Date.now(),
+              captureLatencyMs,
               quality: {
                 yaw,
                 pitch,
@@ -769,9 +822,11 @@ export function useFaceCapture({
             singleFace: false,
             faceLargeEnough: false,
             centered: true,
+            eyesVisible: false,
             sharpEnough: true,
             brightnessOk: true,
             angleMatch: false,
+            livenessPassed: livenessState.completed,
           },
         });
         scheduleNext();
@@ -789,9 +844,11 @@ export function useFaceCapture({
             singleFace: false,
             faceLargeEnough: false,
             centered: true,
+            eyesVisible: false,
             sharpEnough: true,
             brightnessOk: true,
             angleMatch: false,
+            livenessPassed: livenessState.completed,
           },
         });
         scheduleNext();
@@ -805,11 +862,64 @@ export function useFaceCapture({
         (box.maxX - box.minX) * (box.maxY - box.minY)
       );
       const pose = estimateYawPitch(landmarks);
+      const centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
+      const centered = centerOffset <= MAX_CENTER_OFFSET;
+      const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
+      const edgeOk = edgeMargin >= enrollmentValidationConfig.minEdgeMarginRatio;
+      const eyesVisible = areEyesVisible(landmarks);
+      const livenessComplete = livenessIndexRef.current >= livenessSequenceRef.current.length;
+      if (!livenessComplete) {
+        const challenge = livenessSequenceRef.current[livenessIndexRef.current];
+        const matched = challengeMatched(challenge, pose.yaw, pose.pitch, landmarks);
+        if (matched) {
+          if (livenessMatchedSinceRef.current === 0) {
+            livenessMatchedSinceRef.current = now;
+          }
+          if (now - livenessMatchedSinceRef.current >= LIVENESS_HOLD_MS) {
+            livenessIndexRef.current += 1;
+            livenessMatchedSinceRef.current = 0;
+          }
+        } else {
+          livenessMatchedSinceRef.current = 0;
+        }
+        const completedCount = Math.min(livenessIndexRef.current, livenessSequenceRef.current.length);
+        const done = completedCount >= livenessSequenceRef.current.length;
+        setLivenessState({
+          completed: done,
+          failed: false,
+          currentChallenge: done ? null : livenessSequenceRef.current[completedCount] ?? null,
+          completedCount,
+          requiredCount: livenessSequenceRef.current.length,
+          message: done ? 'Liveness complete' : `Liveness: ${challenge === 'blink' ? 'Blink' : getAngleGuidance(challenge)}`,
+        });
+        if (!done) {
+          setFeedback({
+            guidanceState: eyesVisible ? 'liveness' : 'eyes_hidden',
+            instruction: challenge === 'blink' ? 'Blink once' : getAngleGuidance(challenge),
+            liveMessage: eyesVisible ? 'Complete liveness check' : 'Keep your eyes visible',
+            holdProgress: matched ? Math.min(1, (now - livenessMatchedSinceRef.current) / LIVENESS_HOLD_MS) : 0,
+            readiness: {
+              faceDetected: true,
+              singleFace: true,
+              faceLargeEnough: faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO,
+              centered,
+              eyesVisible,
+              sharpEnough: true,
+              brightnessOk: true,
+              angleMatch: matched,
+              livenessPassed: false,
+            },
+          });
+          scheduleNext();
+          return;
+        }
+      }
       const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
       const nearAngle = isRoughAngleMatch(angle, pose.yaw, pose.pitch, marginBoost);
       const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
+      const gateOk = nearAngle && sizeOk && centered && edgeOk && eyesVisible;
 
-      if (nearAngle && sizeOk) {
+      if (gateOk) {
         if (stableSinceRef.current === 0) {
           stableSinceRef.current = now;
         }
@@ -835,31 +945,41 @@ export function useFaceCapture({
       }
 
       let guidanceState: CaptureFeedback['guidanceState'] = 'wrong_angle';
-      if (nearAngle && sizeOk) {
+      if (gateOk) {
         guidanceState = isStable ? 'ready' : 'hold_steady';
       } else if (faceAreaRatio < MIN_FACE_AREA_RATIO) {
         guidanceState = 'face_too_small';
+      } else if (!centered || !edgeOk) {
+        guidanceState = 'off_center';
+        instruction = 'Center your face';
+        liveMessage = 'Center your face';
+      } else if (!eyesVisible) {
+        guidanceState = 'eyes_hidden';
+        instruction = 'Keep your eyes visible';
+        liveMessage = 'Keep your eyes visible';
       }
 
       setFeedback({
         guidanceState,
         instruction,
-        liveMessage: nearAngle && sizeOk
-          ? `Capturing ${angle === naturalFrontAngle ? 'natural front' : angle}...`
+        liveMessage: gateOk
+          ? `Capturing ${angle}...`
           : liveMessage,
-        holdProgress: nearAngle && sizeOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
+        holdProgress: gateOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
         readiness: {
           faceDetected: true,
           singleFace: true,
           faceLargeEnough: sizeOk,
-          centered: true,
+          centered: centered && edgeOk,
+          eyesVisible,
           sharpEnough: true, // We can evaluate blur here if needed
           brightnessOk: true,
           angleMatch: nearAngle,
+          livenessPassed: true,
         },
       });
 
-      if (!nearAngle || !sizeOk || !isStable || autoCaptureLockRef.current) {
+      if (!gateOk || !isStable || autoCaptureLockRef.current) {
         scheduleNext();
         return;
       }
@@ -869,7 +989,7 @@ export function useFaceCapture({
 
       void (async () => {
         try {
-          await captureAngle(angle, false);
+          await captureAngle(angle, false, Math.round(stableFor));
         } finally {
           autoCaptureLockRef.current = false;
           setIsAutoCapturing(false);
@@ -894,6 +1014,7 @@ export function useFaceCapture({
     modelReady,
     safeDetect,
     streamActive,
+    livenessState.completed,
     videoElement,
   ]);
 
@@ -921,17 +1042,12 @@ export function useFaceCapture({
   }, []);
 
   const captureAnyway = useCallback(async () => {
-    if (!streamActive || !videoElement || isAutoCapturing || canSubmit)
-      return false;
-    const ok = await captureAngle(currentAngleRef.current, true);
-    if (!ok) {
-      setFeedback((prev) => ({
-        ...prev,
-        liveMessage: 'Capture failed. Try again.',
-      }));
-    }
-    return ok;
-  }, [canSubmit, captureAngle, isAutoCapturing, streamActive, videoElement]);
+    setFeedback((prev) => ({
+      ...prev,
+      liveMessage: 'Manual capture is disabled for enrollment quality.',
+    }));
+    return false;
+  }, []);
 
   const clearSession = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -965,6 +1081,7 @@ export function useFaceCapture({
       (accumulator, angle) => {
         accumulator[angle] = capturedShots[angle].map((shot) => ({
           capturedAt: shot.capturedAt,
+          captureLatencyMs: shot.captureLatencyMs,
         }));
         return accumulator;
       },
@@ -989,6 +1106,7 @@ export function useFaceCapture({
     canSubmit,
     isAutoCapturing,
     feedback,
+    liveness: livenessState,
   };
 
   return {

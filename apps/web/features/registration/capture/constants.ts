@@ -1,4 +1,5 @@
 import type { VerificationAngle } from '@/features/registration/verification/types';
+import { enrollmentValidationConfig } from '@/features/registration/capture/enrollmentValidationConfig';
 
 export const guidedAngles: VerificationAngle[] = [
   'front',
@@ -8,8 +9,8 @@ export const guidedAngles: VerificationAngle[] = [
   'down',
 ];
 export const naturalFrontAngle: VerificationAngle = 'natural_front';
-export const captureAngles: VerificationAngle[] = [...guidedAngles, naturalFrontAngle];
-export const BURST_CAPTURE_FRAME_COUNT = 3;
+export const captureAngles: VerificationAngle[] = [...guidedAngles];
+export const BURST_CAPTURE_FRAME_COUNT = enrollmentValidationConfig.requiredSamplesPerAngle;
 export const NATURAL_FRONT_FRAME_COUNT = 2;
 
 export function getRequiredFramesForAngle(angle: VerificationAngle): number {
@@ -36,31 +37,18 @@ export const perAngleHint: Record<VerificationAngle, string> = {
   natural_front: 'No strict pose needed. Keep one face visible.',
 };
 
-export const STABILITY_WINDOW_MS = 500;
+export const STABILITY_WINDOW_MS = enrollmentValidationConfig.stabilityDurationMs;
 export const POST_CAPTURE_COOLDOWN_MS = 420;
 export const STABILITY_GRACE_MS = 280;
 export const GUIDANCE_STICK_MS = 800; // Updated for debounce
 
-export const MIN_FACE_AREA_RATIO = 0.08;
-export const MAX_FACE_AREA_RATIO = 0.35;
-export const MAX_CENTER_OFFSET = 0.24;
-export const HARD_MAX_CENTER_OFFSET = 0.32;
-export const MIN_BLUR_VARIANCE = 45;
-export const HARD_MIN_BLUR_VARIANCE = 30;
-export const MIN_BRIGHTNESS = 80;
-export const MAX_BRIGHTNESS = 180;
-export const HARD_MIN_BRIGHTNESS = 60;
-export const HARD_MAX_BRIGHTNESS = 210;
+export const MIN_FACE_AREA_RATIO = enrollmentValidationConfig.minFaceAreaRatio;
+export const MAX_FACE_AREA_RATIO = enrollmentValidationConfig.maxFaceAreaRatio;
+export const MAX_CENTER_OFFSET = enrollmentValidationConfig.maxCenterOffset;
+export const MIN_BLUR_VARIANCE = enrollmentValidationConfig.minBlurVariance;
+export const MIN_BRIGHTNESS = enrollmentValidationConfig.brightnessRange.min;
+export const MAX_BRIGHTNESS = enrollmentValidationConfig.brightnessRange.max;
 
-export const ANGLE_THRESHOLDS = {
-  frontYawAbs: 12,
-  frontPitchAbs: 12,
-  leftYaw: 14,
-  rightYaw: -14,
-  upPitch: -10,
-  downPitch: 10,
-  sidePitchAbs: 18,
-  verticalYawAbs: 16,
-} as const;
+export const ANGLE_THRESHOLDS = enrollmentValidationConfig.poseThresholds;
 
-export const captureStorageVersion = 3;
+export const captureStorageVersion = 4;

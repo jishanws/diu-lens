@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -134,6 +135,24 @@ def _to_optional_float(value: object) -> float | None:
         return None
 
 
+def _to_optional_int(value: object) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _to_json_text(value: object) -> str | None:
+    if value is None:
+        return None
+    try:
+        return json.dumps(value, separators=(",", ":"), sort_keys=True)
+    except TypeError:
+        return None
+
+
 def _latest_enrollment_for_student(db: Session, student_id: str) -> Enrollment | None:
     return db.scalar(
         select(Enrollment)
@@ -199,7 +218,14 @@ def _replace_enrollment_images(
                     file_name=Path(relative_path).name or "unknown",
                     content_type=None,
                     file_size=None,
+                    image_index=_to_optional_int(metadata.get("image_index")),
                     passed_validation=validation_passed,
+                    validation_status=str(metadata.get("validation_status") or ("accepted" if validation_passed else "rejected")),
+                    rejection_reason=(
+                        None
+                        if validation_passed
+                        else str(metadata.get("rejection_reason") or "validation_failed")
+                    ),
                     captured_at=captured_at,
                     blur_score=_to_optional_float(metadata.get("blur_score")),
                     brightness=_to_optional_float(metadata.get("brightness")),
@@ -208,6 +234,19 @@ def _replace_enrollment_images(
                     detection_confidence=_to_optional_float(
                         metadata.get("detection_confidence")
                     ),
+                    face_box=_to_json_text(metadata.get("face_box")),
+                    yaw=_to_optional_float(metadata.get("yaw")),
+                    pitch=_to_optional_float(metadata.get("pitch")),
+                    roll=_to_optional_float(metadata.get("roll")),
+                    quality_score=_to_optional_float(metadata.get("quality_score")),
+                    capture_latency_ms=_to_optional_int(metadata.get("capture_latency_ms")),
+                    perceptual_hash=(
+                        str(metadata.get("perceptual_hash"))
+                        if metadata.get("perceptual_hash") is not None
+                        else None
+                    ),
+                    duplicate_distance=_to_optional_int(metadata.get("duplicate_distance")),
+                    replay_flags=_to_json_text(metadata.get("replay_flags")),
                 )
             )
 
@@ -578,6 +617,15 @@ def get_processing_source_images(student_id: str) -> dict[str, Any]:
                         "face_area_ratio": row.face_area_ratio,
                         "center_offset": row.center_offset,
                         "detection_confidence": row.detection_confidence,
+                        "face_box": row.face_box,
+                        "yaw": row.yaw,
+                        "pitch": row.pitch,
+                        "roll": row.roll,
+                        "quality_score": row.quality_score,
+                        "capture_latency_ms": row.capture_latency_ms,
+                        "perceptual_hash": row.perceptual_hash,
+                        "duplicate_distance": row.duplicate_distance,
+                        "replay_flags": row.replay_flags,
                     }
                 )
 
@@ -1058,6 +1106,16 @@ def get_enrollment_details_by_student_id(db: Session, student_id: str) -> dict[s
                 "blur_score": img.blur_score,
                 "brightness": img.brightness,
                 "detection_confidence": img.detection_confidence,
+                "face_area_ratio": img.face_area_ratio,
+                "center_offset": img.center_offset,
+                "yaw": img.yaw,
+                "pitch": img.pitch,
+                "roll": img.roll,
+                "quality_score": img.quality_score,
+                "capture_latency_ms": img.capture_latency_ms,
+                "perceptual_hash": img.perceptual_hash,
+                "duplicate_distance": img.duplicate_distance,
+                "replay_flags": img.replay_flags,
                 "is_best": True
             } for img in best_frames
         ],
@@ -1069,6 +1127,16 @@ def get_enrollment_details_by_student_id(db: Session, student_id: str) -> dict[s
                 "blur_score": img.blur_score,
                 "brightness": img.brightness,
                 "detection_confidence": img.detection_confidence,
+                "face_area_ratio": img.face_area_ratio,
+                "center_offset": img.center_offset,
+                "yaw": img.yaw,
+                "pitch": img.pitch,
+                "roll": img.roll,
+                "quality_score": img.quality_score,
+                "capture_latency_ms": img.capture_latency_ms,
+                "perceptual_hash": img.perceptual_hash,
+                "duplicate_distance": img.duplicate_distance,
+                "replay_flags": img.replay_flags,
                 "is_best": False
             } for img in supplementary_frames
         ],

@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, AlertCircle, Clock, ShieldCheck, 
   User, Mail, Phone, Image as ImageIcon,
-  ChevronDown, ChevronUp, AlertTriangle, Crosshair, Loader2,
-  Calendar, FileCheck, ScanFace
+  AlertTriangle, Crosshair, Loader2,
+  FileCheck, ScanFace
 } from 'lucide-react';
 import { EnrollmentDetailsResponse, fetchEnrollmentDetails } from '../api';
 import { useAdminAuth } from '@/features/admin/auth/AdminAuthContext';
@@ -31,7 +31,7 @@ function AuthenticatedImage({ src, token, alt, className }: { src: string; token
         if (!mounted) return;
         objectUrl = URL.createObjectURL(blob);
         setImageUrl(objectUrl);
-      } catch (err) {
+      } catch {
         if (mounted) setError(true);
       }
     }
@@ -126,8 +126,8 @@ export function EnrollmentDetailsPanel({
             setSelectedImageId(String(initial.id));
           }
         }
-      } catch (err) {
-        if (mounted) setError(err instanceof Error ? err.message : 'Failed to load details.');
+      } catch (loadError) {
+        if (mounted) setError(loadError instanceof Error ? loadError.message : 'Failed to load details.');
       } finally {
         if (mounted) setLoading(false);
       }
