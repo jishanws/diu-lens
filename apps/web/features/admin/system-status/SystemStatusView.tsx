@@ -514,23 +514,39 @@ export function SystemStatusView() {
   }
 
   return (
-    <div className="min-h-full pb-2 text-slate-100">
-      <section className="flex items-center justify-between rounded-lg border border-white/[0.05] bg-black/20 px-5 py-4 shadow-sm">
+    <div className="min-h-full pb-6 text-slate-100">
+      <div className="mb-6 flex flex-col gap-1.5">
+        <h2 className="text-xl font-semibold tracking-tight text-white/95">System Status</h2>
+        <p className="text-[0.85rem] text-slate-400">Infrastructure health, enrollment activity, and service diagnostics.</p>
+      </div>
+
+      <section className={cn(
+        "flex flex-col sm:flex-row sm:items-center justify-between gap-5 rounded-[1rem] border bg-gradient-to-br px-5 py-4 shadow-sm transition-colors",
+        globalTone === 'healthy' ? "border-[#6493b5]/20 from-[#6493b5]/[0.05] to-transparent" :
+        globalTone === 'warning' ? "border-amber-500/20 from-amber-500/[0.05] to-transparent" :
+        globalTone === 'critical' ? "border-rose-500/20 from-rose-500/[0.05] to-transparent" :
+        "border-white/[0.08] bg-black/20"
+      )}>
         <div className="flex items-center gap-4">
-          <div className="flex size-8 items-center justify-center rounded-md border border-[#6493b5]/20 bg-[#6493b5]/10">
-            <Activity className="size-4 text-[#8fb4ce]" />
+          <div className={cn(
+            "flex size-11 shrink-0 items-center justify-center rounded-xl border shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]",
+            toneStyles[globalTone].bg, toneStyles[globalTone].border
+          )}>
+            <Activity className={cn("size-5", toneStyles[globalTone].icon)} />
           </div>
           <div>
-            <h2 className="text-[1.05rem] font-semibold text-slate-100">System Status</h2>
-            <div className="mt-0.5 flex items-center gap-2 text-[0.75rem] text-slate-400">
-              <span className={cn('relative flex size-1.5 items-center justify-center')}>
-                <span className={cn('absolute inline-flex h-full w-full animate-ping rounded-full opacity-75', toneStyles[globalTone].dot)} />
-                <span className={cn('relative inline-flex size-1.5 rounded-full', toneStyles[globalTone].dot)} />
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex size-2 items-center justify-center">
+                {globalTone === 'healthy' && <span className={cn('absolute inline-flex h-full w-full animate-ping rounded-full opacity-75', toneStyles[globalTone].dot)} />}
+                <span className={cn('relative inline-flex size-2 rounded-full', toneStyles[globalTone].dot)} />
               </span>
-              <span className={cn('font-medium capitalize', toneStyles[globalTone].text)}>
+              <span className={cn('text-[0.95rem] font-semibold capitalize tracking-wide', toneStyles[globalTone].text)}>
                 {globalStatus}
               </span>
             </div>
+            <p className="mt-0.5 text-[0.75rem] text-slate-400">
+              Last checked: {new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date())}
+            </p>
           </div>
         </div>
 
@@ -538,10 +554,10 @@ export function SystemStatusView() {
           type="button"
           onClick={() => loadStatus(false)}
           disabled={isRefreshing}
-          className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-3 py-1.5 text-[0.75rem] font-medium text-slate-300 transition-colors hover:bg-white/[0.06]"
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 text-[0.75rem] font-medium text-slate-200 shadow-[0_2px_4px_rgba(0,0,0,0.2)] transition-all hover:bg-white/[0.08] hover:border-white/[0.12] active:scale-[0.98] disabled:opacity-50"
         >
-          <RefreshCw className={cn('size-3', isRefreshing && 'animate-spin')} />
-          Refresh
+          <RefreshCw className={cn('size-3.5', isRefreshing && 'animate-spin')} />
+          {isRefreshing ? 'Refreshing...' : 'Refresh Status'}
         </button>
       </section>
 
@@ -559,33 +575,41 @@ export function SystemStatusView() {
           <h3 className="text-[0.8rem] font-semibold text-slate-400 uppercase tracking-wider">Primary Infrastructure</h3>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {serviceStatuses.filter(s => ['API Gateway', 'Database', 'Queue Processor'].includes(s.name)).map((service) => {
             const Icon = service.icon;
+            const styles = toneStyles[service.tone];
 
             return (
-              <article key={service.name} className="flex flex-col rounded-[0.85rem] border border-white/[0.04] bg-black/20 p-5 shadow-sm">
+              <article key={service.name} className="group relative flex flex-col overflow-hidden rounded-[1rem] border border-white/[0.05] bg-[#0c1016]/80 p-5 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-white/[0.08] hover:bg-[#10151d]/90">
+                <div className="absolute inset-x-0 top-0 h-px w-full bg-gradient-to-r from-transparent via-white/[0.08] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <Icon className={cn('size-4.5 text-slate-300')} />
-                    <h4 className="text-[0.95rem] font-semibold text-slate-100">{service.name}</h4>
+                    <div className={cn("flex size-9 items-center justify-center rounded-lg border", styles.bg, styles.border)}>
+                      <Icon className={cn("size-4", styles.icon)} />
+                    </div>
+                    <div>
+                      <h4 className="text-[0.95rem] font-semibold text-slate-100">{service.name}</h4>
+                    </div>
                   </div>
                   <StatusPill tone={service.tone} label={service.state} />
                 </div>
                 
-                <div className="mt-5 flex flex-col gap-3">
-                  <div className="flex justify-between items-baseline gap-2 border-b border-white/[0.03] pb-2 text-[0.75rem]">
+                <div className="mt-5 flex flex-col gap-2.5 rounded-lg border border-white/[0.02] bg-white/[0.01] p-3.5">
+                  <div className="flex items-baseline justify-between gap-2 text-[0.75rem]">
                     <span className="text-slate-500">Signal</span>
-                    <span className="text-slate-200 font-medium text-right">{service.primarySignal}</span>
+                    <span className="font-medium text-slate-200 text-right">{service.primarySignal}</span>
                   </div>
-                  <div className="flex justify-between items-baseline gap-2 border-b border-white/[0.03] pb-2 text-[0.75rem]">
+                  <div className="flex items-baseline justify-between gap-2 text-[0.75rem]">
                     <span className="text-slate-500">Secondary</span>
-                    <span className="text-slate-300 text-right">{service.secondarySignal}</span>
-                  </div>
-                  <div className="pt-1 text-[0.7rem] leading-relaxed text-slate-400">
-                    {service.detail}
+                    <span className="text-slate-400 text-right">{service.secondarySignal}</span>
                   </div>
                 </div>
+                
+                <p className="mt-4 text-[0.75rem] leading-relaxed text-slate-400">
+                  {service.detail}
+                </p>
               </article>
             );
           })}
@@ -595,22 +619,22 @@ export function SystemStatusView() {
           <h3 className="text-[0.8rem] font-semibold text-slate-400 uppercase tracking-wider">Auxiliary Services</h3>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {serviceStatuses.filter(s => !['API Gateway', 'Database', 'Queue Processor'].includes(s.name)).map((service) => {
             const Icon = service.icon;
             const styles = toneStyles[service.tone];
 
             return (
-              <article key={service.name} className="flex items-center gap-4 rounded-lg border border-white/[0.03] bg-black/10 p-4">
-                <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-md border', styles.bg, styles.border, styles.text)}>
-                  <Icon className="size-4" />
+              <article key={service.name} className="group flex items-center gap-3.5 rounded-[0.85rem] border border-white/[0.04] bg-[#0c1016]/60 p-4 transition-colors hover:border-white/[0.08] hover:bg-[#10151d]/80">
+                <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border', styles.bg, styles.border)}>
+                  <Icon className={cn("size-4", styles.icon)} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className="truncate text-[0.85rem] font-medium text-slate-200">{service.name}</h4>
-                    <span className={cn('shrink-0 text-[0.7rem] font-medium', styles.text)}>{service.state}</span>
+                    <h4 className="truncate text-[0.85rem] font-medium text-slate-100">{service.name}</h4>
+                    <span className={cn('shrink-0 text-[0.7rem] font-semibold', styles.text)}>{service.state}</span>
                   </div>
-                  <p className="mt-0.5 truncate text-[0.7rem] text-slate-500">{service.primarySignal}</p>
+                  <p className="mt-0.5 truncate text-[0.75rem] text-slate-500">{service.primarySignal}</p>
                 </div>
               </article>
             );
@@ -625,14 +649,14 @@ export function SystemStatusView() {
           </div>
 
           {auditEvents.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-[0.85rem] border border-white/[0.03] bg-black/10 p-10 text-center">
-              <div className="flex size-10 items-center justify-center rounded-full bg-white/[0.02] border border-white/[0.05]">
-                <Activity className="size-4.5 text-slate-500/70" />
+            <div className="flex flex-col items-center justify-center gap-3 rounded-[1rem] border border-white/[0.05] bg-[#0c1016]/50 p-12 text-center shadow-sm">
+              <div className="flex size-12 items-center justify-center rounded-full bg-white/[0.02] border border-white/[0.05]">
+                <Activity className="size-5 text-slate-500/70" />
               </div>
-              <p className="text-[0.8rem] text-slate-500">No operational events have been reported yet.</p>
+              <p className="text-[0.85rem] text-slate-500">No operational events have been reported yet.</p>
             </div>
           ) : (
-            <div className="divide-y divide-white/[0.03] overflow-hidden rounded-[0.85rem] border border-white/[0.04] bg-black/20">
+            <div className="flex flex-col gap-2">
               {auditEvents.slice(0, 8).map((event) => {
                 const tone: StatusTone =
                   event.operation_result === 'failed'
@@ -645,24 +669,22 @@ export function SystemStatusView() {
                 const styles = toneStyles[tone];
 
                 return (
-                  <div key={event.id} className="grid gap-3 p-3.5 transition-colors duration-200 hover:bg-white/[0.02] sm:grid-cols-[1fr_auto] sm:items-center sm:p-4">
-                    <div className="flex min-w-0 gap-3">
-                      <div className="relative mt-1 flex size-5 shrink-0 items-center justify-center">
-                        <span className={cn('size-1.5 rounded-full', styles.dot)} />
-                      </div>
+                  <div key={event.id} className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-[0.85rem] border border-white/[0.03] bg-[#0c1016]/60 p-4 transition-all duration-200 hover:border-white/[0.08] hover:bg-[#10151d]/90">
+                    <div className="flex min-w-0 gap-3.5">
+                      <div className={cn("mt-1.5 size-2 shrink-0 rounded-full ring-4 ring-black/20", styles.dot)} />
                       <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <p className="text-[0.82rem] font-medium capitalize text-slate-200">{actionLabel(event.action_type)}</p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+                          <p className="text-[0.85rem] font-medium capitalize text-slate-200">{actionLabel(event.action_type)}</p>
                           {event.affected_record ? (
-                            <span className="rounded-md border border-white/[0.05] bg-white/[0.02] px-1.5 py-0.5 text-[0.63rem] font-medium text-slate-500">
+                            <span className="rounded-md border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-[0.65rem] font-medium text-slate-400">
                               {event.affected_record}
                             </span>
                           ) : null}
                         </div>
-                        <p className="mt-0.5 text-[0.74rem] leading-5 text-slate-500">{event.detail}</p>
+                        <p className="mt-1 text-[0.75rem] leading-relaxed text-slate-500">{event.detail}</p>
                       </div>
                     </div>
-                    <p className="pl-8 text-[0.7rem] text-slate-500 sm:pl-0 sm:text-right">{formatDateTime(event.timestamp)}</p>
+                    <p className="pl-5 text-[0.7rem] text-slate-500 sm:pl-0 sm:text-right shrink-0">{formatDateTime(event.timestamp)}</p>
                   </div>
                 );
               })}
@@ -681,32 +703,45 @@ export function SystemStatusView() {
               const styles = toneStyles[metric.tone ?? 'nominal'];
 
               return (
-                <article key={metric.label} className="flex items-center gap-3 rounded-lg border border-white/[0.03] bg-black/10 p-3.5 transition-all hover:bg-black/20">
-                  <div className={cn('flex size-8 shrink-0 items-center justify-center rounded-md border', styles.bg, styles.border, styles.text)}>
-                    <Icon className="size-4" />
+                <article key={metric.label} className="flex items-center gap-3.5 rounded-[0.85rem] border border-white/[0.04] bg-[#0c1016]/60 p-4 transition-colors hover:border-white/[0.08] hover:bg-[#10151d]/80">
+                  <div className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg border', styles.bg, styles.border)}>
+                    <Icon className={cn("size-4", styles.icon)} />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline justify-between gap-3">
-                      <p className="truncate text-[0.75rem] font-medium text-slate-300">{metric.label}</p>
-                      <p className={cn('shrink-0 text-[0.85rem] font-semibold', metric.tone ? styles.text : 'text-slate-100')}>{metric.value}</p>
+                      <p className="truncate text-[0.8rem] font-medium text-slate-200">{metric.label}</p>
+                      <p className={cn('shrink-0 text-[0.9rem] font-bold tracking-tight', metric.tone && metric.tone !== 'nominal' ? styles.text : 'text-slate-100')}>{metric.value}</p>
                     </div>
-                    <p className="mt-0.5 truncate text-[0.65rem] text-slate-500">{metric.detail}</p>
+                    <p className="mt-0.5 truncate text-[0.7rem] text-slate-500">{metric.detail}</p>
                   </div>
                 </article>
               );
             })}
           </div>
 
-          <div className="mt-4 rounded-lg border border-white/[0.03] bg-black/10 p-4">
-            <div className="flex items-center gap-2 text-[0.75rem] font-medium text-slate-300">
-              <Gauge className="size-3.5 text-[#8fb4ce]" />
+          <div className="mt-4 rounded-[0.85rem] border border-white/[0.04] bg-[#0c1016]/40 p-4.5 overflow-hidden relative group">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            <div className="relative flex items-center gap-2 text-[0.75rem] font-semibold uppercase tracking-wider text-slate-400 mb-4">
+              <Gauge className="size-3.5 text-[#6493b5]" />
               Diagnostics Window
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 text-[0.7rem] text-slate-500">
-              <p className="flex justify-between">Retry rate: <span className="text-slate-300">{formatRate(health?.retry_rate)}</span></p>
-              <p className="flex justify-between">Failure rate: <span className="text-slate-300">{formatRate(health?.failed_task_rate)}</span></p>
-              <p className="flex justify-between">Processing: <span className="text-slate-300">{formatDuration(health?.avg_processing_duration)}</span></p>
-              <p className="flex justify-between">Recognition: <span className="text-slate-300">{formatDuration(health?.avg_recognition_duration)}</span></p>
+            <div className="relative grid grid-cols-2 gap-y-3 gap-x-4 text-[0.75rem] text-slate-500">
+              <div className="flex flex-col gap-1 border-l-2 border-white/[0.05] pl-3">
+                <span className="text-[0.65rem] uppercase tracking-wider">Retry Rate</span>
+                <span className="font-medium text-slate-200">{formatRate(health?.retry_rate)}</span>
+              </div>
+              <div className="flex flex-col gap-1 border-l-2 border-white/[0.05] pl-3">
+                <span className="text-[0.65rem] uppercase tracking-wider">Failure Rate</span>
+                <span className="font-medium text-slate-200">{formatRate(health?.failed_task_rate)}</span>
+              </div>
+              <div className="flex flex-col gap-1 border-l-2 border-white/[0.05] pl-3">
+                <span className="text-[0.65rem] uppercase tracking-wider">Processing</span>
+                <span className="font-medium text-slate-200">{formatDuration(health?.avg_processing_duration)}</span>
+              </div>
+              <div className="flex flex-col gap-1 border-l-2 border-white/[0.05] pl-3">
+                <span className="text-[0.65rem] uppercase tracking-wider">Recognition</span>
+                <span className="font-medium text-slate-200">{formatDuration(health?.avg_recognition_duration)}</span>
+              </div>
             </div>
           </div>
         </div>
