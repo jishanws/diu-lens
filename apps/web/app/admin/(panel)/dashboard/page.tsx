@@ -7,9 +7,9 @@ import { dashboardStats, quickActions, recentActivity } from '@/features/admin/m
 import { getMockRoleFromCookies } from '@/features/admin/role';
 
 const statusStyles: Record<string, string> = {
-  match_found: 'border-[#6493b5]/30 bg-[#6493b5]/20 text-[#6493b5]',
-  review_needed: 'border-amber-300/30 bg-amber-500/20 text-amber-100',
-  no_match: 'border-rose-300/30 bg-rose-500/20 text-rose-100',
+  match_found: 'border-status-healthy/30 bg-status-healthy/20 text-status-healthy',
+  review_needed: 'border-status-warning/30 bg-status-warning/20 text-status-warning',
+  no_match: 'border-status-danger/30 bg-status-danger/20 text-status-danger',
 };
 
 export default async function AdminDashboardPage() {
@@ -23,14 +23,14 @@ export default async function AdminDashboardPage() {
     <div className="grid gap-6">
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {dashboardStats.map((stat) => (
-          <div key={stat.label} className="flex flex-col gap-1 sm:gap-1.5 rounded-xl border border-white/[0.03] bg-white/[0.01] p-3.5 sm:p-4 hover:bg-white/[0.02] transition-colors">
-            <p className="text-[0.65rem] sm:text-[0.7rem] font-medium uppercase tracking-[0.15em] text-slate-500">
+          <div key={stat.label} className="admin-surface flex flex-col gap-1 sm:gap-1.5 p-3.5 sm:p-4 hover:bg-white/[0.02] transition-colors">
+            <p className="text-[0.65rem] sm:text-[0.7rem] font-medium uppercase tracking-[0.15em] text-surface-text-muted">
               {stat.label}
             </p>
-            <p className="text-xl sm:text-2xl font-semibold tracking-tight text-slate-200">
+            <p className="text-xl sm:text-2xl font-semibold tracking-tight text-surface-text">
               {stat.value}
             </p>
-            <p className="text-[0.65rem] text-slate-500 mt-1">
+            <p className="text-[0.65rem] text-surface-text-muted mt-1">
               {stat.hint}
             </p>
           </div>
@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
             {recentActivity.map((activity) => (
               <article
                 key={activity.id}
-                className="rounded-xl border border-border bg-muted/35 p-3"
+                className="admin-surface p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="font-medium text-foreground">{activity.action}</h3>
@@ -77,7 +77,7 @@ export default async function AdminDashboardPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {quickActions.map((item) => (
-              <div key={item.title} className="rounded-xl border border-border bg-muted/35 p-3">
+              <div key={item.title} className="admin-surface p-3">
                 <p className="font-medium text-foreground">{item.title}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
                 <Button
@@ -94,7 +94,7 @@ export default async function AdminDashboardPage() {
               </div>
             ))}
 
-            <div className="rounded-xl border border-[#6493b5]/20 bg-[#6493b5]/10 p-3 text-xs text-[#6493b5]">
+            <div className="rounded-xl border border-status-healthy/20 bg-status-healthy/10 p-3 text-xs text-status-healthy">
               <p className="flex items-center gap-2 font-medium">
                 <CircleCheckBig className="size-4" />
                 System monitor reports healthy services.

@@ -43,7 +43,7 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-[#06080a] px-4 py-10 selection:bg-[#6493b5]/20">
+    <main className="landing-page relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10 selection:bg-primary/20">
       
       {/* ── Secure Infrastructure Background ──────────────────────────── */}
       {/* Grid Pattern with tight central mask */}
@@ -53,9 +53,9 @@ export default function AdminLoginPage() {
       />
 
       {/* Subtle Layered Radial Glow */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-80">
-        <div className="absolute h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.08)_0%,transparent_70%)] blur-[40px]" />
-        <div className="absolute h-[800px] w-[800px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.04)_0%,transparent_100%)] blur-[80px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.85]">
+        <div className="absolute h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.06)_0%,transparent_70%)] blur-[60px]" />
+        <div className="absolute h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.03)_0%,transparent_100%)] blur-[100px]" />
       </div>
 
       {/* Darker Outer Edge Falloff (Controlled Vignette) */}
@@ -73,29 +73,26 @@ export default function AdminLoginPage() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         {/* Refined Access Card */}
-        <div className="relative w-full overflow-hidden rounded-2xl sm:rounded-[1.25rem] border border-white/[0.06] bg-[#0a0e14]/90 p-7 sm:p-9 shadow-[0_20px_40px_-12px_rgba(0,0,0,1),0_0_20px_rgba(100,147,181,0.03)] backdrop-blur-2xl">
+        <div className="admin-surface relative w-full overflow-hidden p-7 sm:p-9">
           
           {/* Subtle interior edge highlight */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-2xl sm:rounded-[1.25rem] border border-white/[0.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-xl border border-white/[0.02] shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]" />
 
           {/* Header */}
           <div className="mb-7 flex flex-col items-center text-center">
-            <div className="mb-5 flex size-11 items-center justify-center rounded-xl border border-white/[0.08] bg-gradient-to-b from-white/[0.04] to-transparent shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-              <Lock className="size-[1.125rem] text-[#6493b5]" />
-            </div>
-            <p className="mb-2.5 text-[0.65rem] font-semibold uppercase tracking-[0.4em] text-[#6493b5]">
-              Secure Admin Node
-            </p>
-            <h1 className="text-2xl font-medium tracking-tight text-white/90 drop-shadow-sm">
-              Authorized Access
+            <h1 className="text-2xl font-medium tracking-tight text-[var(--landing-text-primary)]">
+              Admin Console
             </h1>
+            <p className="mt-2 text-sm text-[var(--landing-text-secondary)]">
+              Authorized access for DIU Lens operations.
+            </p>
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             {/* Email Input */}
             <div className="space-y-2">
-              <label htmlFor="admin-email" className="block text-[0.75rem] font-medium text-slate-400/90 pl-1">
+              <label htmlFor="admin-email" className="block text-[0.75rem] font-medium text-[var(--landing-text-secondary)] pl-1">
                 Email Address
               </label>
               <div className="relative text-slate-500 transition-colors duration-300 focus-within:text-slate-300">
@@ -108,14 +105,14 @@ export default function AdminLoginPage() {
                   placeholder="admin@diulens.app"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-white/[0.08] bg-black/20 pl-10 pr-4 text-[16px] sm:text-[0.9rem] text-slate-200 placeholder:text-slate-500/70 outline-none transition-all duration-300 hover:bg-black/30 hover:border-white/[0.12] focus:border-[#6493b5]/50 focus:bg-[#0a0e14]/90 focus:ring-[3px] focus:ring-[#6493b5]/20 focus:shadow-[inset_0_1px_1px_rgba(0,0,0,0.8)]"
+                  className="admin-input pl-10 pr-4"
                 />
               </div>
             </div>
 
             {/* Password Input */}
             <div className="space-y-2">
-              <label htmlFor="admin-password" className="block text-[0.75rem] font-medium text-slate-400/90 pl-1">
+              <label htmlFor="admin-password" className="block text-[0.75rem] font-medium text-[var(--landing-text-secondary)] pl-1">
                 Password
               </label>
               <div className="relative text-slate-500 transition-colors duration-300 focus-within:text-slate-300">
@@ -128,7 +125,7 @@ export default function AdminLoginPage() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-white/[0.08] bg-black/20 pl-10 pr-11 text-[16px] sm:text-[0.9rem] text-slate-200 placeholder:text-slate-500/70 outline-none transition-all duration-300 hover:bg-black/30 hover:border-white/[0.12] focus:border-[#6493b5]/50 focus:bg-[#0a0e14]/90 focus:ring-[3px] focus:ring-[#6493b5]/20 focus:shadow-[inset_0_1px_1px_rgba(0,0,0,0.8)]"
+                  className="admin-input pl-10 pr-11"
                 />
                 <button
                   type="button"
@@ -159,7 +156,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="mt-2 flex w-full h-11 items-center justify-center gap-2 rounded-xl border border-[#6493b5]/40 bg-gradient-to-b from-[#6493b5]/90 to-[#4a6f8a]/90 px-6 text-[0.9rem] font-medium text-white/95 shadow-[0_1px_3px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all duration-300 hover:border-[#6493b5]/60 hover:from-[#6493b5] hover:to-[#527a97] hover:text-white hover:shadow-[0_4px_12px_-2px_rgba(100,147,181,0.3),inset_0_1px_0_rgba(255,255,255,0.2)] active:scale-[0.98] disabled:pointer-events-none disabled:opacity-60"
+              className="admin-btn-primary mt-4 w-full"
             >
               {isLoggingIn ? (
                 <>
@@ -174,13 +171,15 @@ export default function AdminLoginPage() {
         </div>
 
         {/* Back Link */}
-        <Link 
-          href="/" 
-          className="mt-8 flex items-center gap-1.5 text-[0.8rem] font-medium text-slate-400 transition-all duration-300 hover:text-slate-200 hover:-translate-x-0.5"
-        >
-          <ArrowLeft className="size-3.5 opacity-80" />
-          Back to Homepage
-        </Link>
+        <div className="mt-6 flex w-full justify-start">
+          <Link 
+            href="/" 
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-300"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to Homepage
+          </Link>
+        </div>
       </motion.div>
     </main>
   );

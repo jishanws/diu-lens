@@ -4,8 +4,8 @@ import { Button } from '@/components/ui/button';
 
 export function AdminAccessDenied() {
   return (
-    <section className="mx-auto grid max-w-2xl gap-5 rounded-2xl border border-amber-200/20 bg-card p-8 text-center shadow-[0_24px_60px_-35px_rgba(245,158,11,0.42)]">
-      <span className="mx-auto rounded-full border border-amber-300/40 bg-amber-400/10 p-3 text-amber-200">
+    <section className="admin-surface mx-auto grid max-w-2xl gap-5 p-8 text-center">
+      <span className="mx-auto rounded-full border border-status-warning/40 bg-status-warning/10 p-3 text-status-warning">
         <ShieldAlert className="size-7" />
       </span>
       <div>
@@ -15,10 +15,10 @@ export function AdminAccessDenied() {
         </p>
       </div>
       <div className="flex justify-center gap-3">
-        <Button asChild variant="outline" className="border-border bg-transparent text-foreground hover:bg-muted">
+        <Button asChild variant="outline" className="border-surface-border bg-transparent text-surface-text hover:bg-white/[0.02]">
           <Link href="/admin/search">Go to Search</Link>
         </Button>
-        <Button asChild>
+        <Button asChild className="admin-btn-primary">
           <Link href="/admin/login">Switch Role</Link>
         </Button>
       </div>

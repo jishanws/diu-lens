@@ -59,18 +59,18 @@ function getActionLabel(type: string) {
 }
 
 function getActionIcon(event: AdminAuditEvent) {
-  if (event.operation_result === 'failed') return <XCircle className="size-3.5 text-rose-300" />;
+  if (event.operation_result === 'failed') return <XCircle className="size-3.5 text-status-danger" />;
   if (event.source === 'recognition' || event.action_type.includes('scan')) {
-    return <Activity className="size-3.5 text-[#8fb4ce]" />;
+    return <Activity className="size-3.5 text-accent-primary" />;
   }
   if (event.action_type.includes('login') || event.action_type.includes('session')) {
-    return <LockKeyhole className="size-3.5 text-slate-300" />;
+    return <LockKeyhole className="size-3.5 text-surface-text-muted" />;
   }
   if (event.action_type.includes('review') || event.action_type.includes('enrollment')) {
-    return <UserCheck className="size-3.5 text-amber-300" />;
+    return <UserCheck className="size-3.5 text-status-warning" />;
   }
-  if (event.operation_result === 'success') return <CheckCircle2 className="size-3.5 text-emerald-300" />;
-  return <FileText className="size-3.5 text-slate-400" />;
+  if (event.operation_result === 'success') return <CheckCircle2 className="size-3.5 text-status-healthy" />;
+  return <FileText className="size-3.5 text-surface-text-muted" />;
 }
 
 function resultText(result: string) {
@@ -82,10 +82,10 @@ function resultText(result: string) {
 }
 
 function resultClass(result: string) {
-  if (result === 'success') return 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.05)]';
-  if (result === 'failed' || result === 'rejected') return 'border-rose-500/20 bg-rose-500/10 text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.05)]';
-  if (result === 'review_required' || result === 'warning') return 'border-amber-500/20 bg-amber-500/10 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.05)]';
-  return 'border-slate-500/20 bg-slate-500/10 text-slate-300 shadow-[0_0_10px_rgba(148,163,184,0.05)]';
+  if (result === 'success') return 'border-status-healthy/20 bg-status-healthy/10 text-status-healthy';
+  if (result === 'failed' || result === 'rejected') return 'border-status-danger/20 bg-status-danger/10 text-status-danger';
+  if (result === 'review_required' || result === 'warning') return 'border-status-warning/20 bg-status-warning/10 text-status-warning';
+  return 'border-status-neutral/20 bg-status-neutral/10 text-status-neutral';
 }
 
 function sourceLabel(source: string) {
@@ -201,8 +201,8 @@ export function AuditView() {
 
   if (isLoading) {
     return (
-      <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-slate-500">
-        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-[#6493b5]/60" />
+      <div className="admin-surface flex items-center gap-2.5 px-6 py-16 text-[0.85rem] text-surface-text-muted">
+        <div className="size-4 animate-spin rounded-full border-2 border-white/10 border-t-accent-primary" />
         Loading audit trail…
       </div>
     );
@@ -212,8 +212,8 @@ export function AuditView() {
     <div className="flex h-full flex-col gap-5">
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-medium tracking-tight text-slate-100">Audit & Activity Log</h2>
-          <p className="mt-1.5 text-[0.85rem] text-slate-400">
+          <h2 className="text-xl font-medium tracking-tight text-surface-text">Audit & Activity Log</h2>
+          <p className="mt-1.5 text-[0.85rem] text-surface-text-muted">
             Persisted platform events and current console operations.
           </p>
         </div>
@@ -223,13 +223,13 @@ export function AuditView() {
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-white/[0.04] bg-[#080b0f]/80 p-4 sm:px-6 sm:py-4">
           <div className="flex-1 w-full xl:max-w-[380px]">
             <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-surface-text-muted" />
               <input
                 type="text"
                 placeholder="Search record, operator, request, or action..."
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
-                className="h-9 w-full rounded-md border border-white/[0.08] bg-black/40 pl-9 pr-4 text-[0.8rem] text-slate-200 placeholder:text-slate-500 focus:border-[#6493b5]/40 focus:outline-none focus:ring-1 focus:ring-[#6493b5]/40 shadow-inner"
+                className="admin-input pl-9"
               />
             </div>
           </div>

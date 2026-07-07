@@ -165,7 +165,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="relative h-[100dvh] w-full overflow-hidden bg-[#050709]">
+    <div className="relative h-[100dvh] w-full overflow-hidden bg-surface-base">
       
       {/* ── Environmental Atmosphere (Optimized) ─────────────────────────── */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 hidden md:flex items-center justify-center">
@@ -180,7 +180,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
       <div className="relative z-10 mx-auto flex h-[100dvh] w-full max-w-[1800px] md:p-4 lg:p-6 md:pt-[env(safe-area-inset-top)] md:pb-[env(safe-area-inset-bottom)]">
         
         {/* ── Unified Application Container ──────────────────────────────────────── */}
-        <div className="flex h-full w-full flex-col md:flex-row overflow-hidden md:rounded-[1.25rem] md:border md:border-white/[0.04] md:bg-[#0a0d12]/60 md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.8)] md:backdrop-blur-xl lg:backdrop-blur-3xl">
+        <div className="flex h-full w-full flex-col md:flex-row overflow-hidden md:rounded-xl md:border md:border-surface-border-subtle md:bg-white/[0.02] md:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.8)] md:backdrop-blur-xl lg:backdrop-blur-3xl">
           
           {/* ── Desktop & Tablet Sidebar (Operational Rail) ──────────────────────────────────────── */}
           <aside className="hidden w-[15rem] lg:w-[16rem] shrink-0 flex-col border-r border-white/[0.04] bg-white/[0.005] md:flex">
@@ -191,8 +191,8 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                   <Image src="/branding/logo-v2.png" alt="DIU Lens" width={32} height={32} priority className="size-[1.1rem] lg:size-[1.2rem] object-contain opacity-90" />
                 </div>
                 <div className="flex flex-col justify-center">
-                  <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-[#6493b5]/80">DIU LENS</p>
-                  <p className="mt-[0.1rem] text-[0.75rem] lg:text-[0.8rem] font-medium tracking-[0.02em] text-slate-200/90">Admin Console</p>
+                  <p className="text-[0.55rem] font-bold uppercase tracking-[0.35em] text-accent-primary/80">DIU LENS</p>
+                  <p className="mt-[0.1rem] text-[0.75rem] lg:text-[0.8rem] font-medium tracking-[0.02em] text-surface-text">Admin Console</p>
                 </div>
               </div>
 
@@ -210,11 +210,11 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                           className={cn(
                             'group relative flex items-center gap-3.5 rounded-r-full px-4 py-2.5 text-[0.8rem] lg:text-[0.85rem] font-medium transition-all duration-300 min-h-[44px] -ml-4 pl-8 border border-transparent',
                             isActive 
-                              ? 'bg-gradient-to-r from-[#6493b5]/[0.15] to-transparent text-slate-100 shadow-[inset_3px_0_0_#6493b5] border-y-[#6493b5]/10 border-r-[#6493b5]/10' 
-                              : 'text-slate-400 hover:bg-white/[0.04] hover:text-slate-200'
+                              ? 'bg-accent-primary/10 text-surface-text shadow-[inset_2px_0_0_var(--color-accent-primary)]' 
+                              : 'text-surface-text-muted hover:bg-white/[0.02] hover:text-surface-text'
                           )}
                         >
-                          <span className={cn('transition-all shrink-0 flex items-center justify-center', isActive ? 'text-[#6493b5] drop-shadow-[0_0_12px_rgba(100,147,181,0.6)]' : 'text-slate-500/70 group-hover:text-slate-400 group-hover:scale-105')}>
+                          <span className={cn('transition-all shrink-0 flex items-center justify-center', isActive ? 'text-accent-primary' : 'text-surface-text-muted/70 group-hover:text-surface-text-muted group-hover:scale-105')}>
                             {item.icon}
                           </span>
                           <span className="truncate pt-[0.05rem]">{item.label}</span>
@@ -233,13 +233,13 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                   <UserCircle2 className="size-[1rem] lg:size-[1.1rem] text-slate-500/70" />
                 </div>
                 <div className="flex min-w-0 flex-1 flex-col justify-center gap-[0.1rem]">
-                  <p className="truncate text-[0.75rem] lg:text-[0.8rem] font-medium text-slate-200/90">{admin?.full_name || 'Admin User'}</p>
-                  <p className="truncate text-[0.62rem] text-slate-500/70 font-medium">{admin?.email || '-'}</p>
+                  <p className="truncate text-[0.75rem] lg:text-[0.8rem] font-medium text-surface-text">{admin?.full_name || 'Admin User'}</p>
+                  <p className="truncate text-[0.62rem] text-surface-text-muted font-medium">{admin?.email || '-'}</p>
                 </div>
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex size-7 lg:size-8 shrink-0 items-center justify-center rounded-lg text-slate-500 opacity-0 transition-all hover:bg-rose-500/[0.08] hover:text-rose-400 hover:border hover:border-rose-500/10 group-hover:opacity-100"
+                  className="flex size-7 lg:size-8 shrink-0 items-center justify-center rounded-lg text-surface-text-muted opacity-0 transition-all hover:bg-status-danger/10 hover:text-status-danger hover:border hover:border-status-danger/10 group-hover:opacity-100"
                   aria-label="Logout"
                 >
                   <LogOut className="size-3.5" />
@@ -252,7 +252,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
           <div className="relative flex h-full flex-1 flex-col overflow-hidden bg-transparent">
             
             {/* Topbar */}
-            <header className="sticky top-0 z-30 flex-none border-b border-white/[0.02] bg-[#0a0d12]/80 md:bg-[#0a0d12]/90 px-3 py-2.5 sm:px-5 md:px-6 md:py-4 lg:px-8 lg:py-5 backdrop-blur-xl">
+            <header className="sticky top-0 z-30 flex-none border-b border-surface-border-subtle bg-surface-base/80 md:bg-surface-base/90 px-3 py-2.5 sm:px-5 md:px-6 md:py-4 lg:px-8 lg:py-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 md:gap-4">
                   {/* Mobile Menu Button - Sleek & Integrated */}
@@ -265,8 +265,8 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                     <Menu className="size-5" strokeWidth={2} />
                   </button>
                   <div className="flex flex-col justify-center">
-                    <p className="hidden md:block text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-[#6493b5]/60 mb-0.5">Workspace</p>
-                    <h1 className="text-[1rem] md:text-[1.15rem] lg:text-[1.25rem] font-medium tracking-tight text-slate-100">{pageTitle}</h1>
+                    <p className="hidden md:block text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-accent-primary/60 mb-0.5">Workspace</p>
+                    <h1 className="text-[1rem] md:text-[1.15rem] lg:text-[1.25rem] font-medium tracking-tight text-surface-text">{pageTitle}</h1>
                   </div>
                 </div>
                 {/* Desktop Profile Strip placeholder if needed in header, but it's in sidebar */}
@@ -363,7 +363,7 @@ export function AdminPanelShell({ children }: { children: ReactNode }) {
                 <button
                   type="button"
                   onClick={handleLogout}
-                  className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-lg bg-rose-500/[0.05] px-4 text-[0.9rem] font-medium text-rose-400 active:bg-rose-500/10 transition-colors"
+                  className="flex w-full min-h-[48px] items-center justify-center gap-2 rounded-lg bg-status-danger/10 px-4 text-[0.9rem] font-medium text-status-danger active:bg-status-danger/20 transition-colors"
                 >
                   <LogOut className="size-4.5" />
                   Sign Out
