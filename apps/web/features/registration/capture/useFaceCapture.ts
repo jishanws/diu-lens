@@ -63,8 +63,60 @@ const detectionIntervalMs = 90;
 const MIN_CAPTURE_FILE_SIZE_BYTES = 10 * 1024;
 const BURST_CAPTURE_GAP_MS = 500;
 const LIVENESS_HOLD_MS = enrollmentValidationConfig.livenessHoldMs;
+const FACE_GUIDANCE_WASM_BASE_PATH =
+  '/vendor/mediapipe/tasks-vision/wasm';
+const FACE_GUIDANCE_WASM_LOADER_PATH = `${FACE_GUIDANCE_WASM_BASE_PATH}/vision_wasm_internal.js`;
+const FACE_GUIDANCE_MODEL_PATH =
+  '/vendor/mediapipe/models/face_landmarker.task';
+const FACE_GUIDANCE_UNAVAILABLE_MESSAGE =
+  'Face guidance is temporarily unavailable. Check camera permission, refresh the page, try another browser or device, and contact an admin if the issue persists.';
 
 let faceLandmarkerPromise: Promise<FaceLandmarker> | null = null;
+
+function logFaceGuidanceInitError(error: unknown) {
+  if (process.env.NODE_ENV === 'production') return;
+
+  console.error('[face-guidance] initialization failed', error);
+}
+
+function assertFaceGuidanceAssetPath(path: string, label: string) {
+  if (!path.startsWith('/') || path.startsWith('//') || path.includes('://')) {
+    throw new Error(`Invalid ${label} asset path: ${path}`);
+  }
+}
+
+async function verifyFaceGuidanceAsset(path: string, label: string) {
+  assertFaceGuidanceAssetPath(path, label);
+
+  if (typeof fetch !== 'function') {
+    throw new Error('Fetch API is unavailable for face guidance assets.');
+  }
+
+  const response = await fetch(path, { cache: 'force-cache' });
+  if (!response.ok) {
+    throw new Error(
+      `Unable to load ${label} asset from ${path}: HTTP ${response.status}`
+    );
+  }
+}
+
+async function verifyFaceGuidanceEnvironment() {
+  if (typeof window === 'undefined') {
+    throw new Error('Face guidance must be initialized in the browser.');
+  }
+
+  if (typeof WebAssembly === 'undefined') {
+    throw new Error('WebAssembly is unavailable in this browser.');
+  }
+
+  await Promise.all([
+    verifyFaceGuidanceAsset(
+      FACE_GUIDANCE_WASM_LOADER_PATH,
+      'MediaPipe WASM loader'
+    ),
+    verifyFaceGuidanceAsset(FACE_GUIDANCE_MODEL_PATH, 'face landmarker model'),
+  ]);
+}
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, value));
@@ -362,22 +414,26 @@ async function loadFaceLandmarker() {
   if (faceLandmarkerPromise) return faceLandmarkerPromise;
 
   faceLandmarkerPromise = (async () => {
+    await verifyFaceGuidanceEnvironment();
+
     const tasksVision = await import('@mediapipe/tasks-vision');
     const vision = await tasksVision.FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.34/wasm'
+      FACE_GUIDANCE_WASM_BASE_PATH
     );
 
     return await tasksVision.FaceLandmarker.createFromOptions(vision, {
       baseOptions: {
-        modelAssetPath:
-          'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+        modelAssetPath: FACE_GUIDANCE_MODEL_PATH,
       },
       runningMode: 'VIDEO',
       numFaces: 2,
       outputFaceBlendshapes: false,
       outputFacialTransformationMatrixes: false,
     });
-  })();
+  })().catch((error) => {
+    faceLandmarkerPromise = null;
+    throw error;
+  });
 
   return faceLandmarkerPromise;
 }
@@ -540,12 +596,11 @@ export function useFaceCapture({
         if (cancelled) return;
         landmarkerRef.current = landmarker;
         setModelReady(true);
-      } catch {
+      } catch (error) {
         if (cancelled) return;
+        logFaceGuidanceInitError(error);
         setModelReady(false);
-        setModelErrorMessage(
-          'Face guidance is temporarily unavailable. Please refresh and try again.'
-        );
+        setModelErrorMessage(FACE_GUIDANCE_UNAVAILABLE_MESSAGE);
       }
     })();
 
