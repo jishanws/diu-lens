@@ -34,17 +34,17 @@ function getStorageKey(studentId: string) {
 }
 
 function getLivenessChallengeLabel(challenge: string | null) {
-  if (challenge === 'left') return 'Turn your head left';
-  if (challenge === 'right') return 'Turn your head right';
-  if (challenge === 'center') return 'Look back at the camera';
+  if (challenge === 'left') return 'Turn Left';
+  if (challenge === 'right') return 'Turn Right';
+  if (challenge === 'center') return 'Look Straight';
   if (challenge === 'blink') return 'Blink Once';
   return 'Liveness';
 }
 
 function getLivenessChallengeHelper(challenge: string | null) {
-  if (challenge === 'left' || challenge === 'right' || challenge === 'center') {
-    return 'Move slowly and keep your face inside the circle.';
-  }
+  if (challenge === 'left') return 'Turn your head left.';
+  if (challenge === 'right') return 'Turn your head right.';
+  if (challenge === 'center') return 'Face the camera.';
   if (challenge === 'blink') return 'Keep your face centered while blinking.';
   return 'Keep your face centered.';
 }
@@ -63,6 +63,14 @@ function HealthBadge({ label, active }: { label: string; active: boolean }) {
   );
 }
 
+const angleSummaryLabel = {
+  front: 'Front',
+  left: 'Left',
+  right: 'Right',
+  up: 'Up',
+  down: 'Down',
+  natural_front: 'Front',
+} as const;
 
 export function GuidedEnrollmentCapture({
   studentId,
@@ -402,22 +410,22 @@ export function GuidedEnrollmentCapture({
     ? perAngleHint[state.currentAngle]
     : getLivenessChallengeHelper(state.liveness.currentChallenge);
   const showCompletionState = state.canSubmit;
-  const guideActiveDirection =
-    !state.liveness.completed &&
-    (
-      state.liveness.currentChallenge === 'left' ||
-      state.liveness.currentChallenge === 'right' ||
-      state.liveness.currentChallenge === 'up' ||
-      state.liveness.currentChallenge === 'down'
-    )
-      ? state.liveness.currentChallenge
-      : state.currentAngle;
+  const guidePoseState =
+    state.feedback.guidanceState === 'ready' ||
+    state.feedback.guidanceState === 'hold_steady' ||
+    state.feedback.guidanceState === 'cooldown'
+      ? 'valid'
+      : state.debug.angleState === 'near_valid'
+        ? 'near_valid'
+        : 'invalid';
   const captureSummaryRows = captureAngles.map((angle) => ({
     angle,
-    label: perAngleInstruction[angle],
+    label: angleSummaryLabel[angle],
     count: capturesByAngle[angle]?.length ?? 0,
     required: getRequiredFramesForAngle(angle),
   }));
+  const currentAngleAccepted = capturesByAngle[state.currentAngle]?.length ?? 0;
+  const currentAngleRequired = getRequiredFramesForAngle(state.currentAngle);
 
   return (
     <section className="space-y-3">
@@ -443,7 +451,7 @@ export function GuidedEnrollmentCapture({
               </h3>
               <p className="mt-1 max-w-[15rem] text-[0.72rem] leading-snug text-slate-400">
                 {showCompletionState
-                  ? 'All captures completed. Your enrollment images are ready for secure validation.'
+                  ? 'All enrollment captures are complete.'
                   : captureHelper}
               </p>
             </div>
@@ -548,8 +556,8 @@ export function GuidedEnrollmentCapture({
             >
               <CircularProgressGuide
                 completedDirections={completedDirections}
-                activeDirection={guideActiveDirection}
-                poseState={state.feedback.guidanceState === 'hold_steady' ? 'near_valid' : state.debug.angleState}
+                activeDirection={state.currentAngle}
+                poseState={guidePoseState}
               />
             </div>
 
@@ -564,7 +572,6 @@ export function GuidedEnrollmentCapture({
                 <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
                 <div>user dir: {state.debug.userFacingDirection}</div>
                 <div>expected: {state.debug.expectedPose}</div>
-                <div>highlight: {state.debug.highlightedGuideDirection}</div>
                 <div>guide: {state.debug.guidanceMessage}</div>
                 <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>base pitch: {state.debug.baselinePitch?.toFixed(1) ?? 'n/a'}</div>
@@ -667,13 +674,25 @@ export function GuidedEnrollmentCapture({
             </div>
           ) : null}
 
+          {!showCompletionState && state.liveness.completed ? (
+            <div className="rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 text-center">
+              <p className="text-[0.78rem] font-semibold text-slate-100">
+                {angleSummaryLabel[state.currentAngle]} {currentAngleAccepted}/
+                {currentAngleRequired}
+              </p>
+              <p className="mt-0.5 text-[0.68rem] text-slate-400">
+                Capturing multiple images improves recognition accuracy.
+              </p>
+            </div>
+          ) : null}
+
           {/* STATUS MESSAGE */}
           <div className="min-h-[2.2rem] px-1 text-center" aria-hidden="true">
             <p
               className="text-[0.85rem] leading-[1.5] font-medium transition-colors duration-300"
               style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(100, 147, 181, 0.9)' : 'rgba(148,163,184,0.9)' }}
             >
-              {showCompletionState ? 'Your enrollment images are ready for secure validation.' : statusText}
+              {showCompletionState ? 'All enrollment captures are complete.' : statusText}
             </p>
           </div>
           

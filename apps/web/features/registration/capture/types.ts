@@ -70,7 +70,6 @@ export type CaptureDebugState = {
   roll: number | null;
   userFacingDirection: string;
   expectedPose: string;
-  highlightedGuideDirection: string;
   guidanceMessage: string;
   baselineYaw: number | null;
   baselinePitch: number | null;

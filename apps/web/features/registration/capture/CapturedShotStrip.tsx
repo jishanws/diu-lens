@@ -13,10 +13,10 @@ import { cn } from '@/lib/utils';
 
 const angleLabel: Record<VerificationAngle, string> = {
   front: 'Look Straight',
-  left: 'Turn Head Left',
-  right: 'Turn Head Right',
-  up: 'Lift Chin Slightly',
-  down: 'Lower Chin Slightly',
+  left: 'Turn Left',
+  right: 'Turn Right',
+  up: 'Look Up',
+  down: 'Look Down',
   natural_front: 'Natural',
 };
 

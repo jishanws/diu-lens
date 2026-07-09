@@ -10,10 +10,10 @@ import { cn } from '@/lib/utils';
 
 const angleLabel: Record<VerificationAngle, string> = {
   front: 'Look Straight',
-  left: 'Turn Head Left',
-  right: 'Turn Head Right',
-  up: 'Lift Chin Slightly',
-  down: 'Lower Chin Slightly',
+  left: 'Turn Left',
+  right: 'Turn Right',
+  up: 'Look Up',
+  down: 'Look Down',
   natural_front: 'Natural',
 };
 
@@ -26,13 +26,21 @@ type CaptureProgressProps = {
 export function CaptureProgress({
   capturedShots,
   currentAngle,
-  capturedCount,
 }: CaptureProgressProps) {
+  const totalAcceptedFrames = captureAngles.reduce(
+    (total, angle) => total + capturedShots[angle].length,
+    0
+  );
+  const totalRequiredFrames = captureAngles.reduce(
+    (total, angle) => total + getRequiredFramesForAngle(angle),
+    0
+  );
+
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between text-xs font-semibold tracking-[0.03em] text-slate-600 uppercase max-[639px]:text-slate-500">
         <span>Capture Steps</span>
-        <span>{capturedCount} / {captureAngles.length}</span>
+        <span>{totalAcceptedFrames} / {totalRequiredFrames}</span>
       </div>
 
       <div className="flex flex-wrap gap-2">

@@ -21,8 +21,6 @@ export type LivenessYawDirectionMode =
   | 'either';
 
 export const enrollmentValidationConfig = {
-  SHOWCASE_ENROLLMENT_MODE:
-    process.env.NEXT_PUBLIC_SHOWCASE_ENROLLMENT_MODE === 'true',
   minDetectionScore: 0.55,
   minFaceAreaRatio: 0.09,
   maxFaceAreaRatio: 0.35,
@@ -33,6 +31,7 @@ export const enrollmentValidationConfig = {
   minResolution: { width: 320, height: 240 },
   stabilityDurationMs: 350,
   stabilityGraceMs: 220,
+  postCaptureCooldownMs: 300,
   livenessHoldMs: 420,
   livenessMotionHoldMs: 320,
   livenessChallengeTimeoutMs: 6500,
@@ -78,7 +77,7 @@ export const enrollmentValidationConfig = {
 } as const;
 
 export const livenessChallengePool: LivenessChallenge[] = [
+  'center',
   'left',
   'right',
-  'center',
 ];
