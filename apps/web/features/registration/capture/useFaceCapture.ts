@@ -9,6 +9,7 @@ import {
   MAX_CENTER_OFFSET,
   POST_CAPTURE_COOLDOWN_MS,
   STABILITY_WINDOW_MS,
+  STABILITY_GRACE_MS,
   GUIDANCE_STICK_MS,
   captureStorageVersion,
   perAngleInstruction,
@@ -25,6 +26,7 @@ import type {
   CapturedShotsByAngle,
   FaceCaptureState,
   CaptureFeedback,
+  PoseValidationState,
 } from '@/features/registration/capture/types';
 import type {
   VerificationAngle,
@@ -63,6 +65,8 @@ const detectionIntervalMs = 90;
 const MIN_CAPTURE_FILE_SIZE_BYTES = 10 * 1024;
 const BURST_CAPTURE_GAP_MS = 500;
 const LIVENESS_HOLD_MS = enrollmentValidationConfig.livenessHoldMs;
+const LIVENESS_CHALLENGE_TIMEOUT_MS =
+  enrollmentValidationConfig.livenessChallengeTimeoutMs;
 const FACE_GUIDANCE_WASM_BASE_PATH =
   '/vendor/mediapipe/tasks-vision/wasm';
 const FACE_GUIDANCE_WASM_LOADER_PATH = `${FACE_GUIDANCE_WASM_BASE_PATH}/vision_wasm_internal.js`;
@@ -134,8 +138,11 @@ function emptyCapturedShots(): CapturedShotsByAngle {
 }
 
 function makeLivenessSequence(): LivenessChallenge[] {
-  const shuffled = [...livenessChallengePool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, enrollmentValidationConfig.livenessChallengeCount);
+  const pool = [...livenessChallengePool];
+  const challenges = enrollmentValidationConfig.randomizeLivenessChallenges
+    ? pool.sort(() => Math.random() - 0.5)
+    : pool;
+  return challenges.slice(0, enrollmentValidationConfig.livenessChallengeCount);
 }
 
 function isAngleComplete(
@@ -281,36 +288,61 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): {
   };
 }
 
+function thresholdContains(
+  threshold: { yawMin: number; yawMax: number; pitchMin: number; pitchMax: number },
+  yaw: number,
+  pitch: number,
+  marginBoost: number = 0
+) {
+  return (
+    yaw >= threshold.yawMin - marginBoost &&
+    yaw <= threshold.yawMax + marginBoost &&
+    pitch >= threshold.pitchMin - marginBoost &&
+    pitch <= threshold.pitchMax + marginBoost
+  );
+}
+
+function getPoseState(
+  angle: VerificationAngle,
+  yaw: number,
+  pitch: number,
+  marginBoost: number = 0
+): PoseValidationState {
+  if (angle === 'natural_front') return 'valid';
+  const threshold = ANGLE_THRESHOLDS[angle];
+  if (!threshold) return 'invalid';
+  if (thresholdContains(threshold.valid, yaw, pitch, marginBoost)) {
+    return 'valid';
+  }
+  if (thresholdContains(threshold.near, yaw, pitch, marginBoost)) {
+    return 'near_valid';
+  }
+  return 'invalid';
+}
+
 function isRoughAngleMatch(
   angle: VerificationAngle,
   yaw: number,
   pitch: number,
   marginBoost: number = 0
 ) {
-  if (angle === 'natural_front') return true;
-  const threshold = ANGLE_THRESHOLDS[angle];
-  if (!threshold) return false;
-  const yawMargin = marginBoost;
-  const pitchMargin = marginBoost;
-
-  return (
-    yaw >= threshold.yawMin - yawMargin &&
-    yaw <= threshold.yawMax + yawMargin &&
-    pitch >= threshold.pitchMin - pitchMargin &&
-    pitch <= threshold.pitchMax + pitchMargin
-  );
+  return getPoseState(angle, yaw, pitch, marginBoost) === 'valid';
 }
 
 function challengeMatched(
   challenge: LivenessChallenge,
   yaw: number,
   pitch: number,
-  landmarks: LandmarkPoint[]
+  landmarks: LandmarkPoint[],
+  startPose: { yaw: number; pitch: number } | null
 ) {
   if (challenge === 'blink') {
     return areEyesClosed(landmarks);
   }
-  return isRoughAngleMatch(challenge, yaw, pitch, 3);
+  if (!isRoughAngleMatch(challenge, yaw, pitch, 3)) return false;
+  if (!startPose) return false;
+  const moved = Math.hypot(yaw - startPose.yaw, pitch - startPose.pitch);
+  return moved >= enrollmentValidationConfig.livenessMinMotionDegrees;
 }
 
 function areEyesVisible(landmarks: LandmarkPoint[]) {
@@ -339,6 +371,75 @@ function areEyesClosed(landmarks: LandmarkPoint[]) {
   return leftOpen < 0.12 && rightOpen < 0.12;
 }
 
+function analyzeVideoQuality(video: HTMLVideoElement): {
+  blurVariance: number;
+  brightness: number;
+  resolutionOk: boolean;
+} {
+  const width = Math.min(160, video.videoWidth || 0);
+  const height =
+    video.videoWidth > 0 && video.videoHeight > 0
+      ? Math.max(1, Math.round((width * video.videoHeight) / video.videoWidth))
+      : 0;
+  const resolutionOk =
+    video.videoWidth >= enrollmentValidationConfig.minResolution.width &&
+    video.videoHeight >= enrollmentValidationConfig.minResolution.height;
+
+  if (width <= 0 || height <= 0) {
+    return { blurVariance: 0, brightness: 0, resolutionOk };
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  if (!context) {
+    return { blurVariance: 0, brightness: 0, resolutionOk };
+  }
+
+  context.drawImage(video, 0, 0, width, height);
+  const data = context.getImageData(0, 0, width, height).data;
+  const gray = new Float32Array(width * height);
+  let brightnessTotal = 0;
+
+  for (let index = 0, pixel = 0; index < data.length; index += 4, pixel += 1) {
+    const value = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+    gray[pixel] = value;
+    brightnessTotal += value;
+  }
+
+  let laplacianTotal = 0;
+  let laplacianSquaredTotal = 0;
+  let laplacianCount = 0;
+
+  for (let y = 1; y < height - 1; y += 1) {
+    for (let x = 1; x < width - 1; x += 1) {
+      const center = y * width + x;
+      const laplacian =
+        gray[center - width] +
+        gray[center - 1] -
+        4 * gray[center] +
+        gray[center + 1] +
+        gray[center + width];
+      laplacianTotal += laplacian;
+      laplacianSquaredTotal += laplacian * laplacian;
+      laplacianCount += 1;
+    }
+  }
+
+  const laplacianMean = laplacianCount > 0 ? laplacianTotal / laplacianCount : 0;
+  const blurVariance =
+    laplacianCount > 0
+      ? Math.max(0, laplacianSquaredTotal / laplacianCount - laplacianMean * laplacianMean)
+      : 0;
+
+  return {
+    blurVariance,
+    brightness: brightnessTotal / Math.max(1, width * height),
+    resolutionOk,
+  };
+}
+
 function getDynamicAngleGuidance(
   angle: VerificationAngle,
   yaw: number,
@@ -355,30 +456,36 @@ function getDynamicAngleGuidance(
   if (angle === 'natural_front') return { instruction: 'Look naturally', liveMessage: 'Look at the camera naturally' };
   
   if (angle === 'front') {
-    if (yaw < ANGLE_THRESHOLDS.front.yawMin) return { instruction: 'Look right', liveMessage: 'Turn slightly right' };
-    if (yaw > ANGLE_THRESHOLDS.front.yawMax) return { instruction: 'Look left', liveMessage: 'Turn slightly left' };
-    if (pitch < ANGLE_THRESHOLDS.front.pitchMin) return { instruction: 'Look down', liveMessage: 'Look slightly down' };
-    if (pitch > ANGLE_THRESHOLDS.front.pitchMax) return { instruction: 'Look up', liveMessage: 'Look slightly up' };
+    if (yaw < ANGLE_THRESHOLDS.front.valid.yawMin) return { instruction: 'Return closer to center', liveMessage: 'Turn slightly right' };
+    if (yaw > ANGLE_THRESHOLDS.front.valid.yawMax) return { instruction: 'Return closer to center', liveMessage: 'Turn slightly left' };
+    if (pitch < ANGLE_THRESHOLDS.front.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Look slightly down' };
+    if (pitch > ANGLE_THRESHOLDS.front.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Look slightly up' };
     return { instruction: 'Look forward', liveMessage: 'Look forward' };
   }
   if (angle === 'left') {
-    if (yaw > ANGLE_THRESHOLDS.left.yawMax) return { instruction: 'Turn slightly left', liveMessage: 'Turn slightly left' };
-    if (pitch < ANGLE_THRESHOLDS.left.pitchMin || pitch > ANGLE_THRESHOLDS.left.pitchMax) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
+    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax) return { instruction: 'Turn slightly more left', liveMessage: 'Turn slightly more left' };
+    if (yaw < ANGLE_THRESHOLDS.left.valid.yawMin) return { instruction: 'Turn slightly less left', liveMessage: 'Return closer to center' };
+    if (pitch < ANGLE_THRESHOLDS.left.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Level your head' };
+    if (pitch > ANGLE_THRESHOLDS.left.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Level your head' };
     return { instruction: 'Look left', liveMessage: 'Look left' };
   }
   if (angle === 'right') {
-    if (yaw < ANGLE_THRESHOLDS.right.yawMin) return { instruction: 'Turn slightly right', liveMessage: 'Turn slightly right' };
-    if (pitch < ANGLE_THRESHOLDS.right.pitchMin || pitch > ANGLE_THRESHOLDS.right.pitchMax) return { instruction: 'Keep head level', liveMessage: 'Level your head' };
+    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin) return { instruction: 'Turn slightly more right', liveMessage: 'Turn slightly more right' };
+    if (yaw > ANGLE_THRESHOLDS.right.valid.yawMax) return { instruction: 'Turn slightly less right', liveMessage: 'Return closer to center' };
+    if (pitch < ANGLE_THRESHOLDS.right.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Level your head' };
+    if (pitch > ANGLE_THRESHOLDS.right.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Level your head' };
     return { instruction: 'Look right', liveMessage: 'Look right' };
   }
   if (angle === 'up') {
-    if (pitch > ANGLE_THRESHOLDS.up.pitchMax) return { instruction: 'Look up', liveMessage: 'Look higher' };
-    if (yaw < ANGLE_THRESHOLDS.up.yawMin || yaw > ANGLE_THRESHOLDS.up.yawMax) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
+    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Look higher' };
+    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Return closer to center' };
+    if (yaw < ANGLE_THRESHOLDS.up.valid.yawMin || yaw > ANGLE_THRESHOLDS.up.valid.yawMax) return { instruction: 'Return closer to center', liveMessage: 'Keep face centered' };
     return { instruction: 'Look up', liveMessage: 'Look up' };
   }
   if (angle === 'down') {
-    if (pitch < ANGLE_THRESHOLDS.down.pitchMin) return { instruction: 'Look down', liveMessage: 'Look lower' };
-    if (yaw < ANGLE_THRESHOLDS.down.yawMin || yaw > ANGLE_THRESHOLDS.down.yawMax) return { instruction: 'Face forward', liveMessage: 'Keep face centered' };
+    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Look lower' };
+    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Return closer to center' };
+    if (yaw < ANGLE_THRESHOLDS.down.valid.yawMin || yaw > ANGLE_THRESHOLDS.down.valid.yawMax) return { instruction: 'Return closer to center', liveMessage: 'Keep face centered' };
     return { instruction: 'Look down', liveMessage: 'Look down' };
   }
 
@@ -455,9 +562,14 @@ export function useFaceCapture({
   const persistenceEnabledRef = useRef(true);
   const consecutiveFailuresRef = useRef<number>(0);
   const stableSinceRef = useRef<number>(0);
+  const stableGraceUntilRef = useRef<number>(0);
   const livenessSequenceRef = useRef<LivenessChallenge[]>(makeLivenessSequence());
   const livenessIndexRef = useRef(0);
+  const livenessPassCountRef = useRef(0);
+  const livenessAttemptsRef = useRef(0);
   const livenessMatchedSinceRef = useRef(0);
+  const livenessChallengeStartedAtRef = useRef(0);
+  const livenessChallengeStartPoseRef = useRef<{ yaw: number; pitch: number } | null>(null);
   const lastGuidanceRef = useRef<{ instruction: string; liveMessage: string; timestamp: number }>({
     instruction: '',
     liveMessage: '',
@@ -494,9 +606,36 @@ export function useFaceCapture({
     failed: false,
     currentChallenge: livenessSequenceRef.current[0] ?? null,
     completedCount: 0,
-    requiredCount: livenessSequenceRef.current.length,
+    requiredCount: enrollmentValidationConfig.livenessPassCount,
     message: 'Complete liveness check',
   });
+  const [debugState, setDebugState] = useState<FaceCaptureState['debug']>({
+    enabled: false,
+    yaw: null,
+    pitch: null,
+    roll: null,
+    expectedAngle: 'front',
+    angleState: 'invalid',
+    livenessChallenge: livenessSequenceRef.current[0] ?? null,
+    livenessCompletedCount: 0,
+    livenessRequiredPassCount: enrollmentValidationConfig.livenessPassCount,
+    livenessAttempts: 0,
+    stableForMs: 0,
+    stableRequiredMs: STABILITY_WINDOW_MS,
+    blockedReason: 'no_face',
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const queryEnabled =
+      params.get(enrollmentValidationConfig.debugOverlayQueryParam) === '1' ||
+      params.get(enrollmentValidationConfig.debugOverlayQueryParam) === 'true';
+    setDebugState((prev) => ({
+      ...prev,
+      enabled: enrollmentValidationConfig.debugOverlayEnv || queryEnabled,
+    }));
+  }, []);
 
   const {
     capturedCount,
@@ -669,6 +808,10 @@ export function useFaceCapture({
           let yaw = 0;
           let pitch = 0;
           let faceAreaRatio = 0;
+          let centerOffset = 0;
+          let blurVariance = 0;
+          let brightness = 0;
+          let qualityOk = true;
 
           if (faces.length === 1) {
             const landmarks = faces[0];
@@ -677,12 +820,21 @@ export function useFaceCapture({
               0,
               (box.maxX - box.minX) * (box.maxY - box.minY)
             );
-            const centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
+            centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
             const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
+            const videoQuality = analyzeVideoQuality(videoElement);
+            blurVariance = videoQuality.blurVariance;
+            brightness = videoQuality.brightness;
+            qualityOk =
+              videoQuality.resolutionOk &&
+              blurVariance >= enrollmentValidationConfig.minBlurVariance &&
+              brightness >= enrollmentValidationConfig.brightnessRange.min &&
+              brightness <= enrollmentValidationConfig.brightnessRange.max;
             if (
               centerOffset > MAX_CENTER_OFFSET ||
               edgeMargin < enrollmentValidationConfig.minEdgeMarginRatio ||
-              !areEyesVisible(landmarks)
+              !areEyesVisible(landmarks) ||
+              !qualityOk
             ) {
               continue;
             }
@@ -714,6 +866,7 @@ export function useFaceCapture({
             const warnings: string[] = [];
             if (!angleOk) warnings.push('angle');
             if (!sizeOk) warnings.push('face_size');
+            if (!qualityOk) warnings.push('frame_quality');
             candidates.push({
               angle: targetAngle,
               blob: snapshot,
@@ -725,9 +878,9 @@ export function useFaceCapture({
                 yaw,
                 pitch,
                 faceAreaRatio,
-                centerOffset: 0,
-                blurVariance: 0,
-                brightness: 0,
+                centerOffset,
+                blurVariance,
+                brightness,
                 captureConfidence:
                   !force && angleOk && sizeOk ? 'ideal' : 'near_ready',
                 warnings,
@@ -833,6 +986,12 @@ export function useFaceCapture({
           liveMessage: 'Captured',
           holdProgress: 0,
         }));
+        setDebugState((prev) => ({
+          ...prev,
+          expectedAngle: currentAngleRef.current,
+          stableForMs: 0,
+          blockedReason: 'cooldown',
+        }));
         scheduleNext();
         return;
       }
@@ -867,6 +1026,8 @@ export function useFaceCapture({
       const faces = detection?.faceLandmarks ?? [];
 
       if (faces.length === 0) {
+        stableSinceRef.current = 0;
+        stableGraceUntilRef.current = 0;
         setFeedback({
           guidanceState: 'no_face',
           instruction: getAngleGuidance(angle),
@@ -884,11 +1045,26 @@ export function useFaceCapture({
             livenessPassed: livenessState.completed,
           },
         });
+        setDebugState((prev) => ({
+          ...prev,
+          yaw: null,
+          pitch: null,
+          roll: null,
+          expectedAngle: angle,
+          angleState: 'invalid',
+          livenessChallenge: livenessState.completed
+            ? null
+            : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
+          stableForMs: 0,
+          blockedReason: 'no_face',
+        }));
         scheduleNext();
         return;
       }
 
       if (faces.length > 1) {
+        stableSinceRef.current = 0;
+        stableGraceUntilRef.current = 0;
         setFeedback({
           guidanceState: 'multiple_faces',
           instruction: getAngleGuidance(angle),
@@ -906,6 +1082,19 @@ export function useFaceCapture({
             livenessPassed: livenessState.completed,
           },
         });
+        setDebugState((prev) => ({
+          ...prev,
+          yaw: null,
+          pitch: null,
+          roll: null,
+          expectedAngle: angle,
+          angleState: 'invalid',
+          livenessChallenge: livenessState.completed
+            ? null
+            : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
+          stableForMs: 0,
+          blockedReason: 'multiple_faces',
+        }));
         scheduleNext();
         return;
       }
@@ -922,36 +1111,127 @@ export function useFaceCapture({
       const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
       const edgeOk = edgeMargin >= enrollmentValidationConfig.minEdgeMarginRatio;
       const eyesVisible = areEyesVisible(landmarks);
-      const livenessComplete = livenessIndexRef.current >= livenessSequenceRef.current.length;
+      const videoQuality = analyzeVideoQuality(videoElement);
+      const resolutionOk = videoQuality.resolutionOk;
+      const sharpEnough =
+        videoQuality.blurVariance >= enrollmentValidationConfig.minBlurVariance;
+      const brightnessOk =
+        videoQuality.brightness >= enrollmentValidationConfig.brightnessRange.min &&
+        videoQuality.brightness <= enrollmentValidationConfig.brightnessRange.max;
+      const livenessComplete =
+        livenessPassCountRef.current >= enrollmentValidationConfig.livenessPassCount;
       if (!livenessComplete) {
-        const challenge = livenessSequenceRef.current[livenessIndexRef.current];
-        const matched = challengeMatched(challenge, pose.yaw, pose.pitch, landmarks);
+        let challenge = livenessSequenceRef.current[livenessIndexRef.current];
+        if (!challenge) {
+          livenessSequenceRef.current = makeLivenessSequence();
+          livenessIndexRef.current = 0;
+          challenge = livenessSequenceRef.current[0];
+        }
+        if (!challenge) {
+          scheduleNext();
+          return;
+        }
+        if (
+          livenessChallengeStartedAtRef.current === 0 ||
+          livenessChallengeStartPoseRef.current === null
+        ) {
+          livenessChallengeStartedAtRef.current = now;
+          livenessChallengeStartPoseRef.current = { yaw: pose.yaw, pitch: pose.pitch };
+        }
+
+        const matched = challengeMatched(
+          challenge,
+          pose.yaw,
+          pose.pitch,
+          landmarks,
+          livenessChallengeStartPoseRef.current
+        );
         if (matched) {
           if (livenessMatchedSinceRef.current === 0) {
             livenessMatchedSinceRef.current = now;
           }
           if (now - livenessMatchedSinceRef.current >= LIVENESS_HOLD_MS) {
+            livenessPassCountRef.current += 1;
             livenessIndexRef.current += 1;
             livenessMatchedSinceRef.current = 0;
+            livenessChallengeStartedAtRef.current = 0;
+            livenessChallengeStartPoseRef.current = null;
           }
         } else {
           livenessMatchedSinceRef.current = 0;
         }
-        const completedCount = Math.min(livenessIndexRef.current, livenessSequenceRef.current.length);
-        const done = completedCount >= livenessSequenceRef.current.length;
+
+        const timedOut =
+          livenessChallengeStartedAtRef.current > 0 &&
+          now - livenessChallengeStartedAtRef.current >= LIVENESS_CHALLENGE_TIMEOUT_MS;
+        if (timedOut) {
+          livenessIndexRef.current += 1;
+          livenessMatchedSinceRef.current = 0;
+          livenessChallengeStartedAtRef.current = 0;
+          livenessChallengeStartPoseRef.current = null;
+        }
+
+        if (
+          livenessIndexRef.current >= livenessSequenceRef.current.length &&
+          livenessPassCountRef.current < enrollmentValidationConfig.livenessPassCount
+        ) {
+          livenessAttemptsRef.current += 1;
+          if (livenessAttemptsRef.current > enrollmentValidationConfig.livenessMaxRetries) {
+            livenessAttemptsRef.current = 0;
+          }
+          livenessSequenceRef.current = makeLivenessSequence();
+          livenessIndexRef.current = 0;
+          livenessMatchedSinceRef.current = 0;
+          livenessChallengeStartedAtRef.current = 0;
+          livenessChallengeStartPoseRef.current = null;
+        }
+
+        const completedCount = livenessPassCountRef.current;
+        const done =
+          completedCount >= enrollmentValidationConfig.livenessPassCount;
+        const nextChallenge = done
+          ? null
+          : livenessSequenceRef.current[livenessIndexRef.current] ?? null;
         setLivenessState({
           completed: done,
           failed: false,
-          currentChallenge: done ? null : livenessSequenceRef.current[completedCount] ?? null,
+          currentChallenge: nextChallenge,
           completedCount,
-          requiredCount: livenessSequenceRef.current.length,
-          message: done ? 'Liveness complete' : `Liveness: ${challenge === 'blink' ? 'Blink' : getAngleGuidance(challenge)}`,
+          requiredCount: enrollmentValidationConfig.livenessPassCount,
+          message: done
+            ? 'Liveness complete'
+            : nextChallenge === 'blink'
+              ? 'Blink once'
+              : nextChallenge
+                ? `Move your head ${nextChallenge === 'front' ? 'back to center' : nextChallenge} slowly`
+                : 'Follow the movement instruction',
         });
+        setDebugState((prev) => ({
+          ...prev,
+          yaw: pose.yaw,
+          pitch: pose.pitch,
+          roll: 0,
+          expectedAngle: angle,
+          angleState: getPoseState(angle, pose.yaw, pose.pitch),
+          livenessChallenge: nextChallenge,
+          livenessCompletedCount: completedCount,
+          livenessRequiredPassCount: enrollmentValidationConfig.livenessPassCount,
+          livenessAttempts: livenessAttemptsRef.current,
+          stableForMs: 0,
+          blockedReason: done ? 'liveness_complete' : 'liveness',
+        }));
         if (!done) {
           setFeedback({
             guidanceState: eyesVisible ? 'liveness' : 'eyes_hidden',
-            instruction: challenge === 'blink' ? 'Blink once' : getAngleGuidance(challenge),
-            liveMessage: eyesVisible ? 'Complete liveness check' : 'Keep your eyes visible',
+            instruction:
+              nextChallenge === 'blink'
+                ? 'Blink once'
+                : nextChallenge
+                  ? `Move your head ${nextChallenge === 'front' ? 'back to center' : nextChallenge} slowly`
+                  : 'Follow the movement instruction',
+            liveMessage: eyesVisible
+              ? 'Follow the movement instruction'
+              : 'Keep your eyes visible',
             holdProgress: matched ? Math.min(1, (now - livenessMatchedSinceRef.current) / LIVENESS_HOLD_MS) : 0,
             readiness: {
               faceDetected: true,
@@ -959,8 +1239,8 @@ export function useFaceCapture({
               faceLargeEnough: faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO,
               centered,
               eyesVisible,
-              sharpEnough: true,
-              brightnessOk: true,
+              sharpEnough: sharpEnough && resolutionOk,
+              brightnessOk,
               angleMatch: matched,
               livenessPassed: false,
             },
@@ -970,16 +1250,41 @@ export function useFaceCapture({
         }
       }
       const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
-      const nearAngle = isRoughAngleMatch(angle, pose.yaw, pose.pitch, marginBoost);
+      const angleState = getPoseState(angle, pose.yaw, pose.pitch, marginBoost);
+      const angleValid = angleState === 'valid';
+      const angleClose = angleState !== 'invalid';
       const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
-      const gateOk = nearAngle && sizeOk && centered && edgeOk && eyesVisible;
+      const gateOk =
+        angleValid &&
+        sizeOk &&
+        centered &&
+        edgeOk &&
+        eyesVisible &&
+        sharpEnough &&
+        brightnessOk &&
+        resolutionOk;
 
       if (gateOk) {
         if (stableSinceRef.current === 0) {
           stableSinceRef.current = now;
         }
+        stableGraceUntilRef.current = now + STABILITY_GRACE_MS;
+      } else if (
+        angleClose &&
+        stableSinceRef.current > 0 &&
+        now <= stableGraceUntilRef.current &&
+        sizeOk &&
+        centered &&
+        edgeOk &&
+        eyesVisible &&
+        sharpEnough &&
+        brightnessOk &&
+        resolutionOk
+      ) {
+        // Keep the stability window alive for tiny pose-estimator flicker, but do not capture.
       } else {
         stableSinceRef.current = 0;
+        stableGraceUntilRef.current = 0;
         consecutiveFailuresRef.current += 1;
       }
 
@@ -990,28 +1295,65 @@ export function useFaceCapture({
       const lastG = lastGuidanceRef.current;
       
       // Debounce logic for guidance text
-      if (now - lastG.timestamp < GUIDANCE_STICK_MS && lastG.instruction && (!nearAngle || !sizeOk)) {
+      if (now - lastG.timestamp < GUIDANCE_STICK_MS && lastG.instruction && (!angleValid || !sizeOk)) {
         instruction = lastG.instruction;
         liveMessage = lastG.liveMessage;
-      } else if (!nearAngle || !sizeOk) {
+      } else if (!angleValid || !sizeOk) {
         lastGuidanceRef.current = { instruction, liveMessage, timestamp: now };
       } else {
         lastGuidanceRef.current = { instruction: '', liveMessage: '', timestamp: 0 };
       }
 
       let guidanceState: CaptureFeedback['guidanceState'] = 'wrong_angle';
+      let blockedReason = 'wrong_angle';
       if (gateOk) {
         guidanceState = isStable ? 'ready' : 'hold_steady';
+        blockedReason = isStable ? 'ready' : 'hold_steady';
       } else if (faceAreaRatio < MIN_FACE_AREA_RATIO) {
         guidanceState = 'face_too_small';
+        blockedReason = 'face_too_small';
+      } else if (faceAreaRatio > MAX_FACE_AREA_RATIO) {
+        guidanceState = 'face_too_small';
+        instruction = 'Move back';
+        liveMessage = 'Face too close';
+        blockedReason = 'face_too_large';
       } else if (!centered || !edgeOk) {
         guidanceState = 'off_center';
         instruction = 'Center your face';
         liveMessage = 'Center your face';
+        blockedReason = !edgeOk ? 'face_too_close_to_edge' : 'off_center';
       } else if (!eyesVisible) {
         guidanceState = 'eyes_hidden';
         instruction = 'Keep your eyes visible';
         liveMessage = 'Keep your eyes visible';
+        blockedReason = 'eyes_hidden';
+      } else if (!resolutionOk) {
+        guidanceState = 'blurry';
+        instruction = 'Use a higher resolution camera';
+        liveMessage = 'Camera resolution is too low';
+        blockedReason = 'resolution_too_low';
+      } else if (!sharpEnough) {
+        guidanceState = 'blurry';
+        instruction = 'Hold steady';
+        liveMessage = 'Image is blurry';
+        blockedReason = 'blurry';
+      } else if (!brightnessOk) {
+        guidanceState =
+          videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+            ? 'lighting_low'
+            : 'lighting_high';
+        instruction =
+          videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+            ? 'Move into brighter light'
+            : 'Reduce direct light';
+        liveMessage =
+          videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+            ? 'Lighting is too low'
+            : 'Lighting is too bright';
+        blockedReason = guidanceState;
+      } else if (angleState === 'near_valid') {
+        guidanceState = 'wrong_angle';
+        blockedReason = 'near_valid_pose';
       }
 
       setFeedback({
@@ -1027,12 +1369,27 @@ export function useFaceCapture({
           faceLargeEnough: sizeOk,
           centered: centered && edgeOk,
           eyesVisible,
-          sharpEnough: true, // We can evaluate blur here if needed
-          brightnessOk: true,
-          angleMatch: nearAngle,
+          sharpEnough: sharpEnough && resolutionOk,
+          brightnessOk,
+          angleMatch: angleValid,
           livenessPassed: true,
         },
       });
+      setDebugState((prev) => ({
+        ...prev,
+        yaw: pose.yaw,
+        pitch: pose.pitch,
+        roll: 0,
+        expectedAngle: angle,
+        angleState,
+        livenessChallenge: null,
+        livenessCompletedCount: livenessPassCountRef.current,
+        livenessRequiredPassCount: enrollmentValidationConfig.livenessPassCount,
+        livenessAttempts: livenessAttemptsRef.current,
+        stableForMs: Math.round(stableFor),
+        stableRequiredMs: STABILITY_WINDOW_MS,
+        blockedReason,
+      }));
 
       if (!gateOk || !isStable || autoCaptureLockRef.current) {
         scheduleNext();
@@ -1162,6 +1519,7 @@ export function useFaceCapture({
     isAutoCapturing,
     feedback,
     liveness: livenessState,
+    debug: debugState,
   };
 
   return {

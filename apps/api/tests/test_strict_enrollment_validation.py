@@ -54,6 +54,27 @@ def test_front_pose_not_accepted_as_left_or_right(monkeypatch) -> None:
     assert right["blocker"] == "wrong_pose"
 
 
+def test_practical_left_pose_threshold_is_accepted(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=-12, pitch=14)])
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
+
+    assert report["passed"] is True
+    assert report["blocker"] == "ready"
+
+
+def test_neutral_pose_still_rejected_for_directional_angles(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=0, pitch=0)])
+
+    up = image_validation.validate_enrollment_image(_jpeg_bytes(), "up.jpg", "up")
+    down = image_validation.validate_enrollment_image(_jpeg_bytes(), "down.jpg", "down")
+
+    assert up["passed"] is False
+    assert down["passed"] is False
+    assert up["blocker"] == "wrong_pose"
+    assert down["blocker"] == "wrong_pose"
+
+
 def test_blurry_image_rejected(monkeypatch) -> None:
     monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
 

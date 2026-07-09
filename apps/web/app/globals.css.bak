@@ -1,0 +1,945 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+@import '../styles/patterns.css';
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* ── Background System — warm graphite cinematic slate ─────── */
+  --background: oklch(0.148 0.008 248);
+  --foreground: oklch(0.93 0.005 250);
+  --card: oklch(0.21 0.008 248);
+  --card-foreground: oklch(0.93 0.005 250);
+  --popover: oklch(0.235 0.009 248);
+  --popover-foreground: oklch(0.93 0.005 250);
+
+  /* ── Accent System — muted ice-blue, not neon cyan ─────────── */
+  --primary: oklch(0.76 0.055 230);
+  --primary-foreground: oklch(0.16 0.007 248);
+  --secondary: oklch(0.26 0.010 248);
+  --secondary-foreground: oklch(0.87 0.005 250);
+  --muted: oklch(0.24 0.007 248);
+  --muted-foreground: oklch(0.62 0.008 250);
+  --accent: oklch(0.28 0.012 240);
+  --accent-foreground: oklch(0.92 0.005 250);
+  --destructive: oklch(0.704 0.191 22.216);
+
+  /* ── Border / Input / Ring ─────────────────────────────────── */
+  --border: oklch(0.32 0.008 248 / 40%);
+  --input: oklch(0.26 0.008 248 / 55%);
+  --ring: oklch(0.70 0.045 230);
+
+  /* ── Chart ─────────────────────────────────────────────────── */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+
+  /* ── Sidebar ───────────────────────────────────────────────── */
+  --sidebar: oklch(0.185 0.006 248);
+  --sidebar-foreground: oklch(0.92 0.005 250);
+  --sidebar-primary: oklch(0.72 0.05 230);
+  --sidebar-primary-foreground: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.25 0.007 248);
+  --sidebar-accent-foreground: oklch(0.92 0.005 250);
+  --sidebar-border: oklch(0.34 0.008 248 / 40%);
+  --sidebar-ring: oklch(0.65 0.04 230);
+
+  /* ══════════════════════════════════════════════════════════════
+     CINEMATIC ENVIRONMENT — Atmospheric Background System
+     ══════════════════════════════════════════════════════════════
+
+     The page exists INSIDE an environment, not ON a surface.
+     Atmosphere comes from composition, not from individual effects.
+
+     L1 · Environmental Lighting (bg-environment)
+       Multi-gradient shaped vertical composition. Upper zone is
+       slightly luminous; hero zone has a warm focal pocket; lower
+       zone recedes into deep darkness. Creates spatial hierarchy.
+
+     L2 · Hero Atmosphere (bg-hero-atmos)
+       Wide, flat luminance centered at the hero content zone.
+       Anchors the interface in atmosphere — the hero feels lit.
+
+     L3 · Atmospheric Signature (bg-signature-form)
+       The emotional identity layer. An organic amorphous form
+       made from overlapping gradients → dissolved through 100px
+       CSS blur. Reads as atmospheric luminance flow, never as
+       a shape. Very slow drift animation (55s).
+
+     L4 · Film Grain (bg-grain)
+       SVG feTurbulence at ~2% opacity. Matte cinematic texture.
+
+     L5 · Depth Recession (bg-depth-recession)
+       Linear darkness increasing toward the bottom. Creates the
+       spatial impression of lit upper zone → distant depth below.
+
+     L6 · Cinematic Vignette (landing-vignette)
+       Radial edge darkening, bottom-heavier. Frames content.
+     ══════════════════════════════════════════════════════════════ */
+
+  /* L1 — base surface */
+  --bg-base: #08111f;
+  --landing-page-gradient:
+    linear-gradient(
+      168deg,
+      #0d1728 0%,
+      #0b1422 42%,
+      #08111f 72%,
+      #0b1422 100%
+    );
+
+  /* L1 — environmental lighting: multi-gradient vertical composition
+     Upper atmospheric glow + hero-zone warmth + lower recession.
+     These are stacked on a single div for GPU efficiency.         */
+  --bg-environment:
+    /* Upper atmospheric glow — wide, soft */
+    radial-gradient(
+      ellipse 170% 55% at 50% -8%,
+      rgba(100, 147, 181, 0.08) 0%,
+      rgba(100, 147, 181, 0.035) 50%,
+      transparent 78%
+    ),
+    /* Upper-right secondary — directional depth, barely perceptible */
+    radial-gradient(
+      ellipse 90% 45% at 80% 5%,
+      rgba(100, 147, 181, 0.03) 0%,
+      transparent 65%
+    ),
+    /* Lower atmospheric darkness — progressive falloff */
+    linear-gradient(
+      180deg,
+      transparent 55%,
+      rgba(8, 17, 31, 0.3) 80%,
+      rgba(5, 10, 18, 0.5) 100%
+    );
+
+  /* L2 — hero atmosphere: centered focal warmth at hero zone */
+  --bg-hero-atmos: radial-gradient(
+    ellipse 100% 32% at 50% 38%,
+    rgba(100, 147, 181, 0.06) 0%,
+    rgba(100, 147, 181, 0.02) 55%,
+    transparent 85%
+  );
+
+  /* L5 — depth recession: linear bottom darkening */
+  --bg-depth-recession: linear-gradient(
+    180deg,
+    transparent 0%,
+    transparent 45%,
+    rgba(8, 17, 31, 0.15) 70%,
+    rgba(6, 12, 22, 0.3) 90%,
+    rgba(4, 9, 15, 0.45) 100%
+  );
+
+  /* L6 — vignette: compound radial, bottom-heavier for depth */
+  --bg-vignette:
+    radial-gradient(
+      ellipse 120% 115% at 50% 42%,
+      transparent 22%,
+      rgba(8, 17, 31, 0.25) 50%,
+      rgba(6, 12, 22, 0.5) 74%,
+      rgba(4, 9, 15, 0.7) 100%
+    );
+
+  /* ── Legacy aliases (admin panel compatibility) ───────── */
+  --landing-vignette: var(--bg-vignette);
+  --bg-ambient-light: var(--bg-environment);
+  --landing-glow-top-left: var(--bg-environment);
+  --landing-glow-bottom-right: transparent;
+
+  /* ── Component variables (unchanged) ────────────────── */
+  --landing-grid-line: rgba(100, 147, 181, 0.04);
+  --landing-card-bg: linear-gradient(
+    180deg,
+    rgba(15, 23, 36, 0.75) 0%,
+    rgba(10, 15, 26, 0.85) 100%
+  );
+  --landing-card-border: rgba(255, 255, 255, 0.05);
+  --landing-card-shadow:
+    0 24px 48px -12px rgba(0, 0, 0, 0.4),
+    0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --landing-text-primary: #f8fafc;
+  --landing-text-secondary: #94a3b8;
+  --landing-text-muted: #64748b;
+  --landing-accent: #6493b5;
+  --landing-accent-hover: #75a4c6;
+  --landing-progress-inactive: rgba(255, 255, 255, 0.04);
+  --landing-progress-active: #6493b5;
+  --landing-progress-glow: 0 0 6px rgba(100, 147, 181, 0.3);
+  --landing-input-bg: rgba(15, 23, 36, 0.6);
+  --landing-input-border: rgba(100, 147, 181, 0.1);
+  --landing-input-placeholder: rgba(148, 163, 184, 0.45);
+  --landing-focus-ring: rgba(100, 147, 181, 0.15);
+  --landing-input-text: #f1f5f9;
+  --landing-button-bg: linear-gradient(180deg, rgba(100, 147, 181, 0.95) 0%, rgba(82, 124, 154, 0.95) 100%);
+  --landing-button-shadow:
+    0 8px 16px -8px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  --landing-card-blur: 24px;
+  --landing-input-inset-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  --landing-card-spotlight: none;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    color-scheme: dark;
+    scroll-behavior: smooth;
+    overscroll-behavior-y: none;
+  }
+
+  body {
+    @apply text-foreground selection:bg-primary/20 transition-colors duration-150;
+    background-color: var(--bg-base, #101318);
+    min-height: 100dvh;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+
+@layer utilities {
+  /* ── L1: Base surface ──────────────────────────────────────── */
+  .landing-page {
+    background-color: var(--bg-base);
+    background-image: var(--landing-page-gradient);
+  }
+
+  /* ── L1: Environmental lighting composition ──────────────── */
+  .bg-environment {
+    background-image: var(--bg-environment);
+  }
+
+  /* ── L2: Hero atmosphere ──────────────────────────────────── */
+  .bg-hero-atmos {
+    background-image: var(--bg-hero-atmos);
+  }
+
+  /* ── L3: Atmospheric signature ────────────────────────────── */
+  /*   The organic biometric energy current. A shaped gradient   */
+  /*   form dissolved through heavy blur. After blur(100px) the  */
+  /*   shape becomes pure atmospheric luminance — no detectable  */
+  /*   geometry, only environmental presence.                    */
+  .bg-signature-wrap {
+    /* Container clips the blurred form to viewport */
+  }
+
+  .bg-signature-form {
+    position: absolute;
+    /* Positioned to influence the hero zone primarily */
+    top: 8%;
+    left: 5%;
+    width: 90%;
+    height: 65%;
+    /* Multiple gradients create an organic, amorphous shape */
+    background:
+      radial-gradient(
+        ellipse 55% 50% at 30% 45%,
+        rgba(100, 147, 181, 0.08) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 45% 55% at 72% 38%,
+        rgba(100, 147, 181, 0.065) 0%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 60% 35% at 50% 65%,
+        rgba(100, 147, 181, 0.045) 0%,
+        transparent 70%
+      );
+    /* The critical technique: heavy blur dissolves all shape. 
+       Reduced from 100px to 80px for better performance while keeping softness. */
+    filter: blur(80px);
+    opacity: 0.65;
+    /* Prevent blur from expanding clickable area */
+    pointer-events: none;
+    /* GPU layer isolation — limits repaint scope of the 80px blur */
+    contain: layout style;
+    will-change: transform;
+  }
+
+  /* ── Environmental breathing animation ────────────────────── */
+  .bg-env-breathe {
+    animation: atmosBreathe 38s ease-in-out infinite alternate;
+    will-change: opacity;
+  }
+
+  @media (max-width: 767px) {
+    .bg-env-breathe {
+      animation: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .bg-env-breathe {
+      animation: none;
+    }
+  }
+
+  /* ── L5: Depth recession ──────────────────────────────────── */
+  .bg-depth-recession {
+    background-image: var(--bg-depth-recession);
+  }
+
+  /* ── L6: Cinematic vignette ───────────────────────────────── */
+  .landing-vignette {
+    background-image: var(--bg-vignette);
+  }
+
+  /* ── Admin panel compatibility ─────────────────────────────── */
+  .landing-glow-top-left {
+    background-image: var(--landing-glow-top-left);
+  }
+  .landing-glow-bottom-right {
+    /* retained for compatibility */
+  }
+  .landing-grid-overlay {
+    background-image:
+      linear-gradient(rgba(148, 165, 185, 0.007) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 165, 185, 0.007) 1px, transparent 1px);
+    background-size: 120px 120px;
+    mask-image: radial-gradient(
+      ellipse 50% 36% at 50% 25%,
+      rgba(0, 0, 0, 0.22) 0%,
+      transparent 100%
+    );
+    opacity: 0.10;
+  }
+
+  .landing-card-surface {
+    background: var(--landing-card-bg);
+    border-color: var(--landing-card-border);
+    box-shadow: var(--landing-card-shadow);
+    backdrop-filter: blur(var(--landing-card-blur));
+    transition:
+      transform 180ms ease,
+      box-shadow 220ms ease,
+      border-color 200ms ease;
+  }
+
+  .landing-card-spotlight {
+    background-image: var(--landing-card-spotlight);
+  }
+
+  .landing-step-labels-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.45rem;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .landing-card-surface:hover {
+      transform: translateY(-1px);
+      border-color: rgba(255, 255, 255, 0.07);
+      box-shadow:
+        0 28px 56px -12px rgba(0, 0, 0, 0.45),
+        0 0 1px rgba(255, 255, 255, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+  }
+
+  .landing-text-primary {
+    color: var(--landing-text-primary);
+  }
+
+  .landing-text-secondary {
+    color: var(--landing-text-secondary);
+  }
+
+  .landing-text-muted {
+    color: var(--landing-text-muted);
+  }
+
+  .landing-link {
+    color: var(--landing-text-muted);
+    transition: color 160ms ease;
+  }
+
+  .landing-link:hover {
+    color: var(--landing-text-primary);
+  }
+
+  /* ── Step node timeline ──────────────────────────────── */
+
+  @keyframes node-pulse {
+    0%, 100% {
+      box-shadow:
+        0 0 0 0 rgba(100, 147, 181, 0),
+        0 0 4px rgba(100, 147, 181, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+    50% {
+      box-shadow:
+        0 0 0 4px rgba(100, 147, 181, 0.08),
+        0 0 10px rgba(100, 147, 181, 0.35),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+    }
+  }
+
+  @keyframes connector-fill {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .step-node {
+    position: relative;
+    z-index: 1;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background 350ms cubic-bezier(0.4, 0, 0.2, 1),
+      box-shadow 350ms ease,
+      border-color 350ms ease,
+      transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .step-node-upcoming {
+    background: rgba(22, 25, 32, 0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+  }
+
+  .step-node-completed {
+    background: rgba(100, 147, 181, 0.15);
+    border: 1.5px solid rgba(100, 147, 181, 0.35);
+    box-shadow:
+      0 0 6px rgba(100, 147, 181, 0.12),
+      inset 0 1px 0 rgba(255,255,255,0.06);
+    transform: scale(1);
+  }
+
+  .step-node-active {
+    background: #6493b5;
+    border: 1.5px solid rgba(100, 147, 181, 0.4);
+    box-shadow:
+      0 0 4px rgba(100, 147, 181, 0.3),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    transform: scale(1.1);
+    animation: node-pulse 2.2s ease-in-out infinite;
+  }
+
+  .step-connector {
+    position: relative;
+    flex: 1;
+    height: 1.5px;
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+  }
+
+  .step-connector-fill {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(100,147,181,0.5) 0%, rgba(100,147,181,0.3) 100%);
+    box-shadow: 0 0 4px rgba(100, 147, 181, 0.2);
+    transform-origin: left center;
+    transition: transform 500ms cubic-bezier(0.4, 0, 0.2, 1), opacity 400ms ease;
+  }
+
+  .step-label {
+    font-size: 0.65rem;
+    line-height: 1;
+    transition: color 350ms ease, opacity 350ms ease;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 640px) {
+    .step-label { font-size: 0.7rem; }
+    .step-node  { width: 1.625rem; height: 1.625rem; }
+  }
+
+  /* ── Biometric scan animations ────────────────────────── */
+
+  @keyframes biometric-scan {
+    0%   { top: 8%;  opacity: 0; }
+    6%   { opacity: 1; }
+    94%  { opacity: 1; }
+    100% { top: 92%; opacity: 0; }
+  }
+
+  @keyframes biometric-dot-glow {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(100, 147, 181, 0), 0 0 2px rgba(100, 147, 181, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 0 3px rgba(100, 147, 181, 0.06), 0 0 6px rgba(100, 147, 181, 0.4);
+    }
+  }
+
+  .biometric-scan-line {
+    animation: biometric-scan 4s ease-in-out infinite;
+  }
+
+  .biometric-dot-active {
+    animation: biometric-dot-glow 1.8s ease-in-out infinite;
+  }
+
+  /* ────────────────────────────────────────────────────────── */
+
+  .landing-input-surface {
+    background: var(--landing-input-bg);
+  }
+
+  .landing-button-bg {
+    background: var(--landing-button-bg);
+    box-shadow: var(--landing-button-shadow);
+  }
+
+  .landing-form-label {
+    color: var(--landing-text-secondary);
+    font-weight: 500;
+  }
+
+  .landing-form-input {
+    height: 3rem;
+    border-radius: 0.75rem;
+    border-color: var(--landing-input-border);
+    background: var(--landing-input-bg);
+    color: var(--landing-input-text);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.9375rem;
+    font-weight: 400;
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      background-color 180ms ease;
+    box-shadow: var(--landing-input-inset-shadow);
+  }
+
+  @media (min-width: 640px) {
+    .landing-form-input {
+      height: 2.75rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  .landing-form-input::placeholder {
+    color: var(--landing-input-placeholder);
+    font-weight: 400;
+  }
+
+  .landing-form-input:focus-visible,
+  .landing-form-input:focus {
+    border-color: rgba(100, 147, 181, 0.4);
+    box-shadow:
+      0 0 0 2px var(--landing-focus-ring),
+      var(--landing-input-inset-shadow);
+    outline: none;
+  }
+
+  .landing-form-input-readonly {
+    background: color-mix(in oklab, var(--landing-input-bg) 78%, transparent);
+    color: var(--landing-text-muted);
+  }
+
+  .landing-cta {
+    height: 2.6rem;
+    border-radius: 0.75rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    letter-spacing: -0.01em;
+    transition:
+      transform 160ms ease,
+      filter 160ms ease,
+      box-shadow 180ms ease,
+      background-position 180ms ease;
+  }
+
+  .landing-cta:hover {
+    filter: brightness(1.05);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .landing-cta:active {
+    transform: translateY(0);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  .landing-cta:focus-visible {
+    box-shadow:
+      0 0 0 2px rgba(10, 15, 26, 1),
+      0 0 0 4px rgba(100, 147, 181, 0.4),
+      var(--landing-button-shadow);
+    outline: none;
+  }
+
+  .landing-cta-outline {
+    height: 2.58rem;
+    border-radius: 0.75rem;
+    transition:
+      border-color 180ms ease,
+      background-color 180ms ease,
+      transform 160ms ease;
+  }
+
+  .landing-cta-outline:hover {
+    transform: translateY(-1px);
+  }
+
+  .landing-cta-outline:active {
+    transform: translateY(0);
+  }
+
+  /* ── Responsive ─────────────────────────────────────── */
+
+  @media (max-width: 1023px) {
+    .landing-step-labels-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      row-gap: 0.4rem;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .landing-grid-overlay {
+      display: none;
+    }
+
+    /* Signature form: reduced on tablet */
+    .bg-signature-form {
+      opacity: 0.50;
+      filter: blur(120px);
+    }
+
+    .landing-step-labels-grid {
+      gap: 0.35rem;
+    }
+
+    .landing-form-input {
+      height: 2.88rem;
+      font-size: 0.91rem;
+    }
+
+    .landing-cta {
+      height: 2.88rem;
+      font-size: 0.9rem;
+    }
+
+    .landing-cta-outline {
+      height: 2.84rem;
+    }
+  }
+
+  @media (max-width: 639px) {
+    /* Signature form: disabled on mobile for GPU performance */
+    .bg-signature-form {
+      display: none;
+    }
+
+    /* Environmental lighting: slightly reduced */
+    .bg-environment {
+      opacity: 0.78;
+    }
+
+    /* Vignette: softer on mobile */
+    .landing-vignette {
+      background-image: radial-gradient(
+        ellipse 140% 120% at 50% 45%,
+        transparent 20%,
+        rgba(5, 7, 11, 0.16) 48%,
+        rgba(3, 5, 9,  0.38) 75%,
+        rgba(2, 4, 7,  0.56) 100%
+      );
+    }
+
+    .landing-form-input {
+      height: 3rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      line-height: 1.2rem;
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .landing-form-input-with-icon {
+      padding-left: 2.25rem;
+    }
+
+    .landing-cta {
+      height: 3rem;
+      border-radius: 0.5rem;
+      font-size: 0.9rem;
+      width: 100%;
+    }
+
+    .landing-cta-outline {
+      height: 3rem;
+      border-radius: 0.5rem;
+      width: 100%;
+    }
+  }
+}
+
+/* ── Admin Panel Design Tokens ─────────────────────────────────────── */
+@layer utilities {
+  .admin-surface {
+    background: linear-gradient(180deg, rgba(22, 25, 32, 0.55) 0%, rgba(18, 21, 26, 0.6) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 1.25rem;
+    backdrop-filter: blur(20px);
+    box-shadow: 
+      0 8px 32px -8px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  }
+
+  .admin-surface-elevated {
+    background: linear-gradient(180deg, rgba(26, 29, 36, 0.72) 0%, rgba(22, 25, 32, 0.78) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
+    backdrop-filter: blur(24px);
+    box-shadow:
+      0 24px 64px -12px rgba(0, 0, 0, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  }
+
+  .admin-input {
+    height: 2.75rem;
+    width: 100%;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.2);
+    color: var(--landing-input-text);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding-left: 1rem;
+    padding-right: 1rem;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 180ms ease;
+  }
+
+  .admin-input::placeholder {
+    color: rgba(255, 255, 255, 0.25);
+    font-weight: 400;
+  }
+
+  .admin-input:focus {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05), inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .admin-input:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .admin-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 250ms ease;
+    cursor: pointer;
+    white-space: nowrap;
+    outline: none;
+  }
+
+  .admin-btn-primary:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.2);
+  }
+
+  .admin-btn-primary:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .admin-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+    transition: all 250ms ease;
+    cursor: pointer;
+    white-space: nowrap;
+    outline: none;
+  }
+
+  .admin-btn-ghost:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.03);
+    color: #e2e8f0;
+  }
+
+  .admin-btn-ghost:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .admin-btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    height: 2.5rem;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    border-radius: 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #fca5a5;
+    background: rgba(244, 63, 94, 0.04);
+    border: 1px solid rgba(244, 63, 94, 0.08);
+    transition: all 250ms ease;
+    cursor: pointer;
+    white-space: nowrap;
+    outline: none;
+  }
+
+  .admin-btn-danger:hover:not(:disabled) {
+    background: rgba(244, 63, 94, 0.08);
+    border-color: rgba(244, 63, 94, 0.15);
+    color: #fecdd3;
+    box-shadow: 0 4px 12px -2px rgba(244, 63, 94, 0.1);
+  }
+
+  .admin-btn-danger:disabled {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .admin-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .admin-badge-pending {
+    border: 1px solid rgba(251, 191, 36, 0.15);
+    background: rgba(251, 191, 36, 0.05);
+    color: #fcd34d;
+  }
+
+  .admin-badge-approved {
+    border: 1px solid rgba(52, 211, 153, 0.15);
+    background: rgba(52, 211, 153, 0.05);
+    color: #6ee7b7;
+  }
+
+  .admin-badge-rejected {
+    border: 1px solid rgba(248, 113, 113, 0.15);
+    background: rgba(248, 113, 113, 0.05);
+    color: #fca5a5;
+  }
+
+  .admin-badge-info {
+    border: 1px solid rgba(99, 179, 237, 0.15);
+    background: rgba(99, 179, 237, 0.05);
+    color: #90cdf4;
+  }
+}
+
+/* ── Custom Scrollbar ────────────────────────────────────────────── */
+.admin-workspace-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.admin-workspace-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.admin-workspace-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.01);
+  transition: background 0.2s ease;
+}
+.admin-workspace-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+.admin-workspace-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}

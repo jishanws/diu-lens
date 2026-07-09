@@ -39,7 +39,7 @@ export const perAngleHint: Record<VerificationAngle, string> = {
 
 export const STABILITY_WINDOW_MS = enrollmentValidationConfig.stabilityDurationMs;
 export const POST_CAPTURE_COOLDOWN_MS = 420;
-export const STABILITY_GRACE_MS = 280;
+export const STABILITY_GRACE_MS = enrollmentValidationConfig.stabilityGraceMs;
 export const GUIDANCE_STICK_MS = 800; // Updated for debounce
 
 export const MIN_FACE_AREA_RATIO = enrollmentValidationConfig.minFaceAreaRatio;
@@ -51,4 +51,4 @@ export const MAX_BRIGHTNESS = enrollmentValidationConfig.brightnessRange.max;
 
 export const ANGLE_THRESHOLDS = enrollmentValidationConfig.poseThresholds;
 
-export const captureStorageVersion = 4;
+export const captureStorageVersion = 5;

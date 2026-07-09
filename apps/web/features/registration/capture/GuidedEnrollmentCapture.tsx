@@ -518,6 +518,26 @@ export function GuidedEnrollmentCapture({
               />
             </div>
 
+            {state.debug.enabled ? (
+              <div className="pointer-events-none absolute left-2 top-2 z-20 rounded-md border border-amber-300/30 bg-black/70 px-2 py-1.5 text-left font-mono text-[0.58rem] leading-snug text-amber-100 shadow-lg">
+                <div>yaw: {state.debug.yaw?.toFixed(1) ?? 'n/a'}</div>
+                <div>pitch: {state.debug.pitch?.toFixed(1) ?? 'n/a'}</div>
+                <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
+                <div>angle: {state.debug.expectedAngle}</div>
+                <div>pose: {state.debug.angleState}</div>
+                <div>
+                  live: {state.debug.livenessChallenge ?? 'done'}{' '}
+                  {state.debug.livenessCompletedCount}/
+                  {state.debug.livenessRequiredPassCount}
+                </div>
+                <div>
+                  stable: {state.debug.stableForMs}/
+                  {state.debug.stableRequiredMs}ms
+                </div>
+                <div>block: {state.debug.blockedReason}</div>
+              </div>
+            ) : null}
+
           </div>
 
           {/* STATUS MESSAGE */}

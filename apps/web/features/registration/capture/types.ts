@@ -1,4 +1,7 @@
 import type { VerificationAngle } from '@/features/registration/verification/types';
+import type { LivenessChallenge } from '@/features/registration/capture/enrollmentValidationConfig';
+
+export type PoseValidationState = 'valid' | 'near_valid' | 'invalid';
 
 export type CapturedShot = {
   angle: VerificationAngle;
@@ -56,6 +59,22 @@ export type CaptureFeedback = {
   readiness: CaptureReadiness;
 };
 
+export type CaptureDebugState = {
+  enabled: boolean;
+  yaw: number | null;
+  pitch: number | null;
+  roll: number | null;
+  expectedAngle: VerificationAngle;
+  angleState: PoseValidationState;
+  livenessChallenge: LivenessChallenge | null;
+  livenessCompletedCount: number;
+  livenessRequiredPassCount: number;
+  livenessAttempts: number;
+  stableForMs: number;
+  stableRequiredMs: number;
+  blockedReason: string;
+};
+
 export type FaceCaptureState = {
   modelReady: boolean;
   modelErrorMessage: string | null;
@@ -74,6 +93,7 @@ export type FaceCaptureState = {
     requiredCount: number;
     message: string;
   };
+  debug: CaptureDebugState;
 };
 
 export type RestoreCaptureShot = {
