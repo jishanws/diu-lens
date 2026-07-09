@@ -8,6 +8,8 @@ import {
   captureAngles,
   guidedAngles,
   getRequiredFramesForAngle,
+  perAngleHint,
+  perAngleInstruction,
 } from '@/features/registration/capture/constants';
 import { CameraPreview } from '@/features/registration/capture/CameraPreview';
 import { useFaceCapture } from '@/features/registration/capture/useFaceCapture';
@@ -15,7 +17,6 @@ import { CircularProgressGuide } from '@/features/registration/verification/Circ
 import { useCamera } from '@/features/registration/verification/useCamera';
 import { totalRequiredShots } from '@/features/registration/verification/constants';
 import type {
-  VerificationAngle,
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
 import { cn } from '@/lib/utils';
@@ -32,17 +33,20 @@ function getStorageKey(studentId: string) {
   return `diu-lens-capture:${normalized || 'unknown'}`;
 }
 
-function getAngleLabel(angle: VerificationAngle | string) {
-  if (angle === 'natural_front') return 'Natural Front';
-  return angle.charAt(0).toUpperCase() + angle.slice(1);
-}
-
 function getLivenessChallengeLabel(challenge: string | null) {
-  if (challenge === 'left') return 'Turn Your Head Left';
-  if (challenge === 'right') return 'Turn Your Head Right';
-  if (challenge === 'center') return 'Look Back At The Camera';
+  if (challenge === 'left') return 'Turn your head left';
+  if (challenge === 'right') return 'Turn your head right';
+  if (challenge === 'center') return 'Look back at the camera';
   if (challenge === 'blink') return 'Blink Once';
   return 'Liveness';
+}
+
+function getLivenessChallengeHelper(challenge: string | null) {
+  if (challenge === 'left' || challenge === 'right' || challenge === 'center') {
+    return 'Move slowly and keep your face inside the circle.';
+  }
+  if (challenge === 'blink') return 'Keep your face centered while blinking.';
+  return 'Keep your face centered.';
 }
 
 function HealthBadge({ label, active }: { label: string; active: boolean }) {
@@ -94,7 +98,7 @@ export function GuidedEnrollmentCapture({
     [videoRef]
   );
 
-  const { state, capturesByAngle, frameMetadataByAngle, clearSession } =
+  const { state, capturesByAngle, frameMetadataByAngle, clearSession, retakeAngle } =
     useFaceCapture({
       videoElement,
       streamActive,
@@ -406,6 +410,12 @@ export function GuidedEnrollmentCapture({
 
   const permissionButtonLabel =
     permissionState === 'requesting' ? 'Starting camera...' : 'Enable camera';
+  const captureTitle = state.liveness.completed
+    ? perAngleInstruction[state.currentAngle]
+    : getLivenessChallengeLabel(state.liveness.currentChallenge);
+  const captureHelper = state.liveness.completed
+    ? perAngleHint[state.currentAngle]
+    : getLivenessChallengeHelper(state.liveness.currentChallenge);
 
   return (
     <section className="space-y-3">
@@ -423,10 +433,11 @@ export function GuidedEnrollmentCapture({
                 {state.liveness.completed ? 'Face Verification' : 'Liveness Check'}
               </p>
               <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
-                {state.liveness.completed
-                  ? getAngleLabel(state.currentAngle)
-                  : getLivenessChallengeLabel(state.liveness.currentChallenge)}
+                {captureTitle}
               </h3>
+              <p className="mt-1 max-w-[15rem] text-[0.72rem] leading-snug text-slate-400">
+                {captureHelper}
+              </p>
             </div>
 
             {/* Step dot progress */}
@@ -525,8 +536,13 @@ export function GuidedEnrollmentCapture({
             {state.debug.enabled ? (
               <div className="pointer-events-none absolute left-2 top-2 z-20 rounded-md border border-amber-300/30 bg-black/70 px-2 py-1.5 text-left font-mono text-[0.58rem] leading-snug text-amber-100 shadow-lg">
                 <div>yaw: {state.debug.yaw?.toFixed(1) ?? 'n/a'}</div>
+                <div>raw yaw: {state.debug.rawYaw?.toFixed(1) ?? 'n/a'}</div>
+                <div>norm yaw: {state.debug.normalizedYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>pitch: {state.debug.pitch?.toFixed(1) ?? 'n/a'}</div>
                 <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
+                <div>user dir: {state.debug.userFacingDirection}</div>
+                <div>expected: {state.debug.expectedPose}</div>
+                <div>guide: {state.debug.guidanceMessage}</div>
                 <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>yaw delta: {state.debug.yawDelta?.toFixed(1) ?? 'n/a'}</div>
                 <div>angle: {state.debug.expectedAngle}</div>
@@ -543,6 +559,7 @@ export function GuidedEnrollmentCapture({
                   {state.debug.stableRequiredMs}ms
                 </div>
                 <div>block: {state.debug.blockedReason}</div>
+                <div>blocker: {state.debug.blockerReason}</div>
               </div>
             ) : null}
 
@@ -598,7 +615,19 @@ export function GuidedEnrollmentCapture({
       </div>
 
       {/* ── Submit button row ────────────────────────────────────── */}
-      <div className="flex items-center justify-end rounded-xl border border-white/[0.06] bg-[#0b1422]/80 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-end gap-2 rounded-xl border border-white/[0.06] bg-[#0b1422]/80 px-4 py-3">
+        {completionErrorMessage || localErrorMessage ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => retakeAngle(state.currentAngle)}
+            disabled={isSubmittingCompletion}
+            className="text-slate-300 hover:bg-white/5"
+          >
+            Retake current angle
+          </Button>
+        ) : null}
         <Button
           type="button"
           onClick={() => void handleSubmit()}

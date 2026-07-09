@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import Image from 'next/image';
+import { useState } from 'react';
 
 import {
   captureAngles,
@@ -11,11 +11,11 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const angleLabel: Record<VerificationAngle, string> = {
-  front: 'Front',
-  left: 'Left',
-  right: 'Right',
-  up: 'Up',
-  down: 'Down',
+  front: 'Look Straight',
+  left: 'Turn Head Left',
+  right: 'Turn Head Right',
+  up: 'Look Up Slightly',
+  down: 'Look Down Slightly',
   natural_front: 'Natural',
 };
 
@@ -34,6 +34,10 @@ export function CapturedShotStrip({
   onRetake,
   onFocus,
 }: CapturedShotStripProps) {
+  const [failedPreviewKeys, setFailedPreviewKeys] = useState<Set<string>>(
+    () => new Set()
+  );
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-semibold tracking-[0.03em] text-slate-600 uppercase max-[639px]:text-slate-500">
@@ -47,6 +51,8 @@ export function CapturedShotStrip({
           const requiredFrames = getRequiredFramesForAngle(angle);
           const completed = shots.length >= requiredFrames;
           const active = currentAngle === angle;
+          const previewKey = shot ? `${angle}:${shot.capturedAt}` : angle;
+          const previewFailed = failedPreviewKeys.has(previewKey);
 
           return (
             <div
@@ -70,15 +76,32 @@ export function CapturedShotStrip({
                 </div>
 
                 <div className="relative aspect-square overflow-hidden rounded-full border-2 border-slate-200 bg-slate-900/90 max-[639px]:border-white/10 max-[639px]:bg-black/40">
-                  {shot ? (
-                    <Image
+                  {shot && !previewFailed ? (
+                    // Blob URLs are more reliable in mobile Safari with a plain img.
+                    // next/image can show a native "Load failed" state for blob: sources.
+                    <img
                       src={shot.previewUrl}
                       alt={`${angleLabel[angle]} capture preview`}
-                      fill
-                      unoptimized
-                      sizes="96px"
-                      className="object-cover"
+                      className="h-full w-full object-cover"
+                      onError={() => {
+                        if (process.env.NODE_ENV !== 'production') {
+                          console.warn('[capture-preview] preview failed', {
+                            angle,
+                            previewUrl: shot.previewUrl,
+                            capturedAt: shot.capturedAt,
+                          });
+                        }
+                        setFailedPreviewKeys((current) => {
+                          const next = new Set(current);
+                          next.add(previewKey);
+                          return next;
+                        });
+                      }}
                     />
+                  ) : shot && previewFailed ? (
+                    <div className="flex h-full items-center justify-center px-2 text-center text-[9px] font-medium leading-tight text-amber-200">
+                      Preview could not load. Retake this sample.
+                    </div>
                   ) : (
                     <div className="flex h-full items-center justify-center text-[10px] font-medium text-slate-300 max-[639px]:text-slate-500">
                       Pending

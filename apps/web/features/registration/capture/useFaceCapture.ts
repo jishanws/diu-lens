@@ -350,6 +350,28 @@ function getLivenessExpectedDirection(
   return 'either';
 }
 
+function normalizeYawForUser(rawYaw: number) {
+  const mode = enrollmentValidationConfig.livenessYawDirectionMode;
+  if (mode === 'positive-left') return rawYaw;
+  return -rawYaw;
+}
+
+function getUserFacingDirection(rawYaw: number) {
+  const normalizedYaw = normalizeYawForUser(rawYaw);
+  if (normalizedYaw <= -8) return 'right';
+  if (normalizedYaw >= 8) return 'left';
+  return 'center';
+}
+
+function getExpectedPoseLabel(angle: VerificationAngle) {
+  if (angle === 'front') return 'Look Straight';
+  if (angle === 'left') return 'Turn Head Left';
+  if (angle === 'right') return 'Turn Head Right';
+  if (angle === 'up') return 'Look Up Slightly';
+  if (angle === 'down') return 'Look Down Slightly';
+  return 'Look Straight';
+}
+
 function livenessChallengeMatched(
   challenge: LivenessChallenge,
   yaw: number,
@@ -514,37 +536,36 @@ function getDynamicAngleGuidance(
   if (angle === 'natural_front') return { instruction: 'Look naturally', liveMessage: 'Look at the camera naturally' };
   
   if (angle === 'front') {
-    if (yaw < ANGLE_THRESHOLDS.front.valid.yawMin) return { instruction: 'Return closer to center', liveMessage: 'Turn slightly right' };
-    if (yaw > ANGLE_THRESHOLDS.front.valid.yawMax) return { instruction: 'Return closer to center', liveMessage: 'Turn slightly left' };
-    if (pitch < ANGLE_THRESHOLDS.front.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Look slightly down' };
-    if (pitch > ANGLE_THRESHOLDS.front.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Look slightly up' };
-    return { instruction: 'Look forward', liveMessage: 'Look forward' };
+    if (yaw < ANGLE_THRESHOLDS.front.valid.yawMin || yaw > ANGLE_THRESHOLDS.front.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Face the camera directly' };
+    if (pitch < ANGLE_THRESHOLDS.front.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
+    if (pitch > ANGLE_THRESHOLDS.front.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    return { instruction: 'Hold still for a moment', liveMessage: 'Hold still for a moment' };
   }
   if (angle === 'left') {
-    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax) return { instruction: 'Turn slightly more left', liveMessage: 'Turn slightly more left' };
-    if (yaw < ANGLE_THRESHOLDS.left.valid.yawMin) return { instruction: 'Turn slightly less left', liveMessage: 'Return closer to center' };
-    if (pitch < ANGLE_THRESHOLDS.left.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Level your head' };
-    if (pitch > ANGLE_THRESHOLDS.left.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Level your head' };
-    return { instruction: 'Look left', liveMessage: 'Look left' };
+    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax) return { instruction: 'Turn your head slightly more to your left', liveMessage: 'Turn your head slightly more to your left' };
+    if (yaw < ANGLE_THRESHOLDS.left.valid.yawMin) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
+    if (pitch < ANGLE_THRESHOLDS.left.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
+    if (pitch > ANGLE_THRESHOLDS.left.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    return { instruction: 'Keep your phone steady', liveMessage: 'Keep your phone steady' };
   }
   if (angle === 'right') {
-    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin) return { instruction: 'Turn slightly more right', liveMessage: 'Turn slightly more right' };
-    if (yaw > ANGLE_THRESHOLDS.right.valid.yawMax) return { instruction: 'Turn slightly less right', liveMessage: 'Return closer to center' };
-    if (pitch < ANGLE_THRESHOLDS.right.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Level your head' };
-    if (pitch > ANGLE_THRESHOLDS.right.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Level your head' };
-    return { instruction: 'Look right', liveMessage: 'Look right' };
+    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin) return { instruction: 'Turn your head slightly more to your right', liveMessage: 'Turn your head slightly more to your right' };
+    if (yaw > ANGLE_THRESHOLDS.right.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
+    if (pitch < ANGLE_THRESHOLDS.right.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
+    if (pitch > ANGLE_THRESHOLDS.right.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    return { instruction: 'Keep your phone steady', liveMessage: 'Keep your phone steady' };
   }
   if (angle === 'up') {
-    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Look higher' };
-    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Return closer to center' };
-    if (yaw < ANGLE_THRESHOLDS.up.valid.yawMin || yaw > ANGLE_THRESHOLDS.up.valid.yawMax) return { instruction: 'Return closer to center', liveMessage: 'Keep face centered' };
-    return { instruction: 'Look up', liveMessage: 'Look up' };
+    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
+    if (yaw < ANGLE_THRESHOLDS.up.valid.yawMin || yaw > ANGLE_THRESHOLDS.up.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
+    return { instruction: 'Hold still for a moment', liveMessage: 'Hold still for a moment' };
   }
   if (angle === 'down') {
-    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Look a little lower', liveMessage: 'Look lower' };
-    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Look a little higher', liveMessage: 'Return closer to center' };
-    if (yaw < ANGLE_THRESHOLDS.down.valid.yawMin || yaw > ANGLE_THRESHOLDS.down.valid.yawMax) return { instruction: 'Return closer to center', liveMessage: 'Keep face centered' };
-    return { instruction: 'Look down', liveMessage: 'Look down' };
+    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
+    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    if (yaw < ANGLE_THRESHOLDS.down.valid.yawMin || yaw > ANGLE_THRESHOLDS.down.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
+    return { instruction: 'Hold still for a moment', liveMessage: 'Hold still for a moment' };
   }
 
   return { instruction: getAngleGuidance(angle), liveMessage: getAngleGuidance(angle) };
@@ -579,16 +600,6 @@ function waitMs(durationMs: number) {
   return new Promise<void>((resolve) => {
     window.setTimeout(resolve, durationMs);
   });
-}
-
-function stopVideoStream(videoElement: HTMLVideoElement | null) {
-  if (!videoElement) return;
-  const source = videoElement.srcObject;
-  if (!(source instanceof MediaStream)) return;
-  for (const track of source.getTracks()) {
-    track.stop();
-  }
-  videoElement.srcObject = null;
 }
 
 async function loadFaceLandmarker() {
@@ -687,8 +698,13 @@ export function useFaceCapture({
   const [debugState, setDebugState] = useState<FaceCaptureState['debug']>({
     enabled: false,
     yaw: null,
+    rawYaw: null,
+    normalizedYaw: null,
     pitch: null,
     roll: null,
+    userFacingDirection: 'unknown',
+    expectedPose: 'Look Straight',
+    guidanceMessage: perAngleInstruction.front,
     baselineYaw: null,
     yawDelta: null,
     expectedAngle: 'front',
@@ -702,6 +718,7 @@ export function useFaceCapture({
     stableForMs: 0,
     stableRequiredMs: STABILITY_WINDOW_MS,
     blockedReason: 'no_face',
+    blockerReason: 'no_face',
   });
 
   useEffect(() => {
@@ -845,8 +862,6 @@ export function useFaceCapture({
           faceLandmarkerPromise = null;
         }
       }
-
-      stopVideoStream(videoElement);
     };
   }, [videoElement]);
 
@@ -1011,7 +1026,6 @@ export function useFaceCapture({
           totalRequired: captureAngles.length,
         });
         finalizedRef.current = true;
-        stopVideoStream(videoElement);
       }
       return true;
     },
@@ -1046,7 +1060,6 @@ export function useFaceCapture({
           liveMessage: 'All captures complete.',
           holdProgress: 1,
         }));
-        stopVideoStream(videoElement);
         return;
       }
       if (
@@ -1068,8 +1081,11 @@ export function useFaceCapture({
         setDebugState((prev) => ({
           ...prev,
           expectedAngle: currentAngleRef.current,
+          expectedPose: getExpectedPoseLabel(currentAngleRef.current),
+          guidanceMessage: 'Captured',
           stableForMs: 0,
           blockedReason: 'cooldown',
+          blockerReason: 'cooldown',
         }));
         scheduleNext();
         return;
@@ -1098,7 +1114,6 @@ export function useFaceCapture({
           liveMessage: 'All captures complete.',
           holdProgress: 1,
         }));
-        stopVideoStream(videoElement);
         return;
       }
       const detection = safeDetect(videoElement);
@@ -1127,8 +1142,13 @@ export function useFaceCapture({
         setDebugState((prev) => ({
           ...prev,
           yaw: null,
+          rawYaw: null,
+          normalizedYaw: null,
           pitch: null,
           roll: null,
+          userFacingDirection: 'unknown',
+          expectedPose: getExpectedPoseLabel(angle),
+          guidanceMessage: getAngleGuidance(angle),
           expectedAngle: angle,
           angleState: 'invalid',
           livenessChallenge: livenessState.completed
@@ -1136,6 +1156,7 @@ export function useFaceCapture({
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
           stableForMs: 0,
           blockedReason: 'no_face',
+          blockerReason: 'no_face',
         }));
         scheduleNext();
         return;
@@ -1164,8 +1185,13 @@ export function useFaceCapture({
         setDebugState((prev) => ({
           ...prev,
           yaw: null,
+          rawYaw: null,
+          normalizedYaw: null,
           pitch: null,
           roll: null,
+          userFacingDirection: 'unknown',
+          expectedPose: getExpectedPoseLabel(angle),
+          guidanceMessage: getAngleGuidance(angle),
           expectedAngle: angle,
           angleState: 'invalid',
           livenessChallenge: livenessState.completed
@@ -1173,6 +1199,7 @@ export function useFaceCapture({
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
           stableForMs: 0,
           blockedReason: 'multiple_faces',
+          blockerReason: 'multiple_faces',
         }));
         scheduleNext();
         return;
@@ -1354,8 +1381,13 @@ export function useFaceCapture({
         setDebugState((prev) => ({
           ...prev,
           yaw: pose.yaw,
+          rawYaw: pose.yaw,
+          normalizedYaw: normalizeYawForUser(pose.yaw),
           pitch: pose.pitch,
           roll: pose.roll,
+          userFacingDirection: getUserFacingDirection(pose.yaw),
+          expectedPose: getLivenessInstruction(nextChallenge),
+          guidanceMessage: livenessInstruction,
           baselineYaw: livenessBaselineYawRef.current,
           yawDelta: challengeResult.yawDelta,
           expectedAngle: angle,
@@ -1368,6 +1400,7 @@ export function useFaceCapture({
           livenessBlockerReason,
           stableForMs: 0,
           blockedReason: done ? 'liveness_complete' : livenessBlockerReason,
+          blockerReason: done ? 'liveness_complete' : livenessBlockerReason,
         }));
         if (!done) {
           setFeedback({
@@ -1521,8 +1554,13 @@ export function useFaceCapture({
       setDebugState((prev) => ({
         ...prev,
         yaw: pose.yaw,
+        rawYaw: pose.yaw,
+        normalizedYaw: normalizeYawForUser(pose.yaw),
         pitch: pose.pitch,
-        roll: 0,
+        roll: pose.roll,
+        userFacingDirection: getUserFacingDirection(pose.yaw),
+        expectedPose: getExpectedPoseLabel(angle),
+        guidanceMessage: instruction,
         expectedAngle: angle,
         angleState,
         livenessChallenge: null,
@@ -1532,6 +1570,7 @@ export function useFaceCapture({
         stableForMs: Math.round(stableFor),
         stableRequiredMs: STABILITY_WINDOW_MS,
         blockedReason,
+        blockerReason: blockedReason,
       }));
 
       if (!gateOk || !isStable || autoCaptureLockRef.current) {

@@ -62,8 +62,13 @@ export type CaptureFeedback = {
 export type CaptureDebugState = {
   enabled: boolean;
   yaw: number | null;
+  rawYaw: number | null;
+  normalizedYaw: number | null;
   pitch: number | null;
   roll: number | null;
+  userFacingDirection: string;
+  expectedPose: string;
+  guidanceMessage: string;
   baselineYaw: number | null;
   yawDelta: number | null;
   expectedAngle: VerificationAngle;
@@ -77,6 +82,7 @@ export type CaptureDebugState = {
   stableForMs: number;
   stableRequiredMs: number;
   blockedReason: string;
+  blockerReason: string;
 };
 
 export type FaceCaptureState = {

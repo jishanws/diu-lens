@@ -9,11 +9,11 @@ import type { VerificationAngle } from '@/features/registration/verification/typ
 import { cn } from '@/lib/utils';
 
 const angleLabel: Record<VerificationAngle, string> = {
-  front: 'Front',
-  left: 'Left',
-  right: 'Right',
-  up: 'Up',
-  down: 'Down',
+  front: 'Look Straight',
+  left: 'Turn Head Left',
+  right: 'Turn Head Right',
+  up: 'Look Up Slightly',
+  down: 'Look Down Slightly',
   natural_front: 'Natural',
 };
 

@@ -20,20 +20,20 @@ export function getRequiredFramesForAngle(angle: VerificationAngle): number {
 }
 
 export const perAngleInstruction: Record<VerificationAngle, string> = {
-  front: 'Look straight ahead with a neutral face.',
-  left: 'Turn slightly left.',
-  right: 'Turn slightly right.',
-  up: 'Look slightly up.',
-  down: 'Look slightly down.',
+  front: 'Look Straight',
+  left: 'Turn Head Left',
+  right: 'Turn Head Right',
+  up: 'Look Up Slightly',
+  down: 'Look Down Slightly',
   natural_front: 'Look at the camera normally.',
 };
 
 export const perAngleHint: Record<VerificationAngle, string> = {
-  front: 'Keep your face centered in the guide frame.',
-  left: 'Do not rotate too far, a slight turn is enough.',
-  right: 'Keep both eyes visible while turning.',
-  up: 'Lift your chin just a little.',
-  down: 'Lower your chin just a little.',
+  front: 'Face the camera directly and keep your head steady.',
+  left: 'Turn your head slightly to your left. Keep your phone still.',
+  right: 'Turn your head slightly to your right. Keep your phone still.',
+  up: 'Lift your chin slightly while keeping your face inside the circle.',
+  down: 'Lower your chin slightly while keeping your face visible.',
   natural_front: 'No strict pose needed. Keep one face visible.',
 };
 
