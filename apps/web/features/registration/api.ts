@@ -596,6 +596,15 @@ async function submitEnrollmentCompletionRequest(
             (capturesByAngle[angle] ?? []).map((capture) => capture.size),
           ])
         ),
+        files: REQUIRED_VERIFICATION_ANGLES.flatMap((angle) =>
+          (capturesByAngle[angle] ?? []).map((capture, index) => ({
+            angle,
+            fileName: `${angle}_${index + 1}.${capture.type === 'image/png' ? 'png' : 'jpg'}`,
+            mimeType: capture.type || 'image/jpeg',
+            size: capture.size,
+          }))
+        ),
+        metadata: metadataWithFrames,
       });
     }
 

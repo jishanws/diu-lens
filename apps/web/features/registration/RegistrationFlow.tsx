@@ -68,6 +68,18 @@ function toFriendlyVerificationMessage(message: string | null | undefined) {
   if (normalized.includes('image integrity checks failed')) {
     return message;
   }
+  if (normalized.includes('enrollment images failed validation')) {
+    return 'Some captures failed backend validation. Please retake the failed angle.';
+  }
+  if (normalized.includes('face processing service is temporarily unavailable')) {
+    return 'Face processing is temporarily unavailable. Your captures are preserved; try again later.';
+  }
+  if (normalized.includes('image storage is temporarily unavailable')) {
+    return 'Enrollment storage is temporarily unavailable. Your captures are preserved; retry submission.';
+  }
+  if (normalized.includes('database is temporarily unavailable')) {
+    return 'Enrollment service is temporarily unavailable. Your captures are preserved; retry submission.';
+  }
 
   return message;
 }

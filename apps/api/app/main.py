@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.face_pipeline import validate_insightface_runtime
 from app.core.limiter import limiter
 from app.db.bootstrap import initialize_database
+from app.db.migrations import run_migrations_to_head
 from app.db.session import check_database_connection
 
 
@@ -99,6 +100,8 @@ def create_app() -> FastAPI:
                 )
             
             logger.info("Testing database connection...")
+            logger.info("Applying database migrations to head...")
+            run_migrations_to_head()
             initialize_database()
             
             logger.info(

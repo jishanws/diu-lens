@@ -136,6 +136,11 @@ def process_student_enrollment_task(self, student_id: str) -> dict:
 
         try:
             storage = get_storage_service()
+            logger.info(
+                "event=embedding_generation_started student_id=%s task_id=%s",
+                student_id,
+                self.request.id,
+            )
             result = process_student_images(student_id, storage=storage)
             processed_images_count = int(result.get("processed_images_count", 0))
             embeddings_generated_count = int(result.get("embeddings_generated_count", 0))
@@ -147,7 +152,7 @@ def process_student_enrollment_task(self, student_id: str) -> dict:
                     processed_crops=list(result.get("processed_crops", [])),
                 )
                 logger.info(
-                    "[celery-processing] embeddings_saved student_id=%s inserted=%s deactivated=%s",
+                    "event=embedding_generation_succeeded student_id=%s inserted=%s deactivated=%s",
                     student_id,
                     int(persisted.get("inserted_count", 0)),
                     int(persisted.get("deactivated_count", 0)),
@@ -172,6 +177,12 @@ def process_student_enrollment_task(self, student_id: str) -> dict:
                 "embeddings_generated_count": embeddings_generated_count,
             }
         except (FacePipelineError, EnrollmentPersistenceError, FaceEmbeddingPersistenceError) as exc:
+            logger.exception(
+                "event=embedding_generation_failed student_id=%s task_id=%s error_type=%s",
+                student_id,
+                self.request.id,
+                type(exc).__name__,
+            )
             if self.request.retries >= self.max_retries:
                 mark_task_failed(self.request.id, str(exc), int((time.time() - start_time) * 1000))
             else:
