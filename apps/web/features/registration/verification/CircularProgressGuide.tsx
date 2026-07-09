@@ -18,19 +18,23 @@ export function CircularProgressGuide({
   const size = 320;
   const cx = size / 2;
   const cy = size / 2;
-  const radius = 150;
-  const stroke =
+
+  const segmentR = 150;
+  const orbitR = 161;
+
+  const activeStroke =
     poseState === 'valid'
-      ? '#86efac'
+      ? '#86efac' // green
       : poseState === 'near_valid'
-        ? '#fbbf24'
-        : '#7BA8C0';
-  const glow =
+        ? '#fbbf24' // yellow
+        : '#7BA8C0'; // blue
+
+  const activeBloom =
     poseState === 'valid'
-      ? 'rgba(134, 239, 172, 0.28)'
+      ? 'rgba(134, 239, 172, 0.3)'
       : poseState === 'near_valid'
-        ? 'rgba(251, 191, 36, 0.22)'
-        : 'rgba(123, 168, 192, 0.18)';
+        ? 'rgba(251, 191, 36, 0.26)'
+        : 'rgba(123, 168, 192, 0.22)';
 
   return (
     <svg
@@ -39,36 +43,73 @@ export function CircularProgressGuide({
       aria-hidden="true"
     >
       <defs>
-        <filter id="cpg-simple-glow" x="-70%" y="-70%" width="240%" height="240%">
+        <filter id="cpg-active-bloom" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
         </filter>
       </defs>
 
+      {/* Counter-rotating dashed orbit decoration */}
+      <g>
+        <animateTransform
+          attributeName="transform"
+          type="rotate"
+          from={`0 ${cx} ${cy}`}
+          to={`-360 ${cx} ${cy}`}
+          dur="22s"
+          repeatCount="indefinite"
+        />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={orbitR}
+          fill="none"
+          stroke="rgba(160, 185, 210, 0.09)"
+          strokeWidth="1.5"
+          strokeDasharray="4 22"
+          strokeLinecap="round"
+        />
+      </g>
+
+      {/* Static outermost ghost ring */}
       <circle
         cx={cx}
         cy={cy}
-        r={radius}
+        r={orbitR + 6}
+        fill="none"
+        stroke="rgba(160, 185, 210, 0.03)"
+        strokeWidth="1"
+      />
+
+      {/* Base ring (always visible, faint) */}
+      <circle
+        cx={cx}
+        cy={cy}
+        r={segmentR}
         fill="none"
         stroke="rgba(160, 185, 210, 0.08)"
         strokeWidth={5}
       />
+
+      {/* Bloom pulse ring (wide and blurred) */}
       <motion.circle
         cx={cx}
         cy={cy}
-        r={radius}
+        r={segmentR}
         fill="none"
-        stroke={glow}
+        stroke={activeBloom}
         strokeWidth={18}
-        filter="url(#cpg-simple-glow)"
+        filter="url(#cpg-active-bloom)"
         animate={{ opacity: [0.35, 0.9, 0.35] }}
-        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 2.0, repeat: Infinity, ease: 'easeInOut' }}
       />
+
+      {/* Core ring (sharp) */}
       <motion.circle
         cx={cx}
         cy={cy}
-        r={radius}
+        r={segmentR}
         fill="none"
-        stroke={stroke}
+        stroke={activeStroke}
         strokeWidth={8}
         strokeLinecap="round"
         animate={{

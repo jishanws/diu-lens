@@ -1140,17 +1140,21 @@ export function useFaceCapture({
 
       const now = performance.now();
       if (now < cooldownUntilRef.current) {
+        const angle = currentAngleRef.current;
+        const captured = latestShotsRef.current[angle]?.length ?? 0;
+        const total = getRequiredFramesForAngle(angle);
+        
         setFeedback((prev) => ({
           ...prev,
           guidanceState: 'cooldown',
-          liveMessage: 'Captured',
-          holdProgress: 0,
+          liveMessage: `Capturing ${Math.min(total, Math.max(1, captured))}/${total}`,
+          holdProgress: 1,
         }));
         setDebugState((prev) => ({
           ...prev,
           expectedAngle: currentAngleRef.current,
           expectedPose: getExpectedPoseLabel(currentAngleRef.current),
-          guidanceMessage: 'Captured',
+          guidanceMessage: `Capturing ${Math.min(total, Math.max(1, captured))}/${total}`,
           stableForMs: 0,
           captureQualityState: 'cooldown',
           currentSampleCount:
@@ -1647,13 +1651,16 @@ export function useFaceCapture({
         }
       }
 
+      const captured = latestShotsRef.current[angle]?.length ?? 0;
+      const total = getRequiredFramesForAngle(angle);
+
       setFeedback({
         guidanceState,
         instruction,
         liveMessage: gateOk
           ? isStable
-            ? 'Captured'
-            : 'Hold still'
+            ? `Capturing ${Math.min(total, captured + 1)}/${total}`
+            : captured > 0 ? `Hold still (${captured}/${total})` : 'Hold still'
           : liveMessage,
         holdProgress: gateOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
         readiness: {
