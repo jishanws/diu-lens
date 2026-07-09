@@ -12,9 +12,17 @@ export type PoseThresholdSet = {
   near: PoseThreshold;
 };
 
-export type LivenessChallenge = 'blink' | 'left' | 'right' | 'up' | 'down' | 'front';
+export type LivenessChallenge = 'blink' | 'left' | 'right' | 'up' | 'down' | 'center';
+
+export type LivenessYawDirectionMode =
+  | 'auto'
+  | 'negative-left'
+  | 'positive-left'
+  | 'either';
 
 export const enrollmentValidationConfig = {
+  SHOWCASE_ENROLLMENT_MODE:
+    process.env.NEXT_PUBLIC_SHOWCASE_ENROLLMENT_MODE === 'true',
   minDetectionScore: 0.55,
   minFaceAreaRatio: 0.09,
   maxFaceAreaRatio: 0.35,
@@ -26,8 +34,11 @@ export const enrollmentValidationConfig = {
   stabilityDurationMs: 500,
   stabilityGraceMs: 280,
   livenessHoldMs: 420,
+  livenessMotionHoldMs: 320,
   livenessChallengeTimeoutMs: 6500,
-  livenessMinMotionDegrees: 8,
+  livenessMinYawDeltaDegrees: 11,
+  livenessCenterYawToleranceDegrees: 9,
+  livenessYawDirectionMode: 'auto' as LivenessYawDirectionMode,
   requiredSamplesPerAngle: 3,
   livenessChallengeCount: 3,
   livenessPassCount: 2,
@@ -38,24 +49,24 @@ export const enrollmentValidationConfig = {
     process.env.NEXT_PUBLIC_ENROLLMENT_CAPTURE_DEBUG === 'true',
   poseThresholds: {
     front: {
-      valid: { yawMin: -12, yawMax: 12, pitchMin: -10, pitchMax: 10 },
-      near: { yawMin: -18, yawMax: 18, pitchMin: -15, pitchMax: 15 },
+      valid: { yawMin: -15, yawMax: 15, pitchMin: -12, pitchMax: 12 },
+      near: { yawMin: -20, yawMax: 20, pitchMin: -16, pitchMax: 16 },
     },
     left: {
-      valid: { yawMin: -38, yawMax: -12, pitchMin: -14, pitchMax: 14 },
-      near: { yawMin: -48, yawMax: -8, pitchMin: -18, pitchMax: 18 },
+      valid: { yawMin: -45, yawMax: -10, pitchMin: -18, pitchMax: 18 },
+      near: { yawMin: -52, yawMax: -7, pitchMin: -22, pitchMax: 22 },
     },
     right: {
-      valid: { yawMin: 12, yawMax: 38, pitchMin: -14, pitchMax: 14 },
-      near: { yawMin: 8, yawMax: 48, pitchMin: -18, pitchMax: 18 },
+      valid: { yawMin: 10, yawMax: 45, pitchMin: -18, pitchMax: 18 },
+      near: { yawMin: 7, yawMax: 52, pitchMin: -22, pitchMax: 22 },
     },
     up: {
-      valid: { yawMin: -14, yawMax: 14, pitchMin: -35, pitchMax: -10 },
-      near: { yawMin: -18, yawMax: 18, pitchMin: -42, pitchMax: -6 },
+      valid: { yawMin: -18, yawMax: 18, pitchMin: -40, pitchMax: -8 },
+      near: { yawMin: -22, yawMax: 22, pitchMin: -45, pitchMax: -5 },
     },
     down: {
-      valid: { yawMin: -14, yawMax: 14, pitchMin: 10, pitchMax: 35 },
-      near: { yawMin: -18, yawMax: 18, pitchMin: 6, pitchMax: 42 },
+      valid: { yawMin: -18, yawMax: 18, pitchMin: 8, pitchMax: 40 },
+      near: { yawMin: -22, yawMax: 22, pitchMin: 5, pitchMax: 45 },
     },
   } satisfies Record<Exclude<VerificationAngle, 'natural_front'>, PoseThresholdSet>,
 } as const;
@@ -63,5 +74,5 @@ export const enrollmentValidationConfig = {
 export const livenessChallengePool: LivenessChallenge[] = [
   'left',
   'right',
-  'front',
+  'center',
 ];

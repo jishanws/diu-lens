@@ -37,6 +37,14 @@ function getAngleLabel(angle: VerificationAngle | string) {
   return angle.charAt(0).toUpperCase() + angle.slice(1);
 }
 
+function getLivenessChallengeLabel(challenge: string | null) {
+  if (challenge === 'left') return 'Turn Your Head Left';
+  if (challenge === 'right') return 'Turn Your Head Right';
+  if (challenge === 'center') return 'Look Back At The Camera';
+  if (challenge === 'blink') return 'Blink Once';
+  return 'Liveness';
+}
+
 function HealthBadge({ label, active }: { label: string; active: boolean }) {
   return (
     <div className={cn(
@@ -417,11 +425,7 @@ export function GuidedEnrollmentCapture({
               <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
                 {state.liveness.completed
                   ? getAngleLabel(state.currentAngle)
-                  : state.liveness.currentChallenge === 'blink'
-                    ? 'Blink'
-                    : state.liveness.currentChallenge
-                      ? getAngleLabel(state.liveness.currentChallenge)
-                      : 'Liveness'}
+                  : getLivenessChallengeLabel(state.liveness.currentChallenge)}
               </h3>
             </div>
 
@@ -523,13 +527,17 @@ export function GuidedEnrollmentCapture({
                 <div>yaw: {state.debug.yaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>pitch: {state.debug.pitch?.toFixed(1) ?? 'n/a'}</div>
                 <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
+                <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
+                <div>yaw delta: {state.debug.yawDelta?.toFixed(1) ?? 'n/a'}</div>
                 <div>angle: {state.debug.expectedAngle}</div>
                 <div>pose: {state.debug.angleState}</div>
+                <div>dir: {state.debug.livenessExpectedDirection}</div>
                 <div>
                   live: {state.debug.livenessChallenge ?? 'done'}{' '}
                   {state.debug.livenessCompletedCount}/
                   {state.debug.livenessRequiredPassCount}
                 </div>
+                <div>live block: {state.debug.livenessBlockerReason}</div>
                 <div>
                   stable: {state.debug.stableForMs}/
                   {state.debug.stableRequiredMs}ms
@@ -563,7 +571,10 @@ export function GuidedEnrollmentCapture({
               <HealthBadge label="Framing" active={state.feedback.readiness.faceLargeEnough && state.feedback.readiness.centered} />
               <HealthBadge label="Lighting" active={state.feedback.readiness.brightnessOk} />
               <HealthBadge label="Liveness" active={state.feedback.readiness.livenessPassed} />
-              <HealthBadge label="Angle" active={state.feedback.readiness.angleMatch} />
+              <HealthBadge
+                label={state.liveness.completed ? 'Angle' : 'Movement'}
+                active={state.feedback.readiness.angleMatch}
+              />
             </div>
           )}
 

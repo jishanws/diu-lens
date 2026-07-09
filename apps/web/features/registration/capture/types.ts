@@ -64,12 +64,16 @@ export type CaptureDebugState = {
   yaw: number | null;
   pitch: number | null;
   roll: number | null;
+  baselineYaw: number | null;
+  yawDelta: number | null;
   expectedAngle: VerificationAngle;
   angleState: PoseValidationState;
   livenessChallenge: LivenessChallenge | null;
+  livenessExpectedDirection: string;
   livenessCompletedCount: number;
   livenessRequiredPassCount: number;
   livenessAttempts: number;
+  livenessBlockerReason: string;
   stableForMs: number;
   stableRequiredMs: number;
   blockedReason: string;
