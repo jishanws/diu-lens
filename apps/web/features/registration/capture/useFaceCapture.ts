@@ -770,6 +770,19 @@ export function useFaceCapture({
     stableForMs: 0,
     stableRequiredMs: STABILITY_WINDOW_MS,
     captureQualityState: 'waiting_for_face',
+    cameraReady: false,
+    frameLoopRunning: false,
+    faceDetected: false,
+    faceBox: '{}',
+    faceCenterOffset: 0,
+    faceSizeRatio: 0,
+    visibilityValid: false,
+    eyesValid: false,
+    framingValid: false,
+    lightingValid: false,
+    blurValid: false,
+    canCapture: false,
+    lastCaptureError: '',
     currentSampleCount: 0,
     blockedReason: 'no_face',
     blockerReason: 'no_face',
@@ -1301,9 +1314,10 @@ export function useFaceCapture({
       );
       const pose = estimateYawPitch(landmarks);
       const centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
-      const centered = centerOffset <= MAX_CENTER_OFFSET;
+      const centered = centerOffset <= enrollmentValidationConfig.maxCenterOffset;
       const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
       const edgeOk = edgeMargin >= enrollmentValidationConfig.minEdgeMarginRatio;
+      
       const eyesVisible = areEyesVisible(landmarks);
       const videoQuality = analyzeVideoQuality(videoElement);
       const resolutionOk = videoQuality.resolutionOk;
@@ -1349,7 +1363,7 @@ export function useFaceCapture({
             faceAreaRatio < MIN_FACE_AREA_RATIO ? 'Move closer' : 'Move back';
         } else if (!centered || !edgeOk) {
           livenessBlockerReason = !edgeOk ? 'face_too_close_to_edge' : 'off_center';
-          livenessInstruction = 'Keep your face centered';
+          livenessInstruction = 'Center your face';
         } else if (!eyesVisible) {
           livenessBlockerReason = 'eyes_hidden';
           livenessInstruction = 'Keep your eyes visible';
@@ -1709,6 +1723,19 @@ export function useFaceCapture({
         stableForMs: Math.round(stableFor),
         stableRequiredMs: STABILITY_WINDOW_MS,
         captureQualityState: gateOk ? 'quality_ok' : blockedReason,
+        cameraReady: videoElement !== null && videoElement.readyState >= 2,
+        frameLoopRunning: runningRef.current,
+        faceDetected: true,
+        faceBox: JSON.stringify({ minX: box.minX.toFixed(2), maxX: box.maxX.toFixed(2), minY: box.minY.toFixed(2), maxY: box.maxY.toFixed(2) }),
+        faceCenterOffset: centerOffset,
+        faceSizeRatio: faceAreaRatio,
+        visibilityValid: true,
+        eyesValid: eyesVisible,
+        framingValid: centered && edgeOk,
+        lightingValid: brightnessOk,
+        blurValid: sharpEnough && resolutionOk,
+        canCapture: gateOk && isStable,
+        lastCaptureError: '',
         currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
         blockedReason,
         blockerReason: blockedReason,

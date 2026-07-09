@@ -556,7 +556,20 @@ export function GuidedEnrollmentCapture({
             </div>
 
             {state.debug.enabled ? (
-              <div className="pointer-events-none absolute left-2 top-2 z-20 rounded-md border border-amber-300/30 bg-black/70 px-2 py-1.5 text-left font-mono text-[0.58rem] leading-snug text-amber-100 shadow-lg">
+              <div className="pointer-events-none absolute left-2 top-2 z-20 rounded-md border border-amber-300/30 bg-black/70 px-2 py-1.5 text-left font-mono text-[0.58rem] leading-snug text-amber-100 shadow-lg h-[90vh] overflow-y-auto">
+                <div>cameraReady: {state.debug.cameraReady ? 'true' : 'false'}</div>
+                <div>frameLoopRunning: {state.debug.frameLoopRunning ? 'true' : 'false'}</div>
+                <div>faceDetected: {state.debug.faceDetected ? 'true' : 'false'}</div>
+                <div>faceBox: {state.debug.faceBox}</div>
+                <div>faceCenterOffset: {state.debug.faceCenterOffset?.toFixed(3)}</div>
+                <div>faceSizeRatio: {state.debug.faceSizeRatio?.toFixed(3)}</div>
+                <div>visibilityValid: {state.debug.visibilityValid ? 'true' : 'false'}</div>
+                <div>eyesValid: {state.debug.eyesValid ? 'true' : 'false'}</div>
+                <div>framingValid: {state.debug.framingValid ? 'true' : 'false'}</div>
+                <div>lightingValid: {state.debug.lightingValid ? 'true' : 'false'}</div>
+                <div>blurValid: {state.debug.blurValid ? 'true' : 'false'}</div>
+                <div>canCapture: {state.debug.canCapture ? 'true' : 'false'}</div>
+                <div>lastCaptureError: {state.debug.lastCaptureError}</div>
                 <div>yaw: {state.debug.yaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>raw yaw: {state.debug.rawYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>norm yaw: {state.debug.normalizedYaw?.toFixed(1) ?? 'n/a'}</div>

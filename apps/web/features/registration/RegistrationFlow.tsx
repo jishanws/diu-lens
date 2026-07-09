@@ -74,8 +74,9 @@ export function RegistrationFlow({
   onStepIndexChange,
   onDone,
 }: RegistrationFlowProps) {
-  const [activeStep, setActiveStep] = useState(0);
-  const [values, setValues] = useState<RegistrationFormValues>(initialValues);
+  const [currentStep, setCurrentStep] = useState<RegistrationStep>('capture');
+  const [values, setValues] = useState<RegistrationFormValues>({ ...initialValues, studentId: '111-11-1111' });
+  const [activeStep, setActiveStep] = useState(2);
   const [validationState, setValidationState] = useState<StudentIdValidationState>(
     { status: 'idle' }
   );
