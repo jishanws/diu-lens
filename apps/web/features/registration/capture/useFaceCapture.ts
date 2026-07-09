@@ -1341,14 +1341,7 @@ export function useFaceCapture({
           return;
         }
 
-        const livenessQualityOk =
-          sizeOk &&
-          centered &&
-          edgeOk &&
-          eyesVisible &&
-          sharpEnough &&
-          brightnessOk &&
-          resolutionOk;
+        const livenessQualityOk = sizeOk && eyesVisible;
         if (livenessBaselineYawRef.current === null && livenessQualityOk) {
           livenessBaselineYawRef.current = pose.yaw;
           livenessBaselinePitchRef.current = pose.pitch;
@@ -1361,27 +1354,9 @@ export function useFaceCapture({
             faceAreaRatio < MIN_FACE_AREA_RATIO ? 'face_too_small' : 'face_too_large';
           livenessInstruction =
             faceAreaRatio < MIN_FACE_AREA_RATIO ? 'Move closer' : 'Move back';
-        } else if (!centered || !edgeOk) {
-          livenessBlockerReason = !edgeOk ? 'face_too_close_to_edge' : 'off_center';
-          livenessInstruction = 'Center your face';
         } else if (!eyesVisible) {
           livenessBlockerReason = 'eyes_hidden';
           livenessInstruction = 'Keep your eyes visible';
-        } else if (!resolutionOk) {
-          livenessBlockerReason = 'resolution_too_low';
-          livenessInstruction = 'Use a higher resolution camera';
-        } else if (!sharpEnough) {
-          livenessBlockerReason = 'blurry';
-          livenessInstruction = 'Hold still for a moment';
-        } else if (!brightnessOk) {
-          livenessBlockerReason =
-            videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
-              ? 'lighting_low'
-              : 'lighting_high';
-          livenessInstruction =
-            videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
-              ? 'Lighting is too low'
-              : 'Lighting is too bright';
         } else if (livenessBaselineYawRef.current === null) {
           livenessBlockerReason = 'baseline_pending';
           livenessInstruction = 'Face the camera.';
@@ -1437,6 +1412,8 @@ export function useFaceCapture({
             livenessIndexRef.current += 1;
             livenessMatchedSinceRef.current = 0;
             livenessChallengeStartedAtRef.current = 0;
+            livenessBaselineYawRef.current = null;
+            livenessBaselinePitchRef.current = null;
           }
         } else {
           livenessMatchedSinceRef.current = 0;
@@ -1449,6 +1426,8 @@ export function useFaceCapture({
           livenessIndexRef.current += 1;
           livenessMatchedSinceRef.current = 0;
           livenessChallengeStartedAtRef.current = 0;
+          livenessBaselineYawRef.current = null;
+          livenessBaselinePitchRef.current = null;
         }
 
         if (
@@ -1550,7 +1529,6 @@ export function useFaceCapture({
             };
       const angleState = getHybridPoseState(angle, pose.yaw, pose.pitch, baseline, marginBoost);
       const angleValid = angleState === 'valid';
-      const angleClose = angleState !== 'invalid';
       const gateOk =
         angleValid &&
         sizeOk &&
@@ -1567,18 +1545,12 @@ export function useFaceCapture({
         }
         stableGraceUntilRef.current = now + STABILITY_GRACE_MS;
       } else if (
-        angleClose &&
         stableSinceRef.current > 0 &&
         now <= stableGraceUntilRef.current &&
         sizeOk &&
-        centered &&
-        edgeOk &&
-        eyesVisible &&
-        sharpEnough &&
-        brightnessOk &&
-        resolutionOk
+        eyesVisible
       ) {
-        // Keep the stability window alive for tiny pose-estimator flicker, but do not capture.
+        // Keep the stability window alive for tiny flickers (pose, edge, blur), but do not capture.
       } else {
         stableSinceRef.current = 0;
         stableGraceUntilRef.current = 0;
