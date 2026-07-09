@@ -122,6 +122,8 @@ export type CaptureDebugState = {
   eyesValid: boolean;
   framingValid: boolean;
   lightingValid: boolean;
+  brightnessValue: number | null;
+  minAllowedBrightness: number;
   blurValid: boolean;
   canCapture: boolean;
   movementValid: boolean;

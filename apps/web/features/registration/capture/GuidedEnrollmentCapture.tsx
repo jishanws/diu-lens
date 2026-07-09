@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, CheckCircle2, Home, Loader2, RotateCcw } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -17,16 +17,21 @@ import { CircularProgressGuide } from '@/features/registration/verification/Circ
 import { useCamera } from '@/features/registration/verification/useCamera';
 import { totalRequiredShots } from '@/features/registration/verification/constants';
 import type {
+  EnrollmentCompletionResult,
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
 import { cn } from '@/lib/utils';
 
 type GuidedEnrollmentCaptureProps = {
   studentId: string;
-  onComplete: (summary: VerificationCompletionSummary) => void | Promise<void>;
+  onComplete: (
+    summary: VerificationCompletionSummary
+  ) => Promise<EnrollmentCompletionResult>;
   isSubmittingCompletion?: boolean;
   completionErrorMessage?: string | null;
 };
+
+type SubmitPhase = 'idle' | 'submitting' | 'success' | 'error';
 
 function getStorageKey(studentId: string) {
   const normalized = studentId.trim().toLowerCase();
@@ -92,6 +97,18 @@ export function GuidedEnrollmentCapture({
   const [localErrorMessage, setLocalErrorMessage] = useState<string | null>(
     null
   );
+  const [submitPhase, setSubmitPhase] = useState<SubmitPhase>('idle');
+  const [submitDiagnostics, setSubmitDiagnostics] = useState({
+    requestUrl: '',
+    httpStatus: null as number | null,
+    responseBody: null as string | null,
+    error: null as string | null,
+    imageCount: 0,
+    countByAngle: '',
+    imageBlobSizes: '',
+    currentRoute: '',
+    navigationTriggered: false,
+  });
   const currentAngleRef = useRef<string>('front');
   const currentBlockerRef = useRef<string>('no_face');
 
@@ -260,30 +277,42 @@ export function GuidedEnrollmentCapture({
       canSubmit: state.canSubmit,
       isSubmittingCompletion,
     });
-    if (isSubmittingCompletion || !state.canSubmit) {
+    if (isSubmittingCompletion || submitPhase === 'submitting' || !state.canSubmit) {
       return;
     }
 
     setLocalErrorMessage(null);
+    setSubmitPhase('submitting');
     console.log('[verification] final submit triggered', {
       studentId,
       capturedCount: state.capturedCount,
     });
     const invalidGuidedAngle = guidedAngles.find((angle) => {
       const captures = capturesByAngle[angle] ?? [];
-      if (captures.length < getRequiredFramesForAngle(angle)) {
+      const metadata = frameMetadataByAngle[angle] ?? [];
+      if (captures.length !== getRequiredFramesForAngle(angle)) {
         return true;
       }
-      return captures.some((capture) => capture.size <= 0);
+      if (metadata.length !== captures.length) {
+        return true;
+      }
+      return captures.some(
+        (capture) => !(capture instanceof Blob) || capture.size <= 0
+      );
     });
-    if (invalidGuidedAngle) {
+    const totalImages = guidedAngles.reduce(
+      (total, angle) => total + (capturesByAngle[angle]?.length ?? 0),
+      0
+    );
+    if (!studentId.trim() || invalidGuidedAngle || totalImages !== totalRequiredShots) {
       console.warn('[verification] invalid guided captures', {
         studentId,
         angle: invalidGuidedAngle,
       });
       setLocalErrorMessage(
-        'One or more guided shots are missing or empty. Please retake the affected angle.'
+        'Enrollment payload is incomplete. Please retake missing captures.'
       );
+      setSubmitPhase('error');
       return;
     }
     const captureSummary = captureAngles.map((angle) => {
@@ -301,6 +330,26 @@ export function GuidedEnrollmentCapture({
     console.log('[verification] capture summary', {
       studentId,
       captureSummary,
+    });
+    const countByAngle = Object.fromEntries(
+      guidedAngles.map((angle) => [angle, capturesByAngle[angle].length])
+    );
+    const imageBlobSizes = Object.fromEntries(
+      guidedAngles.map((angle) => [
+        angle,
+        capturesByAngle[angle].map((capture) => capture.size),
+      ])
+    );
+    setSubmitDiagnostics({
+      requestUrl: '',
+      httpStatus: null,
+      responseBody: null,
+      error: null,
+      imageCount: totalImages,
+      countByAngle: JSON.stringify(countByAngle),
+      imageBlobSizes: JSON.stringify(imageBlobSizes),
+      currentRoute: typeof window === 'undefined' ? '' : window.location.pathname,
+      navigationTriggered: false,
     });
 
     try {
@@ -322,11 +371,33 @@ export function GuidedEnrollmentCapture({
         frameMetadataByAngle,
       };
 
-      await onComplete(summary);
+      const result = await onComplete(summary);
+      setSubmitDiagnostics((current) => ({
+        ...current,
+        requestUrl: result.diagnostics.requestUrl,
+        httpStatus: result.diagnostics.httpStatus,
+        responseBody: result.diagnostics.responseBody,
+        error: result.diagnostics.error,
+      }));
+      if (!result.success) {
+        setSubmitPhase('error');
+        setLocalErrorMessage(result.message);
+        return;
+      }
+      setSubmitPhase('success');
       clearSession();
-    } catch {
-      console.error('[verification] final submit failed at capture step');
-      setLocalErrorMessage('Unable to submit verification. Please try again.');
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message !== 'Load failed'
+          ? error.message
+          : 'Unable to reach the enrollment service. Your captures are preserved; retry submission.';
+      console.error('[verification] final submit failed at capture step', error);
+      setSubmitDiagnostics((current) => ({
+        ...current,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+      setSubmitPhase('error');
+      setLocalErrorMessage(message);
     }
   }, [
     capturesByAngle,
@@ -338,11 +409,14 @@ export function GuidedEnrollmentCapture({
     state.capturedCount,
     state.liveness.completed,
     studentId,
+    submitPhase,
   ]);
 
-  const handleBackHome = useCallback(() => {
-    window.location.assign('/');
-  }, []);
+  useEffect(() => {
+    if (state.canSubmit) {
+      stopStream();
+    }
+  }, [state.canSubmit, stopStream]);
 
   const permissionBlocked = permissionState !== 'granted';
 
@@ -593,6 +667,8 @@ export function GuidedEnrollmentCapture({
                     ['eyesValid', state.debug.eyesValid],
                     ['framingValid', state.debug.framingValid],
                     ['lightingValid', state.debug.lightingValid],
+                    ['brightnessValue', state.debug.brightnessValue],
+                    ['minAllowedBrightness', state.debug.minAllowedBrightness],
                     ['blurValid', state.debug.blurValid],
                     ['livenessCompleted', state.liveness.completed],
                     ['movementValid', state.debug.movementValid],
@@ -619,11 +695,28 @@ export function GuidedEnrollmentCapture({
                     ['baselinePitch', state.debug.baselinePitch],
                   ]],
                   ['Capture', [
+                    ['capturePhase', !state.liveness.completed ? 'liveness' : state.canSubmit ? 'completion' : 'capture'],
+                    ['submitPhase', submitPhase],
+                    ['currentLivenessChallenge', state.liveness.currentChallenge],
+                    ['currentCaptureAngle', state.currentAngle],
                     ['currentAngle', state.debug.currentAngle],
                     ['currentAngleAccepted', state.debug.currentAngleAccepted],
                     ['requiredSamplesPerAngle', state.debug.requiredSamplesPerAngle],
                     ['stableMs', state.debug.stableMs],
                     ['lastCaptureError', state.debug.lastCaptureError],
+                  ]],
+                  ['Submission', [
+                    ['submitting', submitPhase === 'submitting' || isSubmittingCompletion],
+                    ['requestUrl', submitDiagnostics.requestUrl || null],
+                    ['httpStatus', submitDiagnostics.httpStatus],
+                    ['responseBody', submitDiagnostics.responseBody],
+                    ['error', submitDiagnostics.error],
+                    ['imageCount', submitDiagnostics.imageCount],
+                    ['countByAngle', submitDiagnostics.countByAngle || null],
+                    ['imageBlobSizes', submitDiagnostics.imageBlobSizes || null],
+                    ['studentId', studentId || null],
+                    ['currentRoute', submitDiagnostics.currentRoute || null],
+                    ['navigationTriggered', submitDiagnostics.navigationTriggered],
                   ]],
                 ].map(([section, fields]) => (
                   <div key={section as string} className="mb-1.5 last:mb-0">
@@ -667,41 +760,30 @@ export function GuidedEnrollmentCapture({
                 <Button
                   type="button"
                   onClick={() => void handleSubmit()}
-                  disabled={isSubmittingCompletion}
+                  disabled={isSubmittingCompletion || submitPhase === 'submitting'}
                   size="cta"
                   className="w-full"
                 >
-                  {isSubmittingCompletion ? (
+                  {isSubmittingCompletion || submitPhase === 'submitting' ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Submitting...
+                      Submitting enrollment...
                     </>
                   ) : (
-                    'Submit Enrollment'
+                    submitPhase === 'error' ? 'Retry Submit' : 'Submit Enrollment'
                   )}
                 </Button>
-                <div className="grid grid-cols-2 gap-2">
+                <div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
                     onClick={restartCapture}
-                    disabled={isSubmittingCompletion}
+                    disabled={isSubmittingCompletion || submitPhase === 'submitting'}
                     className="text-slate-300 hover:bg-white/5"
                   >
                     <RotateCcw className="size-3.5" />
                     Restart Capture
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleBackHome}
-                    disabled={isSubmittingCompletion}
-                    className="text-slate-300 hover:bg-white/5"
-                  >
-                    <Home className="size-3.5" />
-                    Back to Home
                   </Button>
                 </div>
               </div>

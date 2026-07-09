@@ -140,6 +140,21 @@ def _json_result(
     return JSONResponse(status_code=status_code, content=payload)
 
 
+def _validate_verification_request_origin(request: Request) -> None:
+    origin = request.headers.get("origin")
+    if origin and origin not in settings.allowed_origins:
+        raise HTTPException(
+            status_code=403,
+            detail="Enrollment submission origin is not allowed",
+        )
+
+    if request.headers.get("sec-fetch-site", "").lower() == "cross-site":
+        raise HTTPException(
+            status_code=403,
+            detail="Cross-site enrollment submission is not allowed",
+        )
+
+
 def _missing_required_fields(raw_payload: object) -> list[str]:
     if not isinstance(raw_payload, dict):
         return list(REQUIRED_ENROLLMENT_FIELDS)
@@ -1441,11 +1456,7 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
     verification_logger.info("[verification-timing] route entered")
     verification_logger.info("[verification] request start path=/enroll/verification")
     try:
-        if not request.headers.get("x-csrf-token"):
-            raise HTTPException(
-                status_code=403,
-                detail="Missing CSRF protection header",
-            )
+        _validate_verification_request_origin(request)
             
         content_type = request.headers.get("content-type", "").lower()
         if "multipart/form-data" not in content_type:
@@ -1559,6 +1570,8 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
             success=True,
             message="Verification images uploaded successfully",
         )
+    except HTTPException:
+        raise
     except Exception as exc:
         verification_logger.exception(
             "[verification] unhandled exception error=%r traceback=%s",

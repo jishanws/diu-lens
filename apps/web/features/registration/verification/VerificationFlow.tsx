@@ -1,11 +1,16 @@
 'use client';
 
 import { GuidedEnrollmentCapture } from '@/features/registration/capture/GuidedEnrollmentCapture';
-import type { VerificationCompletionSummary } from '@/features/registration/verification/types';
+import type {
+  EnrollmentCompletionResult,
+  VerificationCompletionSummary,
+} from '@/features/registration/verification/types';
 
 type VerificationFlowProps = {
   studentId: string;
-  onComplete: (summary: VerificationCompletionSummary) => void | Promise<void>;
+  onComplete: (
+    summary: VerificationCompletionSummary
+  ) => Promise<EnrollmentCompletionResult>;
   isSubmittingCompletion?: boolean;
   completionErrorMessage?: string | null;
 };

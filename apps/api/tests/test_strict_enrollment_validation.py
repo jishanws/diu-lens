@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import cv2
 import numpy as np
+import pytest
+from fastapi import HTTPException
+from starlette.requests import Request
 
 from app.api.routes import enroll
 from app.core import image_validation
@@ -123,6 +126,50 @@ def test_valid_capture_structure_requires_exactly_10_samples() -> None:
     assert enroll.EXPECTED_REQUIRED_ANGLES == ("front", "left", "right", "up", "down")
     assert enroll.REQUIRED_IMAGES_PER_ANGLE == 2
     assert enroll.EXPECTED_TOTAL_SHOTS == 10
+
+
+def _request_with_headers(headers: list[tuple[bytes, bytes]]) -> Request:
+    return Request(
+        {
+            "type": "http",
+            "method": "POST",
+            "path": "/enroll/verification",
+            "headers": headers,
+        }
+    )
+
+
+def test_verification_allows_configured_frontend_origin() -> None:
+    request = _request_with_headers(
+        [(b"origin", b"https://www.diulens.app"), (b"sec-fetch-site", b"same-site")]
+    )
+
+    enroll._validate_verification_request_origin(request)
+
+
+def test_verification_rejects_cross_site_origin() -> None:
+    request = _request_with_headers(
+        [(b"origin", b"https://example.com"), (b"sec-fetch-site", b"cross-site")]
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        enroll._validate_verification_request_origin(request)
+
+    assert exc_info.value.status_code == 403
+
+
+def test_verification_endpoint_preserves_origin_error_status(client) -> None:
+    response = client.post(
+        "/enroll/verification",
+        headers={
+            "Origin": "https://example.com",
+            "Sec-Fetch-Site": "cross-site",
+        },
+        files={"metadata": (None, "{}")},
+    )
+
+    assert response.status_code == 403
+    assert "origin" in response.text.lower() or "cross-site" in response.text.lower()
 
 
 def test_quality_score_and_phash_are_reported(monkeypatch) -> None:

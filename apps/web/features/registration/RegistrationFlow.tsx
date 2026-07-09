@@ -18,7 +18,10 @@ import { BasicInfoStep } from '@/features/registration/steps/BasicInfoStep';
 import { StudentIdStep } from '@/features/registration/steps/StudentIdStep';
 import { SuccessStep } from '@/features/registration/steps/SuccessStep';
 import { VerificationFlow } from '@/features/registration/verification/VerificationFlow';
-import type { VerificationCompletionSummary } from '@/features/registration/verification/types';
+import type {
+  EnrollmentCompletionResult,
+  VerificationCompletionSummary,
+} from '@/features/registration/verification/types';
 import type {
   RegistrationFlowProps,
   RegistrationFormValues,
@@ -37,6 +40,13 @@ function toFriendlyVerificationMessage(message: string | null | undefined) {
   }
 
   const normalized = message.toLowerCase();
+  if (
+    normalized === 'load failed' ||
+    normalized === 'failed to fetch' ||
+    normalized.includes('network request failed')
+  ) {
+    return 'Unable to reach the enrollment service. Your captures are preserved; retry submission.';
+  }
   if (normalized.includes('missing_image_data')) {
     return 'One or more captured files are missing. Please retake the affected angle.';
   }
@@ -93,6 +103,14 @@ export function RegistrationFlow({
   const validatedStudentIdRef = useRef<string | null>(null);
   const toErrorMessage = useCallback((error: unknown, fallback: string) => {
     if (error instanceof Error && error.message.trim()) {
+      const normalized = error.message.trim().toLowerCase();
+      if (
+        normalized === 'load failed' ||
+        normalized === 'failed to fetch' ||
+        normalized.includes('network request failed')
+      ) {
+        return fallback;
+      }
       return error.message;
     }
 
@@ -102,6 +120,11 @@ export function RegistrationFlow({
   const handleDone = useCallback(() => {
     if (onDone) {
       onDone();
+      return;
+    }
+
+    if (typeof window !== 'undefined' && window.location.pathname !== '/') {
+      window.location.assign('/');
       return;
     }
 
@@ -226,9 +249,20 @@ export function RegistrationFlow({
   ]);
 
   const handleVerificationComplete = useCallback(
-    async (summary: VerificationCompletionSummary) => {
+    async (
+      summary: VerificationCompletionSummary
+    ): Promise<EnrollmentCompletionResult> => {
       if (isCompletingRegistration) {
-        return;
+        return {
+          success: false,
+          message: 'Enrollment submission is already in progress.',
+          diagnostics: {
+            requestUrl: '',
+            httpStatus: null,
+            responseBody: null,
+            error: 'duplicate_submission',
+          },
+        };
       }
 
       setVerificationError(null);
@@ -256,15 +290,46 @@ export function RegistrationFlow({
         );
 
         if (!result.success) {
-          setVerificationError(toFriendlyVerificationMessage(result.message));
-          return;
+          const message = toFriendlyVerificationMessage(result.message);
+          setVerificationError(message);
+          return {
+            success: false,
+            message,
+            diagnostics: result.diagnostics ?? {
+              requestUrl: '',
+              httpStatus: null,
+              responseBody: null,
+              error: result.message,
+            },
+          };
         }
 
         setActiveStep(3);
+        return {
+          success: true,
+          message: 'Enrollment submitted successfully.',
+          diagnostics: result.diagnostics ?? {
+            requestUrl: '',
+            httpStatus: null,
+            responseBody: null,
+            error: null,
+          },
+        };
       } catch (error) {
-        setVerificationError(
+        const message = toFriendlyVerificationMessage(
           toErrorMessage(error, GENERIC_REGISTRATION_COMPLETION_ERROR)
         );
+        setVerificationError(message);
+        return {
+          success: false,
+          message,
+          diagnostics: {
+            requestUrl: '',
+            httpStatus: null,
+            responseBody: null,
+            error: error instanceof Error ? error.message : String(error),
+          },
+        };
       } finally {
         setIsCompletingRegistration(false);
       }

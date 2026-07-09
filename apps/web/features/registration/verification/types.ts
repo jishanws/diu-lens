@@ -37,6 +37,19 @@ export type VerificationCompletionSummary = {
   frameMetadataByAngle: VerificationFrameMetadataByAngle;
 };
 
+export type EnrollmentSubmitDiagnostics = {
+  requestUrl: string;
+  httpStatus: number | null;
+  responseBody: string | null;
+  error: string | null;
+};
+
+export type EnrollmentCompletionResult = {
+  success: boolean;
+  message: string;
+  diagnostics: EnrollmentSubmitDiagnostics;
+};
+
 export type CameraHookResult = {
   videoRef: RefCallback<HTMLVideoElement>;
   status: PermissionState;

@@ -158,7 +158,7 @@ export function SuccessStep({ studentId, studentName, onDone }: SuccessStepProps
           </div>
         )}
         <h2 className="mt-4 text-[0.7rem] font-medium tracking-widest text-[#6493b5]/80 uppercase">
-          Verification Successful
+          Enrollment submitted successfully.
         </h2>
       </motion.div>
 
@@ -188,7 +188,7 @@ export function SuccessStep({ studentId, studentName, onDone }: SuccessStepProps
           onClick={onDone}
           className="group/button flex w-[200px] items-center justify-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-6 py-[1.3rem] text-[0.9rem] font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_2px_8px_rgba(0,0,0,0.2)] backdrop-blur-md transition-all hover:border-white/[0.12] hover:bg-white/[0.05] active:scale-[0.98]"
         >
-          <span>Done</span>
+          <span>Back to Home</span>
         </Button>
       </motion.div>
     </motion.div>

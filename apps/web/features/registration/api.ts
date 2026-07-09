@@ -1,4 +1,5 @@
 import type {
+  EnrollmentSubmitDiagnostics,
   VerificationAngle,
   VerificationCapturesByAngle,
   VerificationFrameMetadataByAngle,
@@ -7,7 +8,7 @@ import {
   guidedAngles,
   getRequiredFramesForAngle,
 } from '@/features/registration/capture/constants';
-import { request, ApiConfigError } from '@/lib/api';
+import { request, ApiConfigError, buildApiUrl } from '@/lib/api';
 
 // ─── Student ID Validation ─────────────────────────────────────────────────
 
@@ -205,7 +206,9 @@ type EnrollmentResponse = {
   message: string;
 };
 
-export type EnrollmentSubmissionResult = EnrollmentResponse;
+export type EnrollmentSubmissionResult = EnrollmentResponse & {
+  diagnostics?: EnrollmentSubmitDiagnostics;
+};
 
 function isEnrollmentResponse(value: unknown): value is EnrollmentResponse {
   if (!value || typeof value !== 'object') {
@@ -440,6 +443,7 @@ async function submitEnrollmentCompletionRequest(
   frameMetadataByAngle: VerificationFrameMetadataByAngle,
   errorMessage: string
 ) {
+  let requestUrl = '';
   try {
     const anglesSummary = REQUIRED_VERIFICATION_ANGLES.map((angle) => ({
       angle,
@@ -467,6 +471,8 @@ async function submitEnrollmentCompletionRequest(
         })),
       })),
     };
+
+    requestUrl = buildApiUrl('/enroll/verification');
 
     const formData = new FormData();
     formData.append('metadata', JSON.stringify(metadataWithFrames));
@@ -562,28 +568,70 @@ async function submitEnrollmentCompletionRequest(
       body: formData,
       headers: {
         Accept: 'application/json',
-        'X-CSRF-Token': '1', // Protects against simple cross-origin multipart POSTs
       },
     };
+
+    const debugEnabled =
+      process.env.NODE_ENV !== 'production' ||
+      (typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).get('debug') === '1');
+    if (debugEnabled) {
+      console.info('[verification-submit] request', {
+        submitting: true,
+        requestUrl,
+        studentId: payload.student_id,
+        currentRoute:
+          typeof window === 'undefined' ? null : window.location.pathname,
+        navigationTriggered: false,
+        imageCount: appendedFiles,
+        countByAngle: Object.fromEntries(
+          REQUIRED_VERIFICATION_ANGLES.map((angle) => [
+            angle,
+            capturesByAngle[angle]?.length ?? 0,
+          ])
+        ),
+        imageBlobSizes: Object.fromEntries(
+          REQUIRED_VERIFICATION_ANGLES.map((angle) => [
+            angle,
+            (capturesByAngle[angle] ?? []).map((capture) => capture.size),
+          ])
+        ),
+      });
+    }
 
     const response = await request('/enroll/verification', requestOptions);
 
     const parsed = await parseEnrollmentResponse(
       response,
       errorMessage,
-      'verification'
+      'verification',
+      requestUrl
     );
     return parsed;
   } catch (error) {
     console.error('[verification] request failed', error);
-    throw error;
+    const message =
+      error instanceof ApiConfigError
+        ? error.message
+        : 'Unable to reach the enrollment service. Your captures are preserved; retry submission.';
+    return {
+      success: false,
+      message,
+      diagnostics: {
+        requestUrl,
+        httpStatus: null,
+        responseBody: null,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    };
   }
 }
 
 async function parseEnrollmentResponse(
   response: Response,
   errorMessage: string,
-  logPrefix = 'enroll'
+  logPrefix = 'enroll',
+  requestUrl = response.url
 ): Promise<EnrollmentSubmissionResult> {
   const rawText = await response.text();
 
@@ -618,10 +666,15 @@ async function parseEnrollmentResponse(
     if (!response.ok) {
       logResponseIssue(parsedData);
     }
-    if (response.status >= 500) {
-      throw new Error(parsedData.message || errorMessage);
-    }
-    return parsedData;
+    return {
+      ...parsedData,
+      diagnostics: {
+        requestUrl,
+        httpStatus: response.status,
+        responseBody: rawText || null,
+        error: response.ok ? null : parsedData.message,
+      },
+    };
   }
 
   const derivedMessage =
@@ -630,21 +683,29 @@ async function parseEnrollmentResponse(
     toMessageFromUnknown(parsedData) ||
     (response.ok ? 'Request completed.' : `Request failed (${statusLabel}).`);
 
-  if (response.status >= 500) {
-    throw new Error(derivedMessage);
-  }
-
   if (!response.ok) {
     logResponseIssue(parsedData);
     return {
       success: false,
       message: derivedMessage,
+      diagnostics: {
+        requestUrl,
+        httpStatus: response.status,
+        responseBody: rawText || null,
+        error: derivedMessage,
+      },
     };
   }
 
   return {
     success: true,
     message: derivedMessage,
+    diagnostics: {
+      requestUrl,
+      httpStatus: response.status,
+      responseBody: rawText || null,
+      error: null,
+    },
   };
 }
 
