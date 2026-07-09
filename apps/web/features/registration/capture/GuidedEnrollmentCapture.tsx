@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -98,7 +98,14 @@ export function GuidedEnrollmentCapture({
     [videoRef]
   );
 
-  const { state, capturesByAngle, frameMetadataByAngle, clearSession, retakeAngle } =
+  const {
+    state,
+    capturesByAngle,
+    frameMetadataByAngle,
+    clearSession,
+    retakeAngle,
+    restartCapture,
+  } =
     useFaceCapture({
       videoElement,
       streamActive,
@@ -331,30 +338,6 @@ export function GuidedEnrollmentCapture({
     studentId,
   ]);
 
-  /**
-   * Auto-submit guard — fires exactly once when all captures are complete.
-   * The ref prevents duplicate submissions on re-renders or StrictMode double-invoke.
-   * setTimeout(0) defers the call past the current render cycle so React does not
-   * flag synchronous setState calls inside the effect body.
-   */
-  const autoSubmittedRef = useRef(false);
-
-  useEffect(() => {
-    if (!state.canSubmit || isSubmittingCompletion || autoSubmittedRef.current) {
-      return;
-    }
-    autoSubmittedRef.current = true;
-    console.log('[auto-submit] all captures complete — scheduling auto-submit', {
-      capturedCount: state.capturedCount,
-      currentAngle: state.currentAngle,
-    });
-    const timerId = window.setTimeout(() => {
-      console.log('[auto-submit] executing handleSubmit');
-      void handleSubmit();
-    }, 0);
-    return () => window.clearTimeout(timerId);
-  }, [state.canSubmit, isSubmittingCompletion, handleSubmit, state.capturedCount, state.currentAngle]);
-
   const permissionBlocked = permissionState !== 'granted';
 
   const statusText = useMemo(() => {
@@ -363,9 +346,7 @@ export function GuidedEnrollmentCapture({
     }
 
     if (state.canSubmit) {
-      // Captures are done; auto-submit is about to fire (or already fired).
-      // Don't show any stale capture message from the detection loop.
-      return completionErrorMessage ?? 'All captures complete. Submitting...';
+      return completionErrorMessage ?? 'All captures completed.';
     }
 
     if (completionErrorMessage) {
@@ -416,6 +397,13 @@ export function GuidedEnrollmentCapture({
   const captureHelper = state.liveness.completed
     ? perAngleHint[state.currentAngle]
     : getLivenessChallengeHelper(state.liveness.currentChallenge);
+  const showCompletionState = state.canSubmit;
+  const captureSummaryRows = captureAngles.map((angle) => ({
+    angle,
+    label: perAngleInstruction[angle],
+    count: capturesByAngle[angle]?.length ?? 0,
+    required: getRequiredFramesForAngle(angle),
+  }));
 
   return (
     <section className="space-y-3">
@@ -430,13 +418,19 @@ export function GuidedEnrollmentCapture({
                 className="mb-[0.2rem] text-[0.63rem] font-semibold tracking-[0.12em] uppercase"
                 style={{ color: 'rgba(100, 147, 181, 0.7)' }}
               >
-                {state.liveness.completed ? 'Face Verification' : 'Liveness Check'}
+                {showCompletionState
+                  ? 'Ready To Submit'
+                  : state.liveness.completed
+                    ? 'Face Verification'
+                    : 'Liveness Check'}
               </p>
               <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
-                {captureTitle}
+                {showCompletionState ? 'All captures completed' : captureTitle}
               </h3>
               <p className="mt-1 max-w-[15rem] text-[0.72rem] leading-snug text-slate-400">
-                {captureHelper}
+                {showCompletionState
+                  ? 'Your enrollment images are ready for secure validation.'
+                  : captureHelper}
               </p>
             </div>
 
@@ -487,13 +481,24 @@ export function GuidedEnrollmentCapture({
               }}
             />
 
-            {/* Circular camera feed — flow element, sets container height */}
-            <CameraPreview
-              videoRef={mergedVideoRef}
-              streamActive={streamActive}
-              fallbackMessage={permissionBlocked ? statusText : undefined}
-              className="aspect-square rounded-full shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(100, 147, 181,0.08),inset_0_0_32px_rgba(0,0,0,0.55)]"
-            />
+            {showCompletionState ? (
+              <div className="relative flex aspect-square flex-col items-center justify-center rounded-full border border-emerald-300/20 bg-[#06130f] px-6 text-center shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(16,185,129,0.08),inset_0_0_32px_rgba(0,0,0,0.55)]">
+                <CheckCircle2 className="mb-3 size-9 text-emerald-300" />
+                <p className="text-sm font-semibold text-emerald-100">
+                  All captures completed
+                </p>
+                <p className="mt-1 text-[0.72rem] leading-snug text-emerald-100/65">
+                  Ready for secure validation.
+                </p>
+              </div>
+            ) : (
+              <CameraPreview
+                videoRef={mergedVideoRef}
+                streamActive={streamActive}
+                fallbackMessage={permissionBlocked ? statusText : undefined}
+                className="aspect-square rounded-full shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(100, 147, 181,0.08),inset_0_0_32px_rgba(0,0,0,0.55)]"
+              />
+            )}
 
             {/* Inner biometric guide ring */}
             <div
@@ -503,7 +508,7 @@ export function GuidedEnrollmentCapture({
             />
 
             {/* Animated scan line — only when camera is live */}
-            {streamActive && !permissionBlocked && (
+            {streamActive && !permissionBlocked && !showCompletionState && (
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
@@ -530,6 +535,7 @@ export function GuidedEnrollmentCapture({
               <CircularProgressGuide
                 completedDirections={completedDirections}
                 activeDirection={state.currentAngle}
+                poseState={state.feedback.guidanceState === 'hold_steady' ? 'near_valid' : state.debug.angleState}
               />
             </div>
 
@@ -539,14 +545,20 @@ export function GuidedEnrollmentCapture({
                 <div>raw yaw: {state.debug.rawYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>norm yaw: {state.debug.normalizedYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>pitch: {state.debug.pitch?.toFixed(1) ?? 'n/a'}</div>
+                <div>raw pitch: {state.debug.rawPitch?.toFixed(1) ?? 'n/a'}</div>
+                <div>norm pitch: {state.debug.normalizedPitch?.toFixed(1) ?? 'n/a'}</div>
                 <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
                 <div>user dir: {state.debug.userFacingDirection}</div>
                 <div>expected: {state.debug.expectedPose}</div>
                 <div>guide: {state.debug.guidanceMessage}</div>
                 <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
+                <div>base pitch: {state.debug.baselinePitch?.toFixed(1) ?? 'n/a'}</div>
                 <div>yaw delta: {state.debug.yawDelta?.toFixed(1) ?? 'n/a'}</div>
+                <div>pitch delta: {state.debug.pitchDelta?.toFixed(1) ?? 'n/a'}</div>
                 <div>angle: {state.debug.expectedAngle}</div>
                 <div>pose: {state.debug.angleState}</div>
+                <div>current pose: {state.debug.currentPoseState}</div>
+                <div>pitch range: {state.debug.requiredPitchRange}</div>
                 <div>dir: {state.debug.livenessExpectedDirection}</div>
                 <div>
                   live: {state.debug.livenessChallenge ?? 'done'}{' '}
@@ -565,13 +577,29 @@ export function GuidedEnrollmentCapture({
 
           </div>
 
+          {showCompletionState ? (
+            <div className="grid grid-cols-2 gap-2 px-1 sm:grid-cols-3">
+              <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 px-2.5 py-2 text-[0.72rem] text-emerald-100">
+                <span className="font-semibold">Liveness</span>: passed
+              </div>
+              {captureSummaryRows.map((row) => (
+                <div
+                  key={row.angle}
+                  className="rounded-lg border border-white/[0.06] bg-white/[0.04] px-2.5 py-2 text-[0.72rem] text-slate-300"
+                >
+                  <span className="font-semibold text-slate-100">{row.label}</span>: {row.count}/{row.required}
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           {/* STATUS MESSAGE */}
           <div className="min-h-[2.2rem] px-1 text-center" aria-hidden="true">
             <p
               className="text-[0.85rem] leading-[1.5] font-medium transition-colors duration-300"
               style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(100, 147, 181, 0.9)' : 'rgba(148,163,184,0.9)' }}
             >
-              {statusText}
+              {showCompletionState ? 'Your enrollment images are ready for secure validation.' : statusText}
             </p>
           </div>
           
@@ -611,6 +639,20 @@ export function GuidedEnrollmentCapture({
               {permissionButtonLabel}
             </Button>
           ) : null}
+          {!permissionBlocked && !streamActive && !showCompletionState ? (
+            <Button
+              type="button"
+              onClick={() => {
+                resetPermission();
+                void requestAccess();
+              }}
+              size="cta"
+              className="w-full"
+            >
+              <Camera className="size-4" />
+              Resume Camera
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -625,7 +667,21 @@ export function GuidedEnrollmentCapture({
             disabled={isSubmittingCompletion}
             className="text-slate-300 hover:bg-white/5"
           >
+            <RotateCcw className="size-3.5" />
             Retake current angle
+          </Button>
+        ) : null}
+        {(completionErrorMessage || localErrorMessage || showCompletionState) ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={restartCapture}
+            disabled={isSubmittingCompletion}
+            className="text-slate-300 hover:bg-white/5"
+          >
+            <RotateCcw className="size-3.5" />
+            Restart capture
           </Button>
         ) : null}
         <Button

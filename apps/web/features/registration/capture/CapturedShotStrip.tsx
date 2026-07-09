@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 
@@ -14,8 +15,8 @@ const angleLabel: Record<VerificationAngle, string> = {
   front: 'Look Straight',
   left: 'Turn Head Left',
   right: 'Turn Head Right',
-  up: 'Look Up Slightly',
-  down: 'Look Down Slightly',
+  up: 'Lift Chin Slightly',
+  down: 'Lower Chin Slightly',
   natural_front: 'Natural',
 };
 

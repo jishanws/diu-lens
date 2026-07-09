@@ -23,17 +23,17 @@ export const perAngleInstruction: Record<VerificationAngle, string> = {
   front: 'Look Straight',
   left: 'Turn Head Left',
   right: 'Turn Head Right',
-  up: 'Look Up Slightly',
-  down: 'Look Down Slightly',
+  up: 'Lift Chin Slightly',
+  down: 'Lower Chin Slightly',
   natural_front: 'Look at the camera normally.',
 };
 
 export const perAngleHint: Record<VerificationAngle, string> = {
-  front: 'Face the camera directly and keep your head steady.',
-  left: 'Turn your head slightly to your left. Keep your phone still.',
-  right: 'Turn your head slightly to your right. Keep your phone still.',
-  up: 'Lift your chin slightly while keeping your face inside the circle.',
-  down: 'Lower your chin slightly while keeping your face visible.',
+  front: 'Face the camera directly.',
+  left: 'Keep your phone still and slowly turn your head to the left.',
+  right: 'Keep your phone still and slowly turn your head to the right.',
+  up: 'Keep looking at the screen and lift your chin a little.',
+  down: 'Keep looking at the screen and lower your chin a little.',
   natural_front: 'No strict pose needed. Keep one face visible.',
 };
 

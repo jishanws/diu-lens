@@ -323,15 +323,6 @@ function getPoseState(
   return 'invalid';
 }
 
-function isRoughAngleMatch(
-  angle: VerificationAngle,
-  yaw: number,
-  pitch: number,
-  marginBoost: number = 0
-) {
-  return getPoseState(angle, yaw, pitch, marginBoost) === 'valid';
-}
-
 function getLivenessExpectedDirection(
   challenge: LivenessChallenge,
   observedLeftDirection: number | null
@@ -356,6 +347,10 @@ function normalizeYawForUser(rawYaw: number) {
   return -rawYaw;
 }
 
+function normalizePitchForUser(rawPitch: number) {
+  return rawPitch;
+}
+
 function getUserFacingDirection(rawYaw: number) {
   const normalizedYaw = normalizeYawForUser(rawYaw);
   if (normalizedYaw <= -8) return 'right';
@@ -367,9 +362,63 @@ function getExpectedPoseLabel(angle: VerificationAngle) {
   if (angle === 'front') return 'Look Straight';
   if (angle === 'left') return 'Turn Head Left';
   if (angle === 'right') return 'Turn Head Right';
-  if (angle === 'up') return 'Look Up Slightly';
-  if (angle === 'down') return 'Look Down Slightly';
+  if (angle === 'up') return 'Lift Chin Slightly';
+  if (angle === 'down') return 'Lower Chin Slightly';
   return 'Look Straight';
+}
+
+function getRequiredPitchRange(angle: VerificationAngle) {
+  if (angle === 'natural_front') return 'any';
+  const threshold = ANGLE_THRESHOLDS[angle];
+  return `${threshold.valid.pitchMin}..${threshold.valid.pitchMax}`;
+}
+
+function getHybridPoseState(
+  angle: VerificationAngle,
+  yaw: number,
+  pitch: number,
+  baseline: { yaw: number; pitch: number } | null,
+  marginBoost: number = 0
+): PoseValidationState {
+  const absoluteState = getPoseState(angle, yaw, pitch, marginBoost);
+  if (absoluteState === 'invalid' || angle === 'natural_front') return absoluteState;
+  if (!baseline || angle === 'front') return absoluteState;
+
+  const yawDelta = yaw - baseline.yaw;
+  const pitchDelta = pitch - baseline.pitch;
+  const delta = enrollmentValidationConfig.poseDeltaThresholds;
+  let moved = false;
+
+  if (angle === 'left') {
+    moved =
+      yawDelta <= -delta.yawDegrees &&
+      Math.abs(pitchDelta) <= delta.centerPitchToleranceDegrees + 8;
+  } else if (angle === 'right') {
+    moved =
+      yawDelta >= delta.yawDegrees &&
+      Math.abs(pitchDelta) <= delta.centerPitchToleranceDegrees + 8;
+  } else if (angle === 'up') {
+    moved =
+      pitchDelta <= -delta.pitchDegrees &&
+      Math.abs(yawDelta) <= delta.centerYawToleranceDegrees + 8;
+  } else if (angle === 'down') {
+    moved =
+      pitchDelta >= delta.pitchDegrees &&
+      Math.abs(yawDelta) <= delta.centerYawToleranceDegrees + 8;
+  }
+
+  if (moved) return absoluteState;
+  return absoluteState === 'valid' ? 'near_valid' : 'invalid';
+}
+
+function isHybridAngleMatch(
+  angle: VerificationAngle,
+  yaw: number,
+  pitch: number,
+  baseline: { yaw: number; pitch: number } | null,
+  marginBoost: number = 0
+) {
+  return getHybridPoseState(angle, yaw, pitch, baseline, marginBoost) === 'valid';
 }
 
 function livenessChallengeMatched(
@@ -556,14 +605,14 @@ function getDynamicAngleGuidance(
     return { instruction: 'Keep your phone steady', liveMessage: 'Keep your phone steady' };
   }
   if (angle === 'up') {
-    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
-    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
+    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lift your chin slightly', liveMessage: 'Lift your chin slightly' };
+    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Do not move the phone', liveMessage: 'Do not move the phone' };
     if (yaw < ANGLE_THRESHOLDS.up.valid.yawMin || yaw > ANGLE_THRESHOLDS.up.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
     return { instruction: 'Hold still for a moment', liveMessage: 'Hold still for a moment' };
   }
   if (angle === 'down') {
-    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
-    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
+    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Do not move the phone', liveMessage: 'Do not move the phone' };
     if (yaw < ANGLE_THRESHOLDS.down.valid.yawMin || yaw > ANGLE_THRESHOLDS.down.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
     return { instruction: 'Hold still for a moment', liveMessage: 'Hold still for a moment' };
   }
@@ -573,11 +622,11 @@ function getDynamicAngleGuidance(
 
 function getAngleGuidance(angle: VerificationAngle) {
   if (angle === 'natural_front') return 'Look at the camera naturally';
-  if (angle === 'front') return 'Look forward';
-  if (angle === 'left') return 'Look left';
-  if (angle === 'right') return 'Look right';
-  if (angle === 'up') return 'Look up';
-  return 'Look down';
+  if (angle === 'front') return 'Face the camera directly';
+  if (angle === 'left') return 'Turn your head to the left';
+  if (angle === 'right') return 'Turn your head to the right';
+  if (angle === 'up') return 'Lift your chin slightly';
+  return 'Lower your chin slightly';
 }
 
 function getLivenessInstruction(challenge: LivenessChallenge | null) {
@@ -655,6 +704,7 @@ export function useFaceCapture({
   const livenessMatchedSinceRef = useRef(0);
   const livenessChallengeStartedAtRef = useRef(0);
   const livenessBaselineYawRef = useRef<number | null>(null);
+  const livenessBaselinePitchRef = useRef<number | null>(null);
   const livenessObservedLeftDirectionRef = useRef<number | null>(null);
   const lastGuidanceRef = useRef<{ instruction: string; liveMessage: string; timestamp: number }>({
     instruction: '',
@@ -701,14 +751,20 @@ export function useFaceCapture({
     rawYaw: null,
     normalizedYaw: null,
     pitch: null,
+    rawPitch: null,
+    normalizedPitch: null,
     roll: null,
     userFacingDirection: 'unknown',
     expectedPose: 'Look Straight',
     guidanceMessage: perAngleInstruction.front,
     baselineYaw: null,
+    baselinePitch: null,
     yawDelta: null,
+    pitchDelta: null,
     expectedAngle: 'front',
     angleState: 'invalid',
+    currentPoseState: 'invalid',
+    requiredPitchRange: getRequiredPitchRange('front'),
     livenessChallenge: livenessSequenceRef.current[0] ?? null,
     livenessExpectedDirection: 'either',
     livenessCompletedCount: 0,
@@ -938,7 +994,14 @@ export function useFaceCapture({
           }
 
           const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
-          const angleOk = isRoughAngleMatch(targetAngle, yaw, pitch, marginBoost);
+          const baseline =
+            livenessBaselineYawRef.current === null || livenessBaselinePitchRef.current === null
+              ? null
+              : {
+                  yaw: livenessBaselineYawRef.current,
+                  pitch: livenessBaselinePitchRef.current,
+                };
+          const angleOk = isHybridAngleMatch(targetAngle, yaw, pitch, baseline, marginBoost);
           const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
           if (force || !angleOk || !sizeOk) {
             continue;
@@ -1145,12 +1208,16 @@ export function useFaceCapture({
           rawYaw: null,
           normalizedYaw: null,
           pitch: null,
+          rawPitch: null,
+          normalizedPitch: null,
           roll: null,
           userFacingDirection: 'unknown',
           expectedPose: getExpectedPoseLabel(angle),
           guidanceMessage: getAngleGuidance(angle),
           expectedAngle: angle,
           angleState: 'invalid',
+          currentPoseState: 'invalid',
+          requiredPitchRange: getRequiredPitchRange(angle),
           livenessChallenge: livenessState.completed
             ? null
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
@@ -1188,12 +1255,16 @@ export function useFaceCapture({
           rawYaw: null,
           normalizedYaw: null,
           pitch: null,
+          rawPitch: null,
+          normalizedPitch: null,
           roll: null,
           userFacingDirection: 'unknown',
           expectedPose: getExpectedPoseLabel(angle),
           guidanceMessage: getAngleGuidance(angle),
           expectedAngle: angle,
           angleState: 'invalid',
+          currentPoseState: 'invalid',
+          requiredPitchRange: getRequiredPitchRange(angle),
           livenessChallenge: livenessState.completed
             ? null
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
@@ -1249,6 +1320,7 @@ export function useFaceCapture({
           resolutionOk;
         if (livenessBaselineYawRef.current === null && livenessQualityOk) {
           livenessBaselineYawRef.current = pose.yaw;
+          livenessBaselinePitchRef.current = pose.pitch;
         }
 
         let livenessBlockerReason = 'move_more';
@@ -1384,14 +1456,23 @@ export function useFaceCapture({
           rawYaw: pose.yaw,
           normalizedYaw: normalizeYawForUser(pose.yaw),
           pitch: pose.pitch,
+          rawPitch: pose.pitch,
+          normalizedPitch: normalizePitchForUser(pose.pitch),
           roll: pose.roll,
           userFacingDirection: getUserFacingDirection(pose.yaw),
           expectedPose: getLivenessInstruction(nextChallenge),
           guidanceMessage: livenessInstruction,
           baselineYaw: livenessBaselineYawRef.current,
+          baselinePitch: livenessBaselinePitchRef.current,
           yawDelta: challengeResult.yawDelta,
+          pitchDelta:
+            livenessBaselinePitchRef.current === null
+              ? null
+              : pose.pitch - livenessBaselinePitchRef.current,
           expectedAngle: angle,
           angleState: getPoseState(angle, pose.yaw, pose.pitch),
+          currentPoseState: getPoseState(angle, pose.yaw, pose.pitch),
+          requiredPitchRange: getRequiredPitchRange(angle),
           livenessChallenge: nextChallenge,
           livenessExpectedDirection: challengeResult.expectedDirection,
           livenessCompletedCount: completedCount,
@@ -1427,7 +1508,14 @@ export function useFaceCapture({
         }
       }
       const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
-      const angleState = getPoseState(angle, pose.yaw, pose.pitch, marginBoost);
+      const baseline =
+        livenessBaselineYawRef.current === null || livenessBaselinePitchRef.current === null
+          ? null
+          : {
+              yaw: livenessBaselineYawRef.current,
+              pitch: livenessBaselinePitchRef.current,
+            };
+      const angleState = getHybridPoseState(angle, pose.yaw, pose.pitch, baseline, marginBoost);
       const angleValid = angleState === 'valid';
       const angleClose = angleState !== 'invalid';
       const gateOk =
@@ -1530,13 +1618,28 @@ export function useFaceCapture({
       } else if (angleState === 'near_valid') {
         guidanceState = 'wrong_angle';
         blockedReason = 'near_valid_pose';
+        if (angle === 'left') {
+          instruction = 'Turn your head a little more left';
+          liveMessage = 'Turn your head a little more left';
+        } else if (angle === 'right') {
+          instruction = 'Turn your head a little more right';
+          liveMessage = 'Turn your head a little more right';
+        } else if (angle === 'up') {
+          instruction = 'Lift your chin slightly';
+          liveMessage = 'Lift your chin slightly';
+        } else if (angle === 'down') {
+          instruction = 'Lower your chin slightly';
+          liveMessage = 'Lower your chin slightly';
+        }
       }
 
       setFeedback({
         guidanceState,
         instruction,
         liveMessage: gateOk
-          ? `Capturing ${angle}...`
+          ? isStable
+            ? 'Captured'
+            : 'Almost there — hold still'
           : liveMessage,
         holdProgress: gateOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
         readiness: {
@@ -1557,12 +1660,26 @@ export function useFaceCapture({
         rawYaw: pose.yaw,
         normalizedYaw: normalizeYawForUser(pose.yaw),
         pitch: pose.pitch,
+        rawPitch: pose.pitch,
+        normalizedPitch: normalizePitchForUser(pose.pitch),
         roll: pose.roll,
         userFacingDirection: getUserFacingDirection(pose.yaw),
         expectedPose: getExpectedPoseLabel(angle),
         guidanceMessage: instruction,
+        baselineYaw: livenessBaselineYawRef.current,
+        baselinePitch: livenessBaselinePitchRef.current,
+        yawDelta:
+          livenessBaselineYawRef.current === null
+            ? null
+            : pose.yaw - livenessBaselineYawRef.current,
+        pitchDelta:
+          livenessBaselinePitchRef.current === null
+            ? null
+            : pose.pitch - livenessBaselinePitchRef.current,
         expectedAngle: angle,
         angleState,
+        currentPoseState: angleState,
+        requiredPitchRange: getRequiredPitchRange(angle),
         livenessChallenge: null,
         livenessCompletedCount: livenessPassCountRef.current,
         livenessRequiredPassCount: enrollmentValidationConfig.livenessPassCount,
@@ -1622,6 +1739,10 @@ export function useFaceCapture({
       return next;
     });
     cooldownUntilRef.current = 0;
+    finalizedRef.current = false;
+    runningRef.current = false;
+    stableSinceRef.current = 0;
+    stableGraceUntilRef.current = 0;
     setActiveAngle(angle);
     setFeedback((prev) => ({
       ...prev,
@@ -1629,6 +1750,57 @@ export function useFaceCapture({
       liveMessage: getAngleGuidance(angle),
       holdProgress: 0,
     }));
+  }, []);
+
+  const restartCapture = useCallback(() => {
+    setCapturedShots((current) => {
+      for (const shots of Object.values(current)) {
+        for (const shot of shots) {
+          URL.revokeObjectURL(shot.previewUrl);
+        }
+      }
+      return emptyCapturedShots();
+    });
+    livenessSequenceRef.current = makeLivenessSequence();
+    livenessIndexRef.current = 0;
+    livenessPassCountRef.current = 0;
+    livenessAttemptsRef.current = 0;
+    livenessMatchedSinceRef.current = 0;
+    livenessChallengeStartedAtRef.current = 0;
+    livenessBaselineYawRef.current = null;
+    livenessBaselinePitchRef.current = null;
+    livenessObservedLeftDirectionRef.current = null;
+    stableSinceRef.current = 0;
+    stableGraceUntilRef.current = 0;
+    consecutiveFailuresRef.current = 0;
+    cooldownUntilRef.current = 0;
+    finalizedRef.current = false;
+    setActiveAngle('front');
+    setLivenessState({
+      completed: false,
+      failed: false,
+      currentChallenge: livenessSequenceRef.current[0] ?? null,
+      completedCount: 0,
+      requiredCount: enrollmentValidationConfig.livenessPassCount,
+      message: 'Complete liveness check',
+    });
+    setFeedback({
+      guidanceState: 'no_face',
+      instruction: perAngleInstruction.front,
+      liveMessage: 'Center your face',
+      holdProgress: 0,
+      readiness: {
+        faceDetected: false,
+        singleFace: false,
+        faceLargeEnough: false,
+        centered: true,
+        eyesVisible: false,
+        sharpEnough: true,
+        brightnessOk: true,
+        angleMatch: false,
+        livenessPassed: false,
+      },
+    });
   }, []);
 
   const focusAngle = useCallback((angle: VerificationAngle) => {
@@ -1710,6 +1882,7 @@ export function useFaceCapture({
     frameMetadataByAngle,
     firstMissingAngle,
     retakeAngle,
+    restartCapture,
     focusAngle,
     captureAnyway,
     clearSession,

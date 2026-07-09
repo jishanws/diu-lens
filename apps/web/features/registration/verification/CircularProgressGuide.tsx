@@ -3,6 +3,7 @@
 import { animate, motion, useMotionValue } from 'framer-motion';
 import { useEffect } from 'react';
 import type { VerificationAngle } from '@/features/registration/verification/types';
+import type { PoseValidationState } from '@/features/registration/capture/types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ type CircularProgressGuideProps = {
   completedDirections: DirectionCompletionMap;
   /** The angle currently being captured */
   activeDirection: VerificationAngle;
+  poseState?: PoseValidationState;
 };
 
 // ── Fixed arc positions — anatomy of the face ─────────────────────────────────
@@ -107,6 +109,7 @@ function ActiveComet({ d }: { d: string }) {
 export function CircularProgressGuide({
   completedDirections,
   activeDirection,
+  poseState = 'invalid',
 }: CircularProgressGuideProps) {
   const size = 320;
   const cx = size / 2; // 160
@@ -123,6 +126,18 @@ export function CircularProgressGuide({
   const orbitR = 161;
 
   const isDirectional = DIRECTIONAL_KEYS.includes(activeDirection as never);
+  const activeStroke =
+    poseState === 'valid'
+      ? '#86efac'
+      : poseState === 'near_valid'
+        ? '#fbbf24'
+        : '#A0B9D2';
+  const activeBloom =
+    poseState === 'valid'
+      ? 'rgba(134, 239, 172, 0.3)'
+      : poseState === 'near_valid'
+        ? 'rgba(251, 191, 36, 0.26)'
+        : 'rgba(160, 185, 210, 0.22)';
 
   return (
     <svg
@@ -196,7 +211,7 @@ export function CircularProgressGuide({
           cy={cy}
           r={segmentR}
           fill="none"
-          stroke="rgba(160, 185, 210, 0.15)"
+          stroke={activeBloom}
           strokeWidth={6}
           filter="url(#cpg-active-bloom)"
           animate={{ opacity: [0.3, 1, 0.3] }}
@@ -273,7 +288,7 @@ export function CircularProgressGuide({
                 <motion.path
                   d={d}
                   fill="none"
-                  stroke="#A0B9D2"
+                  stroke={activeStroke}
                   strokeWidth={22}
                   strokeLinecap="round"
                   filter="url(#cpg-active-bloom)"
@@ -288,7 +303,7 @@ export function CircularProgressGuide({
                 <path
                   d={d}
                   fill="none"
-                  stroke="rgba(100, 147, 181, 0.12)"
+                  stroke={poseState === 'near_valid' ? 'rgba(251, 191, 36, 0.22)' : 'rgba(100, 147, 181, 0.12)'}
                   strokeWidth={6}
                   strokeLinecap="round"
                 />
