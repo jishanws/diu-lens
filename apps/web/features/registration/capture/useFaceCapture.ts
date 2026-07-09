@@ -51,6 +51,8 @@ type LandmarkPoint = {
 
 type DetectionResult = {
   faceLandmarks?: LandmarkPoint[][];
+  faceBlendshapes?: unknown[];
+  facialTransformationMatrixes?: unknown[];
 };
 
 type FaceLandmarker = {
@@ -80,6 +82,11 @@ function logFaceGuidanceInitError(error: unknown) {
   if (process.env.NODE_ENV === 'production') return;
 
   console.error('[face-guidance] initialization failed', error);
+}
+
+function describeError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return typeof error === 'string' ? error : String(error);
 }
 
 function assertFaceGuidanceAssetPath(path: string, label: string) {
@@ -638,14 +645,6 @@ function getLivenessInstruction(challenge: LivenessChallenge | null) {
   return 'Follow the movement instruction';
 }
 
-function getLivenessHelper(challenge: LivenessChallenge | null) {
-  if (challenge === 'left') return 'Turn your head left.';
-  if (challenge === 'right') return 'Turn your head right.';
-  if (challenge === 'center') return 'Face the camera.';
-  if (challenge) return 'Follow the instruction.';
-  return 'Keep your face centered.';
-}
-
 async function loadFaceLandmarker() {
   if (faceLandmarkerPromise) return faceLandmarkerPromise;
 
@@ -681,6 +680,9 @@ export function useFaceCapture({
   storageKey,
 }: UseFaceCaptureParams) {
   const landmarkerRef = useRef<FaceLandmarker | null>(null);
+  const debugEnabledRef = useRef(false);
+  const lastDetectionTimestampRef = useRef(0);
+  const lastDetectionErrorRef = useRef<string | null>(null);
   const detectionTimerRef = useRef<number | null>(null);
   const runningRef = useRef(false);
   const cooldownUntilRef = useRef<number>(0);
@@ -742,6 +744,21 @@ export function useFaceCapture({
   });
   const [debugState, setDebugState] = useState<FaceCaptureState['debug']>({
     enabled: false,
+    videoReady: false,
+    videoWidth: 0,
+    videoHeight: 0,
+    lastFrameAt: null,
+    faceModelStatus: 'loading',
+    faceModelError: null,
+    wasmPath: FACE_GUIDANCE_WASM_BASE_PATH,
+    modelPath: FACE_GUIDANCE_MODEL_PATH,
+    lastDetectionAt: null,
+    facesDetectedCount: null,
+    rawDetectionConfidence: null,
+    rawResultKeys: null,
+    faceLandmarksCount: null,
+    faceBlendshapesCount: null,
+    facialTransformationMatrixesCount: null,
     yaw: null,
     rawYaw: null,
     normalizedYaw: null,
@@ -774,15 +791,28 @@ export function useFaceCapture({
     frameLoopRunning: false,
     faceDetected: false,
     faceBox: '{}',
-    faceCenterOffset: 0,
-    faceSizeRatio: 0,
+    faceBoxX: null,
+    faceBoxY: null,
+    faceBoxWidth: null,
+    faceBoxHeight: null,
+    faceCenterOffsetX: null,
+    faceCenterOffsetY: null,
+    faceCenterOffset: null,
+    faceSizeRatio: null,
+    maxAllowedCenterOffset: MAX_CENTER_OFFSET,
+    minAllowedFaceSizeRatio: MIN_FACE_AREA_RATIO,
     visibilityValid: false,
     eyesValid: false,
     framingValid: false,
     lightingValid: false,
     blurValid: false,
     canCapture: false,
-    lastCaptureError: '',
+    movementValid: false,
+    currentAngle: 'front',
+    currentAngleAccepted: 0,
+    requiredSamplesPerAngle: getRequiredFramesForAngle('front'),
+    stableMs: 0,
+    lastCaptureError: null,
     currentSampleCount: 0,
     blockedReason: 'no_face',
     blockerReason: 'no_face',
@@ -798,6 +828,8 @@ export function useFaceCapture({
       ...prev,
       enabled: enrollmentValidationConfig.debugOverlayEnv || queryEnabled,
     }));
+    debugEnabledRef.current =
+      enrollmentValidationConfig.debugOverlayEnv || queryEnabled;
   }, []);
 
   const {
@@ -894,15 +926,32 @@ export function useFaceCapture({
     void (async () => {
       try {
         setModelErrorMessage(null);
+        setDebugState((prev) => ({
+          ...prev,
+          faceModelStatus: 'loading',
+          faceModelError: null,
+          blockerReason: 'face_model_loading',
+        }));
         const landmarker = await loadFaceLandmarker();
         if (cancelled) return;
         landmarkerRef.current = landmarker;
         setModelReady(true);
+        setDebugState((prev) => ({
+          ...prev,
+          faceModelStatus: 'ready',
+          faceModelError: null,
+        }));
       } catch (error) {
         if (cancelled) return;
         logFaceGuidanceInitError(error);
         setModelReady(false);
         setModelErrorMessage(FACE_GUIDANCE_UNAVAILABLE_MESSAGE);
+        setDebugState((prev) => ({
+          ...prev,
+          faceModelStatus: 'failed',
+          faceModelError: describeError(error),
+          blockerReason: 'face_model_failed',
+        }));
       }
     })();
 
@@ -930,23 +979,88 @@ export function useFaceCapture({
         }
       }
     };
-  }, [videoElement]);
+  }, []);
 
   const safeDetect = useCallback(
     (targetVideoElement: HTMLVideoElement | null) => {
-      if (!landmarkerRef.current) return null;
-      if (!targetVideoElement || targetVideoElement.readyState < 2) return null;
+      if (!landmarkerRef.current) {
+        setDebugState((prev) => ({
+          ...prev,
+          faceModelStatus: modelReady ? 'failed' : prev.faceModelStatus,
+          faceModelError: modelReady
+            ? 'Face landmarker instance is unavailable.'
+            : prev.faceModelError,
+          blockerReason: modelReady ? 'face_model_failed' : 'face_model_loading',
+        }));
+        return null;
+      }
+      if (
+        !targetVideoElement ||
+        targetVideoElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+        targetVideoElement.videoWidth <= 0 ||
+        targetVideoElement.videoHeight <= 0
+      ) {
+        return null;
+      }
 
       try {
-        return landmarkerRef.current.detectForVideo(
-          targetVideoElement,
-          performance.now()
+        const timestamp = Math.max(
+          performance.now(),
+          lastDetectionTimestampRef.current + 0.01
         );
-      } catch {
+        lastDetectionTimestampRef.current = timestamp;
+        const result = landmarkerRef.current.detectForVideo(
+          targetVideoElement,
+          timestamp
+        );
+        const resultKeys = Object.keys(result);
+        const facesDetectedCount = result.faceLandmarks?.length ?? 0;
+        const detectionAt = Date.now();
+        lastDetectionErrorRef.current = null;
+
+        if (debugEnabledRef.current || process.env.NODE_ENV !== 'production') {
+          console.debug('[face-guidance] detection result', {
+            keys: resultKeys,
+            faceLandmarks: facesDetectedCount,
+            faceBlendshapes: result.faceBlendshapes?.length ?? 0,
+            facialTransformationMatrixes:
+              result.facialTransformationMatrixes?.length ?? 0,
+          });
+        }
+
+        if (debugEnabledRef.current) {
+          setDebugState((prev) => ({
+            ...prev,
+            faceModelStatus: 'ready',
+            faceModelError: null,
+            lastDetectionAt: detectionAt,
+            facesDetectedCount,
+            rawDetectionConfidence: null,
+            rawResultKeys: resultKeys,
+            faceLandmarksCount: facesDetectedCount,
+            faceBlendshapesCount: result.faceBlendshapes?.length ?? 0,
+            facialTransformationMatrixesCount:
+              result.facialTransformationMatrixes?.length ?? 0,
+            lastCaptureError: null,
+          }));
+        }
+        return result;
+      } catch (error) {
+        const message = describeError(error);
+        lastDetectionErrorRef.current = message;
+        console.error('[face-guidance] detectForVideo failed', error);
+        setDebugState((prev) => ({
+          ...prev,
+          faceModelStatus: 'failed',
+          faceModelError: message,
+          lastCaptureError: message,
+          facesDetectedCount: null,
+          blockerReason: 'face_detection_failed',
+        }));
         return null;
       }
     },
-    []
+    [modelReady]
   );
 
   const captureAngle = useCallback(
@@ -1053,6 +1167,13 @@ export function useFaceCapture({
               warnings,
             },
           });
+        } else if (debugEnabledRef.current) {
+          setDebugState((prev) => ({
+            ...prev,
+            lastCaptureError: snapshot
+              ? `Captured image is too small (${snapshot.size} bytes).`
+              : 'Camera snapshot returned no image.',
+          }));
         }
       }
 
@@ -1146,13 +1267,38 @@ export function useFaceCapture({
       }
       if (
         !videoElement ||
-        videoElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA
+        videoElement.readyState < HTMLMediaElement.HAVE_CURRENT_DATA ||
+        videoElement.videoWidth <= 0 ||
+        videoElement.videoHeight <= 0
       ) {
+        if (debugEnabledRef.current) {
+          setDebugState((prev) => ({
+            ...prev,
+            cameraReady: streamActive,
+            videoReady: false,
+            videoWidth: videoElement?.videoWidth ?? 0,
+            videoHeight: videoElement?.videoHeight ?? 0,
+            frameLoopRunning: runningRef.current,
+            blockerReason: 'camera_not_ready',
+            canCapture: false,
+          }));
+        }
         scheduleNext();
         return;
       }
 
       const now = performance.now();
+      if (debugEnabledRef.current) {
+        setDebugState((prev) => ({
+          ...prev,
+          cameraReady: streamActive,
+          videoReady: true,
+          videoWidth: videoElement.videoWidth,
+          videoHeight: videoElement.videoHeight,
+          frameLoopRunning: runningRef.current,
+          lastFrameAt: Date.now(),
+        }));
+      }
       if (now < cooldownUntilRef.current) {
         const angle = currentAngleRef.current;
         const captured = latestShotsRef.current[angle]?.length ?? 0;
@@ -1206,24 +1352,41 @@ export function useFaceCapture({
         return;
       }
       const detection = safeDetect(videoElement);
+      if (lastDetectionErrorRef.current) {
+        stableSinceRef.current = 0;
+        setFeedback((prev) => ({
+          ...prev,
+          guidanceState: 'no_face',
+          liveMessage: 'Face model detection failed',
+          holdProgress: 0,
+        }));
+        scheduleNext();
+        return;
+      }
       const faces = detection?.faceLandmarks ?? [];
 
       if (faces.length === 0) {
+        const videoQuality = analyzeVideoQuality(videoElement);
+        const brightnessOk =
+          videoQuality.brightness >= enrollmentValidationConfig.brightnessRange.min &&
+          videoQuality.brightness <= enrollmentValidationConfig.brightnessRange.max;
+        const sharpEnough =
+          videoQuality.blurVariance >= enrollmentValidationConfig.minBlurVariance;
         stableSinceRef.current = 0;
         stableGraceUntilRef.current = 0;
         setFeedback({
           guidanceState: 'no_face',
           instruction: getAngleGuidance(angle),
-          liveMessage: 'Center your face',
+          liveMessage: 'No face detected',
           holdProgress: 0,
           readiness: {
             faceDetected: false,
             singleFace: false,
             faceLargeEnough: false,
-            centered: true,
+            centered: false,
             eyesVisible: false,
-            sharpEnough: true,
-            brightnessOk: true,
+            sharpEnough: sharpEnough && videoQuality.resolutionOk,
+            brightnessOk,
             angleMatch: false,
             livenessPassed: livenessState.completed,
           },
@@ -1249,6 +1412,27 @@ export function useFaceCapture({
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
           stableForMs: 0,
           captureQualityState: 'no_face',
+          faceDetected: false,
+          faceBox: '{}',
+          faceBoxX: null,
+          faceBoxY: null,
+          faceBoxWidth: null,
+          faceBoxHeight: null,
+          faceCenterOffsetX: null,
+          faceCenterOffsetY: null,
+          faceCenterOffset: null,
+          faceSizeRatio: null,
+          visibilityValid: false,
+          eyesValid: false,
+          framingValid: false,
+          lightingValid: brightnessOk,
+          blurValid: sharpEnough && videoQuality.resolutionOk,
+          movementValid: false,
+          canCapture: false,
+          currentAngle: angle,
+          currentAngleAccepted: latestShotsRef.current[angle]?.length ?? 0,
+          requiredSamplesPerAngle: getRequiredFramesForAngle(angle),
+          stableMs: 0,
           currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
           blockedReason: 'no_face',
           blockerReason: 'no_face',
@@ -1298,6 +1482,25 @@ export function useFaceCapture({
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
           stableForMs: 0,
           captureQualityState: 'multiple_faces',
+          faceDetected: true,
+          faceBox: '{}',
+          faceBoxX: null,
+          faceBoxY: null,
+          faceBoxWidth: null,
+          faceBoxHeight: null,
+          faceCenterOffsetX: null,
+          faceCenterOffsetY: null,
+          faceCenterOffset: null,
+          faceSizeRatio: null,
+          visibilityValid: false,
+          eyesValid: false,
+          framingValid: false,
+          movementValid: false,
+          canCapture: false,
+          currentAngle: angle,
+          currentAngleAccepted: latestShotsRef.current[angle]?.length ?? 0,
+          requiredSamplesPerAngle: getRequiredFramesForAngle(angle),
+          stableMs: 0,
           currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
           blockedReason: 'multiple_faces',
           blockerReason: 'multiple_faces',
@@ -1327,6 +1530,34 @@ export function useFaceCapture({
         videoQuality.brightness >= enrollmentValidationConfig.brightnessRange.min &&
         videoQuality.brightness <= enrollmentValidationConfig.brightnessRange.max;
       const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
+      const faceCenterOffsetX = (box.minX + box.maxX) / 2 - 0.5;
+      const faceCenterOffsetY = (box.minY + box.maxY) / 2 - 0.5;
+      if (debugEnabledRef.current) setDebugState((prev) => ({
+        ...prev,
+        faceDetected: true,
+        faceBox: JSON.stringify({
+          minX: box.minX.toFixed(2),
+          maxX: box.maxX.toFixed(2),
+          minY: box.minY.toFixed(2),
+          maxY: box.maxY.toFixed(2),
+        }),
+        faceBoxX: box.minX,
+        faceBoxY: box.minY,
+        faceBoxWidth: box.maxX - box.minX,
+        faceBoxHeight: box.maxY - box.minY,
+        faceCenterOffsetX,
+        faceCenterOffsetY,
+        faceCenterOffset: centerOffset,
+        faceSizeRatio: faceAreaRatio,
+        visibilityValid: landmarks.length > 0,
+        eyesValid: eyesVisible,
+        framingValid: centered && edgeOk,
+        lightingValid: brightnessOk,
+        blurValid: sharpEnough && resolutionOk,
+        currentAngle: angle,
+        currentAngleAccepted: latestShotsRef.current[angle]?.length ?? 0,
+        requiredSamplesPerAngle: getRequiredFramesForAngle(angle),
+      }));
       const livenessComplete =
         livenessPassCountRef.current >= enrollmentValidationConfig.livenessPassCount;
       if (!livenessComplete) {
@@ -1341,7 +1572,8 @@ export function useFaceCapture({
           return;
         }
 
-        const livenessQualityOk = sizeOk && eyesVisible;
+        const livenessQualityOk =
+          eyesVisible && sizeOk && centered && edgeOk && brightnessOk;
         if (livenessBaselineYawRef.current === null && livenessQualityOk) {
           livenessBaselineYawRef.current = pose.yaw;
           livenessBaselinePitchRef.current = pose.pitch;
@@ -1349,14 +1581,26 @@ export function useFaceCapture({
 
         let livenessBlockerReason = 'move_more';
         let livenessInstruction = getLivenessInstruction(challenge);
-        if (!sizeOk) {
+        if (!eyesVisible) {
+          livenessBlockerReason = 'eyes_hidden';
+          livenessInstruction = 'Keep your eyes visible';
+        } else if (!sizeOk) {
           livenessBlockerReason =
             faceAreaRatio < MIN_FACE_AREA_RATIO ? 'face_too_small' : 'face_too_large';
           livenessInstruction =
             faceAreaRatio < MIN_FACE_AREA_RATIO ? 'Move closer' : 'Move back';
-        } else if (!eyesVisible) {
-          livenessBlockerReason = 'eyes_hidden';
-          livenessInstruction = 'Keep your eyes visible';
+        } else if (!centered || !edgeOk) {
+          livenessBlockerReason = 'off_center';
+          livenessInstruction = 'Center your face';
+        } else if (!brightnessOk) {
+          livenessBlockerReason =
+            videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+              ? 'lighting_low'
+              : 'lighting_high';
+          livenessInstruction =
+            videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+              ? 'Move into brighter light'
+              : 'Reduce direct light';
         } else if (livenessBaselineYawRef.current === null) {
           livenessBlockerReason = 'baseline_pending';
           livenessInstruction = 'Face the camera.';
@@ -1489,6 +1733,9 @@ export function useFaceCapture({
           livenessRequiredPassCount: enrollmentValidationConfig.livenessPassCount,
           livenessAttempts: livenessAttemptsRef.current,
           livenessBlockerReason,
+          movementValid: matched,
+          canCapture: false,
+          stableMs: 0,
           stableForMs: 0,
           captureQualityState: done ? 'liveness_complete' : livenessBlockerReason,
           currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
@@ -1499,9 +1746,7 @@ export function useFaceCapture({
           setFeedback({
             guidanceState: eyesVisible ? 'liveness' : 'eyes_hidden',
             instruction: livenessInstruction,
-            liveMessage: eyesVisible
-              ? getLivenessHelper(nextChallenge)
-              : 'Face lost, look at the camera again',
+            liveMessage: livenessInstruction,
             holdProgress: matched ? Math.min(1, (now - livenessMatchedSinceRef.current) / LIVENESS_HOLD_MS) : 0,
             readiness: {
               faceDetected: true,
@@ -1578,6 +1823,11 @@ export function useFaceCapture({
       if (gateOk) {
         guidanceState = isStable ? 'ready' : 'hold_steady';
         blockedReason = isStable ? 'ready' : 'hold_steady';
+      } else if (!eyesVisible) {
+        guidanceState = 'eyes_hidden';
+        instruction = 'Keep your eyes visible';
+        liveMessage = 'Keep your eyes visible';
+        blockedReason = 'eyes_hidden';
       } else if (faceAreaRatio < MIN_FACE_AREA_RATIO) {
         guidanceState = 'face_too_small';
         blockedReason = 'face_too_small';
@@ -1591,21 +1841,6 @@ export function useFaceCapture({
         instruction = 'Center your face';
         liveMessage = 'Center your face';
         blockedReason = !edgeOk ? 'face_too_close_to_edge' : 'off_center';
-      } else if (!eyesVisible) {
-        guidanceState = 'eyes_hidden';
-        instruction = 'Keep your eyes visible';
-        liveMessage = 'Keep your eyes visible';
-        blockedReason = 'eyes_hidden';
-      } else if (!resolutionOk) {
-        guidanceState = 'blurry';
-        instruction = 'Use a higher resolution camera';
-        liveMessage = 'Camera resolution is too low';
-        blockedReason = 'resolution_too_low';
-      } else if (!sharpEnough) {
-        guidanceState = 'blurry';
-        instruction = 'Move slowly so we can capture a sharp image.';
-        liveMessage = 'Move slowly so we can capture a sharp image.';
-        blockedReason = 'blurry';
       } else if (!brightnessOk) {
         guidanceState =
           videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
@@ -1620,6 +1855,16 @@ export function useFaceCapture({
             ? 'Lighting is too low'
             : 'Lighting is too bright';
         blockedReason = guidanceState;
+      } else if (!resolutionOk) {
+        guidanceState = 'blurry';
+        instruction = 'Use a higher resolution camera';
+        liveMessage = 'Camera resolution is too low';
+        blockedReason = 'resolution_too_low';
+      } else if (!sharpEnough) {
+        guidanceState = 'blurry';
+        instruction = 'Hold still';
+        liveMessage = 'Hold still';
+        blockedReason = 'blurry';
       } else if (angleState === 'near_valid') {
         guidanceState = 'wrong_angle';
         blockedReason = 'near_valid_pose';
@@ -1699,6 +1944,12 @@ export function useFaceCapture({
         frameLoopRunning: runningRef.current,
         faceDetected: true,
         faceBox: JSON.stringify({ minX: box.minX.toFixed(2), maxX: box.maxX.toFixed(2), minY: box.minY.toFixed(2), maxY: box.maxY.toFixed(2) }),
+        faceBoxX: box.minX,
+        faceBoxY: box.minY,
+        faceBoxWidth: box.maxX - box.minX,
+        faceBoxHeight: box.maxY - box.minY,
+        faceCenterOffsetX,
+        faceCenterOffsetY,
         faceCenterOffset: centerOffset,
         faceSizeRatio: faceAreaRatio,
         visibilityValid: true,
@@ -1707,7 +1958,12 @@ export function useFaceCapture({
         lightingValid: brightnessOk,
         blurValid: sharpEnough && resolutionOk,
         canCapture: gateOk && isStable,
-        lastCaptureError: '',
+        movementValid: livenessComplete,
+        currentAngle: angle,
+        currentAngleAccepted: latestShotsRef.current[angle]?.length ?? 0,
+        requiredSamplesPerAngle: getRequiredFramesForAngle(angle),
+        stableMs: Math.round(stableFor),
+        lastCaptureError: null,
         currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
         blockedReason,
         blockerReason: blockedReason,

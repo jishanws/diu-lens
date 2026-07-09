@@ -63,6 +63,14 @@ function HealthBadge({ label, active }: { label: string; active: boolean }) {
   );
 }
 
+function debugValue(value: string | number | boolean | null) {
+  if (value === null) return 'null';
+  if (typeof value === 'number' && !Number.isInteger(value)) {
+    return value.toFixed(4);
+  }
+  return String(value);
+}
+
 const angleSummaryLabel = {
   front: 'Front',
   left: 'Left',
@@ -355,15 +363,19 @@ export function GuidedEnrollmentCapture({
       return localErrorMessage;
     }
 
-    if (state.modelErrorMessage) {
-      return state.modelErrorMessage;
-    }
-
     if (permissionBlocked) {
       return (
         errorMessage ??
         'Camera access is required for guided enrollment. Allow camera permission to continue.'
       );
+    }
+
+    if (state.modelErrorMessage) {
+      return state.modelErrorMessage;
+    }
+
+    if (!state.modelReady) {
+      return 'Loading face model...';
     }
 
     return state.feedback.liveMessage;
@@ -375,6 +387,7 @@ export function GuidedEnrollmentCapture({
     permissionBlocked,
     state.feedback.liveMessage,
     state.canSubmit,
+    state.modelReady,
     state.modelErrorMessage,
   ]);
 
@@ -556,57 +569,70 @@ export function GuidedEnrollmentCapture({
             </div>
 
             {state.debug.enabled ? (
-              <div className="pointer-events-none absolute left-2 top-2 z-20 rounded-md border border-amber-300/30 bg-black/70 px-2 py-1.5 text-left font-mono text-[0.58rem] leading-snug text-amber-100 shadow-lg h-[90vh] overflow-y-auto">
-                <div>cameraReady: {state.debug.cameraReady ? 'true' : 'false'}</div>
-                <div>frameLoopRunning: {state.debug.frameLoopRunning ? 'true' : 'false'}</div>
-                <div>faceDetected: {state.debug.faceDetected ? 'true' : 'false'}</div>
-                <div>faceBox: {state.debug.faceBox}</div>
-                <div>faceCenterOffset: {state.debug.faceCenterOffset?.toFixed(3)}</div>
-                <div>faceSizeRatio: {state.debug.faceSizeRatio?.toFixed(3)}</div>
-                <div>visibilityValid: {state.debug.visibilityValid ? 'true' : 'false'}</div>
-                <div>eyesValid: {state.debug.eyesValid ? 'true' : 'false'}</div>
-                <div>framingValid: {state.debug.framingValid ? 'true' : 'false'}</div>
-                <div>lightingValid: {state.debug.lightingValid ? 'true' : 'false'}</div>
-                <div>blurValid: {state.debug.blurValid ? 'true' : 'false'}</div>
-                <div>canCapture: {state.debug.canCapture ? 'true' : 'false'}</div>
-                <div>lastCaptureError: {state.debug.lastCaptureError}</div>
-                <div>yaw: {state.debug.yaw?.toFixed(1) ?? 'n/a'}</div>
-                <div>raw yaw: {state.debug.rawYaw?.toFixed(1) ?? 'n/a'}</div>
-                <div>norm yaw: {state.debug.normalizedYaw?.toFixed(1) ?? 'n/a'}</div>
-                <div>pitch: {state.debug.pitch?.toFixed(1) ?? 'n/a'}</div>
-                <div>raw pitch: {state.debug.rawPitch?.toFixed(1) ?? 'n/a'}</div>
-                <div>norm pitch: {state.debug.normalizedPitch?.toFixed(1) ?? 'n/a'}</div>
-                <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
-                <div>user dir: {state.debug.userFacingDirection}</div>
-                <div>mapped rev: {state.debug.leftRightMappingReversed ? 'true' : 'false'}</div>
-                <div>expected: {state.debug.expectedPose}</div>
-                <div>guide: {state.debug.guidanceMessage}</div>
-                <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
-                <div>base pitch: {state.debug.baselinePitch?.toFixed(1) ?? 'n/a'}</div>
-                <div>yaw delta: {state.debug.yawDelta?.toFixed(1) ?? 'n/a'}</div>
-                <div>pitch delta: {state.debug.pitchDelta?.toFixed(1) ?? 'n/a'}</div>
-                <div>angle: {state.debug.expectedAngle}</div>
-                <div>pose: {state.debug.angleState}</div>
-                <div>current pose: {state.debug.currentPoseState}</div>
-                <div>pitch range: {state.debug.requiredPitchRange}</div>
-                <div>dir: {state.debug.livenessExpectedDirection}</div>
-                <div>
-                  live: {state.debug.livenessChallenge ?? 'done'}{' '}
-                  {state.debug.livenessCompletedCount}/
-                  {state.debug.livenessRequiredPassCount}
-                </div>
-                <div>live block: {state.debug.livenessBlockerReason}</div>
-                <div>
-                  stable: {state.debug.stableForMs}/
-                  {state.debug.stableRequiredMs}ms
-                </div>
-                <div>quality: {state.debug.captureQualityState}</div>
-                <div>
-                  samples: {state.debug.currentSampleCount}/
-                  {getRequiredFramesForAngle(state.currentAngle)}
-                </div>
-                <div>block: {state.debug.blockedReason}</div>
-                <div>blocker: {state.debug.blockerReason}</div>
+              <div className="fixed inset-x-2 bottom-2 z-50 max-h-[55dvh] overflow-y-auto rounded-md border border-amber-300/40 bg-black/90 px-2.5 py-2 text-left font-mono text-[0.58rem] leading-[1.35] text-amber-100 shadow-xl sm:left-3 sm:right-auto sm:w-[28rem]">
+                {[
+                  ['Camera', [
+                    ['cameraReady', state.debug.cameraReady],
+                    ['videoReady', state.debug.videoReady],
+                    ['videoWidth', state.debug.videoWidth],
+                    ['videoHeight', state.debug.videoHeight],
+                    ['frameLoopRunning', state.debug.frameLoopRunning],
+                    ['lastFrameAt', state.debug.lastFrameAt],
+                  ]],
+                  ['Face model', [
+                    ['faceModelStatus', state.debug.faceModelStatus],
+                    ['faceModelError', state.debug.faceModelError],
+                    ['wasmPath', state.debug.wasmPath],
+                    ['modelPath', state.debug.modelPath],
+                    ['lastDetectionAt', state.debug.lastDetectionAt],
+                    ['facesDetectedCount', state.debug.facesDetectedCount],
+                    ['rawDetectionConfidence', state.debug.rawDetectionConfidence],
+                  ]],
+                  ['Validation', [
+                    ['visibilityValid', state.debug.visibilityValid],
+                    ['eyesValid', state.debug.eyesValid],
+                    ['framingValid', state.debug.framingValid],
+                    ['lightingValid', state.debug.lightingValid],
+                    ['blurValid', state.debug.blurValid],
+                    ['livenessCompleted', state.liveness.completed],
+                    ['movementValid', state.debug.movementValid],
+                    ['angleState', state.debug.angleState],
+                    ['blockerReason', state.debug.blockerReason],
+                    ['canCapture', state.debug.canCapture],
+                  ]],
+                  ['Geometry', [
+                    ['faceBoxX', state.debug.faceBoxX],
+                    ['faceBoxY', state.debug.faceBoxY],
+                    ['faceBoxWidth', state.debug.faceBoxWidth],
+                    ['faceBoxHeight', state.debug.faceBoxHeight],
+                    ['faceCenterOffsetX', state.debug.faceCenterOffsetX],
+                    ['faceCenterOffsetY', state.debug.faceCenterOffsetY],
+                    ['faceSizeRatio', state.debug.faceSizeRatio],
+                    ['maxAllowedCenterOffset', state.debug.maxAllowedCenterOffset],
+                    ['minAllowedFaceSizeRatio', state.debug.minAllowedFaceSizeRatio],
+                  ]],
+                  ['Pose', [
+                    ['yaw', state.debug.yaw],
+                    ['pitch', state.debug.pitch],
+                    ['roll', state.debug.roll],
+                    ['baselineYaw', state.debug.baselineYaw],
+                    ['baselinePitch', state.debug.baselinePitch],
+                  ]],
+                  ['Capture', [
+                    ['currentAngle', state.debug.currentAngle],
+                    ['currentAngleAccepted', state.debug.currentAngleAccepted],
+                    ['requiredSamplesPerAngle', state.debug.requiredSamplesPerAngle],
+                    ['stableMs', state.debug.stableMs],
+                    ['lastCaptureError', state.debug.lastCaptureError],
+                  ]],
+                ].map(([section, fields]) => (
+                  <div key={section as string} className="mb-1.5 last:mb-0">
+                    <div className="font-bold text-amber-300">{section as string}</div>
+                    {(fields as Array<[string, string | number | boolean | null]>).map(([label, value]) => (
+                      <div key={label} className="break-all">{label}: {debugValue(value)}</div>
+                    ))}
+                  </div>
+                ))}
               </div>
             ) : null}
 
