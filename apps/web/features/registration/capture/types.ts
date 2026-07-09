@@ -70,6 +70,7 @@ export type CaptureDebugState = {
   roll: number | null;
   userFacingDirection: string;
   expectedPose: string;
+  highlightedGuideDirection: string;
   guidanceMessage: string;
   baselineYaw: number | null;
   baselinePitch: number | null;
@@ -87,6 +88,8 @@ export type CaptureDebugState = {
   livenessBlockerReason: string;
   stableForMs: number;
   stableRequiredMs: number;
+  captureQualityState: string;
+  currentSampleCount: number;
   blockedReason: string;
   blockerReason: string;
 };

@@ -31,7 +31,7 @@ export const enrollmentValidationConfig = {
   minBlurVariance: 45,
   brightnessRange: { min: 70, max: 200 },
   minResolution: { width: 320, height: 240 },
-  stabilityDurationMs: 400,
+  stabilityDurationMs: 350,
   stabilityGraceMs: 220,
   livenessHoldMs: 420,
   livenessMotionHoldMs: 320,

@@ -360,8 +360,8 @@ function getUserFacingDirection(rawYaw: number) {
 
 function getExpectedPoseLabel(angle: VerificationAngle) {
   if (angle === 'front') return 'Look Straight';
-  if (angle === 'left') return 'Turn Head Left';
-  if (angle === 'right') return 'Turn Head Right';
+  if (angle === 'left') return 'Turn Toward Highlight';
+  if (angle === 'right') return 'Turn Toward Highlight';
   if (angle === 'up') return 'Lift Chin Slightly';
   if (angle === 'down') return 'Lower Chin Slightly';
   return 'Look Straight';
@@ -591,18 +591,18 @@ function getDynamicAngleGuidance(
     return { instruction: 'Hold still for a moment', liveMessage: 'Hold still for a moment' };
   }
   if (angle === 'left') {
-    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax) return { instruction: 'Turn your head slightly more to your left', liveMessage: 'Turn your head slightly more to your left' };
+    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax) return { instruction: 'Almost there — move slightly more toward the highlight', liveMessage: 'Almost there — move slightly more toward the highlight' };
     if (yaw < ANGLE_THRESHOLDS.left.valid.yawMin) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
     if (pitch < ANGLE_THRESHOLDS.left.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
     if (pitch > ANGLE_THRESHOLDS.left.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
-    return { instruction: 'Keep your phone steady', liveMessage: 'Keep your phone steady' };
+    return { instruction: 'Good position — hold still', liveMessage: 'Good position — hold still' };
   }
   if (angle === 'right') {
-    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin) return { instruction: 'Turn your head slightly more to your right', liveMessage: 'Turn your head slightly more to your right' };
+    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin) return { instruction: 'Almost there — move slightly more toward the highlight', liveMessage: 'Almost there — move slightly more toward the highlight' };
     if (yaw > ANGLE_THRESHOLDS.right.valid.yawMax) return { instruction: 'Return closer to the center', liveMessage: 'Return closer to the center' };
     if (pitch < ANGLE_THRESHOLDS.right.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
     if (pitch > ANGLE_THRESHOLDS.right.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
-    return { instruction: 'Keep your phone steady', liveMessage: 'Keep your phone steady' };
+    return { instruction: 'Good position — hold still', liveMessage: 'Good position — hold still' };
   }
   if (angle === 'up') {
     if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lift your chin slightly', liveMessage: 'Lift your chin slightly' };
@@ -623,10 +623,17 @@ function getDynamicAngleGuidance(
 function getAngleGuidance(angle: VerificationAngle) {
   if (angle === 'natural_front') return 'Look at the camera naturally';
   if (angle === 'front') return 'Face the camera directly';
-  if (angle === 'left') return 'Turn your head to the left';
-  if (angle === 'right') return 'Turn your head to the right';
+  if (angle === 'left') return 'Slowly turn toward the highlighted side';
+  if (angle === 'right') return 'Slowly turn toward the highlighted side';
   if (angle === 'up') return 'Lift your chin slightly';
   return 'Lower your chin slightly';
+}
+
+function getHighlightedGuideDirection(angle: VerificationAngle) {
+  if (angle === 'front' || angle === 'natural_front') return 'center';
+  if (angle === 'up') return 'top_arc';
+  if (angle === 'down') return 'bottom_arc';
+  return `${angle}_arc`;
 }
 
 function getLivenessInstruction(challenge: LivenessChallenge | null) {
@@ -756,6 +763,7 @@ export function useFaceCapture({
     roll: null,
     userFacingDirection: 'unknown',
     expectedPose: 'Look Straight',
+    highlightedGuideDirection: getHighlightedGuideDirection('front'),
     guidanceMessage: perAngleInstruction.front,
     baselineYaw: null,
     baselinePitch: null,
@@ -773,6 +781,8 @@ export function useFaceCapture({
     livenessBlockerReason: 'no_face',
     stableForMs: 0,
     stableRequiredMs: STABILITY_WINDOW_MS,
+    captureQualityState: 'waiting_for_face',
+    currentSampleCount: 0,
     blockedReason: 'no_face',
     blockerReason: 'no_face',
   });
@@ -1145,8 +1155,12 @@ export function useFaceCapture({
           ...prev,
           expectedAngle: currentAngleRef.current,
           expectedPose: getExpectedPoseLabel(currentAngleRef.current),
+          highlightedGuideDirection: getHighlightedGuideDirection(currentAngleRef.current),
           guidanceMessage: 'Captured',
           stableForMs: 0,
+          captureQualityState: 'cooldown',
+          currentSampleCount:
+            latestShotsRef.current[currentAngleRef.current]?.length ?? 0,
           blockedReason: 'cooldown',
           blockerReason: 'cooldown',
         }));
@@ -1213,6 +1227,7 @@ export function useFaceCapture({
           roll: null,
           userFacingDirection: 'unknown',
           expectedPose: getExpectedPoseLabel(angle),
+          highlightedGuideDirection: getHighlightedGuideDirection(angle),
           guidanceMessage: getAngleGuidance(angle),
           expectedAngle: angle,
           angleState: 'invalid',
@@ -1222,6 +1237,8 @@ export function useFaceCapture({
             ? null
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
           stableForMs: 0,
+          captureQualityState: 'no_face',
+          currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
           blockedReason: 'no_face',
           blockerReason: 'no_face',
         }));
@@ -1260,6 +1277,7 @@ export function useFaceCapture({
           roll: null,
           userFacingDirection: 'unknown',
           expectedPose: getExpectedPoseLabel(angle),
+          highlightedGuideDirection: getHighlightedGuideDirection(angle),
           guidanceMessage: getAngleGuidance(angle),
           expectedAngle: angle,
           angleState: 'invalid',
@@ -1269,6 +1287,8 @@ export function useFaceCapture({
             ? null
             : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
           stableForMs: 0,
+          captureQualityState: 'multiple_faces',
+          currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
           blockedReason: 'multiple_faces',
           blockerReason: 'multiple_faces',
         }));
@@ -1461,6 +1481,13 @@ export function useFaceCapture({
           roll: pose.roll,
           userFacingDirection: getUserFacingDirection(pose.yaw),
           expectedPose: getLivenessInstruction(nextChallenge),
+          highlightedGuideDirection: nextChallenge
+            ? getHighlightedGuideDirection(
+                nextChallenge === 'center' || nextChallenge === 'blink'
+                  ? 'front'
+                  : nextChallenge
+              )
+            : getHighlightedGuideDirection(angle),
           guidanceMessage: livenessInstruction,
           baselineYaw: livenessBaselineYawRef.current,
           baselinePitch: livenessBaselinePitchRef.current,
@@ -1480,6 +1507,8 @@ export function useFaceCapture({
           livenessAttempts: livenessAttemptsRef.current,
           livenessBlockerReason,
           stableForMs: 0,
+          captureQualityState: done ? 'liveness_complete' : livenessBlockerReason,
+          currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
           blockedReason: done ? 'liveness_complete' : livenessBlockerReason,
           blockerReason: done ? 'liveness_complete' : livenessBlockerReason,
         }));
@@ -1598,8 +1627,8 @@ export function useFaceCapture({
         blockedReason = 'resolution_too_low';
       } else if (!sharpEnough) {
         guidanceState = 'blurry';
-        instruction = 'Hold steady';
-        liveMessage = 'Image is blurry';
+        instruction = 'Move slowly so we can capture a sharp image.';
+        liveMessage = 'Move slowly so we can capture a sharp image.';
         blockedReason = 'blurry';
       } else if (!brightnessOk) {
         guidanceState =
@@ -1619,11 +1648,11 @@ export function useFaceCapture({
         guidanceState = 'wrong_angle';
         blockedReason = 'near_valid_pose';
         if (angle === 'left') {
-          instruction = 'Turn your head a little more left';
-          liveMessage = 'Turn your head a little more left';
+          instruction = 'Almost there — move slightly more toward the highlight';
+          liveMessage = 'Almost there — move slightly more toward the highlight';
         } else if (angle === 'right') {
-          instruction = 'Turn your head a little more right';
-          liveMessage = 'Turn your head a little more right';
+          instruction = 'Almost there — move slightly more toward the highlight';
+          liveMessage = 'Almost there — move slightly more toward the highlight';
         } else if (angle === 'up') {
           instruction = 'Lift your chin slightly';
           liveMessage = 'Lift your chin slightly';
@@ -1639,7 +1668,7 @@ export function useFaceCapture({
         liveMessage: gateOk
           ? isStable
             ? 'Captured'
-            : 'Almost there — hold still'
+            : 'Good position — hold still.'
           : liveMessage,
         holdProgress: gateOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
         readiness: {
@@ -1665,6 +1694,7 @@ export function useFaceCapture({
         roll: pose.roll,
         userFacingDirection: getUserFacingDirection(pose.yaw),
         expectedPose: getExpectedPoseLabel(angle),
+        highlightedGuideDirection: getHighlightedGuideDirection(angle),
         guidanceMessage: instruction,
         baselineYaw: livenessBaselineYawRef.current,
         baselinePitch: livenessBaselinePitchRef.current,
@@ -1686,6 +1716,8 @@ export function useFaceCapture({
         livenessAttempts: livenessAttemptsRef.current,
         stableForMs: Math.round(stableFor),
         stableRequiredMs: STABILITY_WINDOW_MS,
+        captureQualityState: gateOk ? 'quality_ok' : blockedReason,
+        currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
         blockedReason,
         blockerReason: blockedReason,
       }));

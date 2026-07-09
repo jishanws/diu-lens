@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
+import { Camera, CheckCircle2, Home, Loader2, RotateCcw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -338,6 +338,10 @@ export function GuidedEnrollmentCapture({
     studentId,
   ]);
 
+  const handleBackHome = useCallback(() => {
+    window.location.assign('/');
+  }, []);
+
   const permissionBlocked = permissionState !== 'granted';
 
   const statusText = useMemo(() => {
@@ -398,6 +402,16 @@ export function GuidedEnrollmentCapture({
     ? perAngleHint[state.currentAngle]
     : getLivenessChallengeHelper(state.liveness.currentChallenge);
   const showCompletionState = state.canSubmit;
+  const guideActiveDirection =
+    !state.liveness.completed &&
+    (
+      state.liveness.currentChallenge === 'left' ||
+      state.liveness.currentChallenge === 'right' ||
+      state.liveness.currentChallenge === 'up' ||
+      state.liveness.currentChallenge === 'down'
+    )
+      ? state.liveness.currentChallenge
+      : state.currentAngle;
   const captureSummaryRows = captureAngles.map((angle) => ({
     angle,
     label: perAngleInstruction[angle],
@@ -425,11 +439,11 @@ export function GuidedEnrollmentCapture({
                     : 'Liveness Check'}
               </p>
               <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
-                {showCompletionState ? 'All captures completed' : captureTitle}
+                {showCompletionState ? 'Ready to Submit' : captureTitle}
               </h3>
               <p className="mt-1 max-w-[15rem] text-[0.72rem] leading-snug text-slate-400">
                 {showCompletionState
-                  ? 'Your enrollment images are ready for secure validation.'
+                  ? 'All captures completed. Your enrollment images are ready for secure validation.'
                   : captureHelper}
               </p>
             </div>
@@ -534,7 +548,7 @@ export function GuidedEnrollmentCapture({
             >
               <CircularProgressGuide
                 completedDirections={completedDirections}
-                activeDirection={state.currentAngle}
+                activeDirection={guideActiveDirection}
                 poseState={state.feedback.guidanceState === 'hold_steady' ? 'near_valid' : state.debug.angleState}
               />
             </div>
@@ -550,6 +564,7 @@ export function GuidedEnrollmentCapture({
                 <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
                 <div>user dir: {state.debug.userFacingDirection}</div>
                 <div>expected: {state.debug.expectedPose}</div>
+                <div>highlight: {state.debug.highlightedGuideDirection}</div>
                 <div>guide: {state.debug.guidanceMessage}</div>
                 <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
                 <div>base pitch: {state.debug.baselinePitch?.toFixed(1) ?? 'n/a'}</div>
@@ -570,6 +585,11 @@ export function GuidedEnrollmentCapture({
                   stable: {state.debug.stableForMs}/
                   {state.debug.stableRequiredMs}ms
                 </div>
+                <div>quality: {state.debug.captureQualityState}</div>
+                <div>
+                  samples: {state.debug.currentSampleCount}/
+                  {getRequiredFramesForAngle(state.currentAngle)}
+                </div>
                 <div>block: {state.debug.blockedReason}</div>
                 <div>blocker: {state.debug.blockerReason}</div>
               </div>
@@ -578,18 +598,72 @@ export function GuidedEnrollmentCapture({
           </div>
 
           {showCompletionState ? (
-            <div className="grid grid-cols-2 gap-2 px-1 sm:grid-cols-3">
-              <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 px-2.5 py-2 text-[0.72rem] text-emerald-100">
-                <span className="font-semibold">Liveness</span>: passed
-              </div>
-              {captureSummaryRows.map((row) => (
-                <div
-                  key={row.angle}
-                  className="rounded-lg border border-white/[0.06] bg-white/[0.04] px-2.5 py-2 text-[0.72rem] text-slate-300"
-                >
-                  <span className="font-semibold text-slate-100">{row.label}</span>: {row.count}/{row.required}
+            <div className="space-y-3 px-1 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 px-2.5 py-2 text-[0.72rem] text-emerald-100">
+                  <span className="font-semibold">Liveness</span>: passed
                 </div>
-              ))}
+                {captureSummaryRows.map((row) => (
+                  <div
+                    key={row.angle}
+                    className="rounded-lg border border-white/[0.06] bg-white/[0.04] px-2.5 py-2 text-[0.72rem] text-slate-300"
+                  >
+                    <span className="font-semibold text-slate-100">
+                      {row.label}
+                    </span>
+                    : {row.count}/{row.required}
+                  </div>
+                ))}
+              </div>
+
+              {(completionErrorMessage || localErrorMessage) ? (
+                <p className="rounded-lg border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-center text-[0.75rem] text-rose-100">
+                  {completionErrorMessage ?? localErrorMessage}
+                </p>
+              ) : null}
+
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  onClick={() => void handleSubmit()}
+                  disabled={isSubmittingCompletion}
+                  size="cta"
+                  className="w-full"
+                >
+                  {isSubmittingCompletion ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit Enrollment'
+                  )}
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={restartCapture}
+                    disabled={isSubmittingCompletion}
+                    className="text-slate-300 hover:bg-white/5"
+                  >
+                    <RotateCcw className="size-3.5" />
+                    Restart Capture
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleBackHome}
+                    disabled={isSubmittingCompletion}
+                    className="text-slate-300 hover:bg-white/5"
+                  >
+                    <Home className="size-3.5" />
+                    Back to Home
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : null}
 
@@ -657,6 +731,7 @@ export function GuidedEnrollmentCapture({
       </div>
 
       {/* ── Submit button row ────────────────────────────────────── */}
+      {!showCompletionState ? (
       <div className="flex flex-wrap items-center justify-end gap-2 rounded-xl border border-white/[0.06] bg-[#0b1422]/80 px-4 py-3">
         {completionErrorMessage || localErrorMessage ? (
           <Button
@@ -699,13 +774,14 @@ export function GuidedEnrollmentCapture({
           {isSubmittingCompletion ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Uploading...
+              Submitting...
             </>
           ) : (
             'Complete Enrollment'
           )}
         </Button>
       </div>
+      ) : null}
     </section>
   );
 }

@@ -57,7 +57,7 @@ function describeArc(
 
 // ── ActiveComet — sweeping light trace on the currently active arc ─────────────
 
-function ActiveComet({ d }: { d: string }) {
+function ActiveComet({ d, stroke }: { d: string; stroke: string }) {
   const pathOffset = useMotionValue(0);
 
   useEffect(() => {
@@ -94,7 +94,7 @@ function ActiveComet({ d }: { d: string }) {
       <motion.path
         d={d}
         fill="none"
-        stroke="#D0DEE8"
+        stroke={stroke}
         strokeWidth={9}
         strokeLinecap="round"
         filter="url(#cpg-comet-glow)"
@@ -170,6 +170,17 @@ export function CircularProgressGuide({
         <filter id="cpg-active-bloom" x="-70%" y="-70%" width="240%" height="240%">
           <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
         </filter>
+        <marker
+          id="cpg-guide-arrow"
+          markerWidth="12"
+          markerHeight="12"
+          refX="8"
+          refY="6"
+          orient="auto"
+          markerUnits="strokeWidth"
+        >
+          <path d="M 1 1 L 10 6 L 1 11 z" fill={activeStroke} />
+        </marker>
       </defs>
 
       {/* Counter-rotating dashed orbit decoration */}
@@ -308,7 +319,18 @@ export function CircularProgressGuide({
                   strokeLinecap="round"
                 />
                 {/* Comet sweep */}
-                <ActiveComet d={d} />
+                <ActiveComet d={d} stroke={activeStroke} />
+                <motion.path
+                  d={d}
+                  fill="none"
+                  stroke={activeStroke}
+                  strokeWidth={4}
+                  strokeLinecap="round"
+                  markerEnd="url(#cpg-guide-arrow)"
+                  initial={{ pathLength: 0.15, opacity: 0.55 }}
+                  animate={{ pathLength: [0.15, 0.3, 0.15], opacity: [0.55, 0.95, 0.55] }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                />
               </g>
             )}
           </g>
