@@ -121,21 +121,7 @@ export function GuidedEnrollmentCapture({
       storageKey: getStorageKey(studentId),
     });
 
-  /**
-   * Map each directional angle to a boolean: true when enough frames have
-   * been captured for that angle. Used by CircularProgressGuide to light
-   * the correct arc independently (not sequentially).
-   */
-  const completedDirections = useMemo(() => {
-    const dirs = ['up', 'left', 'right', 'down'] as const;
-    return Object.fromEntries(
-      dirs.map((dir) => [
-        dir,
-        (capturesByAngle[dir] ?? []).length >=
-          getRequiredFramesForAngle(dir),
-      ])
-    );
-  }, [capturesByAngle]);
+
 
   useEffect(() => {
     currentAngleRef.current = state.currentAngle;
@@ -555,7 +541,15 @@ export function GuidedEnrollmentCapture({
               aria-hidden="true"
             >
               <CircularProgressGuide
-                completedDirections={completedDirections}
+                captureCounts={{
+                  front: capturesByAngle.front?.length ?? 0,
+                  left: capturesByAngle.left?.length ?? 0,
+                  right: capturesByAngle.right?.length ?? 0,
+                  up: capturesByAngle.up?.length ?? 0,
+                  down: capturesByAngle.down?.length ?? 0,
+                  natural_front: 0,
+                }}
+                requiredCount={currentAngleRequired}
                 activeDirection={state.currentAngle}
                 poseState={guidePoseState}
               />
@@ -571,6 +565,7 @@ export function GuidedEnrollmentCapture({
                 <div>norm pitch: {state.debug.normalizedPitch?.toFixed(1) ?? 'n/a'}</div>
                 <div>roll: {state.debug.roll?.toFixed(1) ?? 'n/a'}</div>
                 <div>user dir: {state.debug.userFacingDirection}</div>
+                <div>mapped rev: {state.debug.leftRightMappingReversed ? 'true' : 'false'}</div>
                 <div>expected: {state.debug.expectedPose}</div>
                 <div>guide: {state.debug.guidanceMessage}</div>
                 <div>base yaw: {state.debug.baselineYaw?.toFixed(1) ?? 'n/a'}</div>
@@ -681,7 +676,7 @@ export function GuidedEnrollmentCapture({
                 {currentAngleRequired}
               </p>
               <p className="mt-0.5 text-[0.68rem] text-slate-400">
-                Capturing multiple images improves recognition accuracy.
+                Two images are captured for better recognition accuracy.
               </p>
             </div>
           ) : null}

@@ -751,6 +751,7 @@ export function useFaceCapture({
     roll: null,
     userFacingDirection: 'unknown',
     expectedPose: 'Look Straight',
+    leftRightMappingReversed: true,
     guidanceMessage: perAngleInstruction.front,
     baselineYaw: null,
     baselinePitch: null,

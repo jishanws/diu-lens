@@ -47,8 +47,8 @@ ENROLLMENT_VALIDATION_CONFIG = EnrollmentValidationConfig(
     liveness_challenge_count=settings.enrollment_liveness_challenge_count,
     pose_thresholds={
         "front": PoseThreshold(yaw_min=-15, yaw_max=15, pitch_min=-12, pitch_max=12),
-        "left": PoseThreshold(yaw_min=-45, yaw_max=-8, pitch_min=-20, pitch_max=20),
-        "right": PoseThreshold(yaw_min=8, yaw_max=45, pitch_min=-20, pitch_max=20),
+        "left": PoseThreshold(yaw_min=8, yaw_max=45, pitch_min=-20, pitch_max=20),
+        "right": PoseThreshold(yaw_min=-45, yaw_max=-8, pitch_min=-20, pitch_max=20),
         "up": PoseThreshold(yaw_min=-22, yaw_max=22, pitch_min=-40, pitch_max=-6),
         "down": PoseThreshold(yaw_min=-22, yaw_max=22, pitch_min=6, pitch_max=40),
     },

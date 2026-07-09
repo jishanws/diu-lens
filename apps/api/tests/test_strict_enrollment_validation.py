@@ -55,7 +55,7 @@ def test_front_pose_not_accepted_as_left_or_right(monkeypatch) -> None:
 
 
 def test_practical_left_pose_threshold_is_accepted(monkeypatch) -> None:
-    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=-12, pitch=14)])
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=12, pitch=14)])
 
     report = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
 
@@ -119,10 +119,10 @@ def test_no_face_rejected(monkeypatch) -> None:
     assert report["blocker"] == "face_not_detected"
 
 
-def test_valid_capture_structure_requires_exactly_15_samples() -> None:
+def test_valid_capture_structure_requires_exactly_10_samples() -> None:
     assert enroll.EXPECTED_REQUIRED_ANGLES == ("front", "left", "right", "up", "down")
-    assert enroll.REQUIRED_IMAGES_PER_ANGLE == 3
-    assert enroll.EXPECTED_TOTAL_SHOTS == 15
+    assert enroll.REQUIRED_IMAGES_PER_ANGLE == 2
+    assert enroll.EXPECTED_TOTAL_SHOTS == 10
 
 
 def test_quality_score_and_phash_are_reported(monkeypatch) -> None:

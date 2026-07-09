@@ -44,7 +44,7 @@ export const enrollmentValidationConfig = {
     centerYawToleranceDegrees: 16,
     centerPitchToleranceDegrees: 14,
   },
-  requiredSamplesPerAngle: 3,
+  requiredSamplesPerAngle: 2,
   livenessChallengeCount: 3,
   livenessPassCount: 2,
   livenessMaxRetries: 2,
@@ -58,12 +58,12 @@ export const enrollmentValidationConfig = {
       near: { yawMin: -20, yawMax: 20, pitchMin: -16, pitchMax: 16 },
     },
     left: {
-      valid: { yawMin: -45, yawMax: -8, pitchMin: -20, pitchMax: 20 },
-      near: { yawMin: -52, yawMax: -5, pitchMin: -24, pitchMax: 24 },
-    },
-    right: {
       valid: { yawMin: 8, yawMax: 45, pitchMin: -20, pitchMax: 20 },
       near: { yawMin: 5, yawMax: 52, pitchMin: -24, pitchMax: 24 },
+    },
+    right: {
+      valid: { yawMin: -45, yawMax: -8, pitchMin: -20, pitchMax: 20 },
+      near: { yawMin: -52, yawMax: -5, pitchMin: -24, pitchMax: 24 },
     },
     up: {
       valid: { yawMin: -22, yawMax: 22, pitchMin: -40, pitchMax: -6 },

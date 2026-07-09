@@ -244,7 +244,7 @@ settings = Settings(
     enrollment_min_edge_margin_ratio=float(os.getenv("ENROLLMENT_MIN_EDGE_MARGIN_RATIO", "0.03")),
     enrollment_min_width=int(os.getenv("ENROLLMENT_MIN_WIDTH", "320")),
     enrollment_min_height=int(os.getenv("ENROLLMENT_MIN_HEIGHT", "240")),
-    enrollment_required_samples_per_angle=int(os.getenv("ENROLLMENT_REQUIRED_SAMPLES_PER_ANGLE", "3")),
+    enrollment_required_samples_per_angle=int(os.getenv("ENROLLMENT_REQUIRED_SAMPLES_PER_ANGLE", "2")),
     enrollment_stability_duration_ms=int(os.getenv("ENROLLMENT_STABILITY_DURATION_MS", "650")),
     enrollment_liveness_challenge_count=int(os.getenv("ENROLLMENT_LIVENESS_CHALLENGE_COUNT", "3")),
 )

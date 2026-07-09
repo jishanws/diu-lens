@@ -4,16 +4,20 @@ import { motion } from 'framer-motion';
 import type { VerificationAngle } from '@/features/registration/verification/types';
 import type { PoseValidationState } from '@/features/registration/capture/types';
 
-export type DirectionCompletionMap = Partial<Record<string, boolean>>;
-
 type CircularProgressGuideProps = {
-  completedDirections: DirectionCompletionMap;
   activeDirection: VerificationAngle;
   poseState?: PoseValidationState;
+  captureCounts: Record<VerificationAngle, number>;
+  requiredCount: number;
 };
 
+const ANGLES_ORDER: VerificationAngle[] = ['up', 'right', 'down', 'left', 'front'];
+
 export function CircularProgressGuide({
+  activeDirection,
   poseState = 'invalid',
+  captureCounts,
+  requiredCount,
 }: CircularProgressGuideProps) {
   const size = 320;
   const cx = size / 2;
@@ -22,19 +26,18 @@ export function CircularProgressGuide({
   const segmentR = 150;
   const orbitR = 161;
 
-  const activeStroke =
-    poseState === 'valid'
-      ? '#86efac' // green
-      : poseState === 'near_valid'
-        ? '#fbbf24' // yellow
-        : '#7BA8C0'; // blue
-
-  const activeBloom =
-    poseState === 'valid'
-      ? 'rgba(134, 239, 172, 0.3)'
-      : poseState === 'near_valid'
-        ? 'rgba(251, 191, 36, 0.26)'
-        : 'rgba(123, 168, 192, 0.22)';
+  // 5 segments = 360 / 5 = 72 degrees each
+  // We'll leave a small gap between them, e.g., 4 degrees
+  const segmentAngle = 72;
+  const gapAngle = 4;
+  const drawAngle = segmentAngle - gapAngle;
+  
+  // Circumference
+  const circumference = 2 * Math.PI * segmentR;
+  // Arc length for one segment
+  const segmentLength = (drawAngle / 360) * circumference;
+  // Stroke dasharray pattern: [segmentLength, circumference - segmentLength]
+  const dashArray = `${segmentLength} ${circumference - segmentLength}`;
 
   return (
     <svg
@@ -80,43 +83,80 @@ export function CircularProgressGuide({
         strokeWidth="1"
       />
 
-      {/* Base ring (always visible, faint) */}
-      <circle
-        cx={cx}
-        cy={cy}
-        r={segmentR}
-        fill="none"
-        stroke="rgba(160, 185, 210, 0.08)"
-        strokeWidth={5}
-      />
+      {/* Render 5 segments */}
+      <g style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }}>
+        {ANGLES_ORDER.map((angle, index) => {
+          const count = captureCounts[angle] ?? 0;
+          const isComplete = count >= requiredCount;
+          const isActive = activeDirection === angle && !isComplete;
+          const startAngle = index * segmentAngle + gapAngle / 2;
 
-      {/* Bloom pulse ring (wide and blurred) */}
-      <motion.circle
-        cx={cx}
-        cy={cy}
-        r={segmentR}
-        fill="none"
-        stroke={activeBloom}
-        strokeWidth={18}
-        filter="url(#cpg-active-bloom)"
-        animate={{ opacity: [0.35, 0.9, 0.35] }}
-        transition={{ duration: 2.0, repeat: Infinity, ease: 'easeInOut' }}
-      />
+          let strokeColor = 'rgba(160, 185, 210, 0.15)'; // base muted blue/gray
+          let strokeWidth = 5;
+          let bloom = 'transparent';
 
-      {/* Core ring (sharp) */}
-      <motion.circle
-        cx={cx}
-        cy={cy}
-        r={segmentR}
-        fill="none"
-        stroke={activeStroke}
-        strokeWidth={8}
-        strokeLinecap="round"
-        animate={{
-          opacity: poseState === 'invalid' ? [0.55, 0.85, 0.55] : 1,
-        }}
-        transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-      />
+          if (isComplete) {
+            strokeColor = '#86efac'; // green
+            strokeWidth = 6;
+          } else if (isActive) {
+            strokeWidth = 8;
+            if (count > 0) {
+              // partially brighter
+              strokeColor = '#a0c3d7'; // brighter blue
+              bloom = 'rgba(160, 195, 215, 0.25)';
+            } else {
+              // base active blue
+              strokeColor = '#7BA8C0';
+              bloom = 'rgba(123, 168, 192, 0.22)';
+            }
+            
+            // if pose is valid and it's active, maybe glow green briefly?
+            if (poseState === 'valid') {
+              strokeColor = '#86efac';
+              bloom = 'rgba(134, 239, 172, 0.3)';
+            } else if (poseState === 'near_valid') {
+              strokeColor = '#fbbf24';
+              bloom = 'rgba(251, 191, 36, 0.26)';
+            }
+          }
+
+          return (
+            <g key={angle} style={{ transformOrigin: 'center', transform: `rotate(${startAngle}deg)` }}>
+              {/* Base Segment */}
+              <circle
+                cx={cx}
+                cy={cy}
+                r={segmentR}
+                fill="none"
+                stroke={strokeColor}
+                strokeWidth={strokeWidth}
+                strokeDasharray={dashArray}
+                strokeDashoffset={0}
+                strokeLinecap="round"
+                style={{ transition: 'all 0.5s ease-out' }}
+              />
+              
+              {/* Active Bloom */}
+              {isActive && (
+                <motion.circle
+                  cx={cx}
+                  cy={cy}
+                  r={segmentR}
+                  fill="none"
+                  stroke={bloom}
+                  strokeWidth={18}
+                  strokeDasharray={dashArray}
+                  strokeDashoffset={0}
+                  strokeLinecap="round"
+                  filter="url(#cpg-active-bloom)"
+                  animate={{ opacity: poseState === 'invalid' ? [0.35, 0.9, 0.35] : 1 }}
+                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              )}
+            </g>
+          );
+        })}
+      </g>
     </svg>
   );
 }

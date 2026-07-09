@@ -15,14 +15,16 @@ export function CameraPreview({
 }: CameraPreviewProps) {
   return (
     <div className={cn('relative w-full overflow-hidden bg-slate-950', className)}>
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="h-full w-full object-cover [transform:scaleX(-1)]"
-        aria-label="Live camera preview"
-      />
+      {streamActive && (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="h-full w-full object-cover [transform:scaleX(-1)]"
+          aria-label="Live camera preview"
+        />
+      )}
 
       {/* Radial inner vignette — darker edges, brighter center */}
       <div
