@@ -33,6 +33,10 @@ import type {
   VerificationCapturesByAngle,
   VerificationFrameMetadataByAngle,
 } from '@/features/registration/verification/types';
+import {
+  clearFailedAngleValues,
+  type FailedCaptureAngle,
+} from '@/features/registration/verification/failedCaptures';
 
 type CaptureSnapshotFn = () => Promise<Blob | null>;
 
@@ -2036,6 +2040,25 @@ export function useFaceCapture({
     }));
   }, []);
 
+  const invalidateAngles = useCallback((angles: readonly FailedCaptureAngle[]) => {
+    if (angles.length === 0) return;
+    setCapturedShots((current) => {
+      for (const angle of angles) {
+        for (const existing of current[angle]) URL.revokeObjectURL(existing.previewUrl);
+      }
+      return {
+        ...current,
+        ...clearFailedAngleValues(current, angles),
+      };
+    });
+    cooldownUntilRef.current = 0;
+    finalizedRef.current = false;
+    runningRef.current = false;
+    stableSinceRef.current = 0;
+    stableGraceUntilRef.current = 0;
+    setActiveAngle(angles[0]);
+  }, []);
+
   const restartCapture = useCallback(() => {
     setCapturedShots((current) => {
       for (const shots of Object.values(current)) {
@@ -2166,6 +2189,7 @@ export function useFaceCapture({
     frameMetadataByAngle,
     firstMissingAngle,
     retakeAngle,
+    invalidateAngles,
     restartCapture,
     focusAngle,
     captureAnyway,

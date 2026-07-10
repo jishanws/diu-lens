@@ -22,6 +22,7 @@ import type {
   EnrollmentCompletionResult,
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
+import { formatFailedCaptures } from '@/features/registration/verification/failedCaptures';
 import type {
   RegistrationFlowProps,
   RegistrationFormValues,
@@ -302,11 +303,14 @@ export function RegistrationFlow({
         );
 
         if (!result.success) {
-          const message = toFriendlyVerificationMessage(result.message);
+          const message = result.failedCaptures?.length
+            ? formatFailedCaptures(result.failedCaptures)
+            : toFriendlyVerificationMessage(result.message);
           setVerificationError(message);
           return {
             success: false,
             message,
+            failedCaptures: result.failedCaptures,
             diagnostics: result.diagnostics ?? {
               requestUrl: '',
               httpStatus: null,

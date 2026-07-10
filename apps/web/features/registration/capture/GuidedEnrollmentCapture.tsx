@@ -20,6 +20,10 @@ import type {
   EnrollmentCompletionResult,
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
+import {
+  failedCaptureAngles,
+  type FailedCapture,
+} from '@/features/registration/verification/failedCaptures';
 import { cn } from '@/lib/utils';
 
 type GuidedEnrollmentCaptureProps = {
@@ -98,6 +102,7 @@ export function GuidedEnrollmentCapture({
     null
   );
   const [submitPhase, setSubmitPhase] = useState<SubmitPhase>('idle');
+  const [failedCaptures, setFailedCaptures] = useState<FailedCapture[]>([]);
   const [submitDiagnostics, setSubmitDiagnostics] = useState({
     requestUrl: '',
     httpStatus: null as number | null,
@@ -137,6 +142,7 @@ export function GuidedEnrollmentCapture({
     frameMetadataByAngle,
     clearSession,
     retakeAngle,
+    invalidateAngles,
     restartCapture,
   } =
     useFaceCapture({
@@ -380,6 +386,10 @@ export function GuidedEnrollmentCapture({
         error: result.diagnostics.error,
       }));
       if (!result.success) {
+        if (result.failedCaptures?.length) {
+          setFailedCaptures(result.failedCaptures);
+          invalidateAngles(failedCaptureAngles(result.failedCaptures));
+        }
         setSubmitPhase('error');
         setLocalErrorMessage(result.message);
         return;
@@ -405,12 +415,19 @@ export function GuidedEnrollmentCapture({
     frameMetadataByAngle,
     isSubmittingCompletion,
     onComplete,
+    invalidateAngles,
     state.canSubmit,
     state.capturedCount,
     state.liveness.completed,
     studentId,
     submitPhase,
   ]);
+
+  useEffect(() => {
+    setFailedCaptures((current) => current.filter(
+      (failure) => capturesByAngle[failure.angle].length < getRequiredFramesForAngle(failure.angle)
+    ));
+  }, [capturesByAngle]);
 
   useEffect(() => {
     if (state.canSubmit) {
@@ -546,12 +563,15 @@ export function GuidedEnrollmentCapture({
                 const currentIdx = captureAngles.indexOf(state.currentAngle);
                 const isDone = i < currentIdx;
                 const isCurrent = i === currentIdx;
+                const backendFailed = failedCaptures.some((failure) => failure.angle === angle);
                 return (
                   <span
                     key={angle}
                     className={cn(
                       'rounded-full transition-all duration-300',
-                      isDone
+                      backendFailed
+                        ? 'h-[6px] w-[6px] bg-red-400'
+                        : isDone
                         ? 'h-[5px] w-[5px] bg-[#6493b5]'
                         : isCurrent
                           ? 'biometric-dot-active h-[6px] w-[6px] bg-[#7BA8C0]'

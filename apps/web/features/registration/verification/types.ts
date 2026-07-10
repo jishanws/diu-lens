@@ -1,4 +1,5 @@
 import type { RefCallback } from 'react';
+import type { FailedCapture } from '@/features/registration/verification/failedCaptures';
 
 export type PermissionState =
   | 'idle'
@@ -48,6 +49,7 @@ export type EnrollmentCompletionResult = {
   success: boolean;
   message: string;
   diagnostics: EnrollmentSubmitDiagnostics;
+  failedCaptures?: FailedCapture[];
 };
 
 export type CameraHookResult = {

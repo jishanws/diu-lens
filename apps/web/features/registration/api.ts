@@ -5,6 +5,10 @@ import type {
   VerificationFrameMetadataByAngle,
 } from '@/features/registration/verification/types';
 import {
+  parseFailedCaptures,
+  type FailedCapture,
+} from '@/features/registration/verification/failedCaptures';
+import {
   guidedAngles,
   getRequiredFramesForAngle,
 } from '@/features/registration/capture/constants';
@@ -208,6 +212,7 @@ type EnrollmentResponse = {
 
 export type EnrollmentSubmissionResult = EnrollmentResponse & {
   diagnostics?: EnrollmentSubmitDiagnostics;
+  failedCaptures?: FailedCapture[];
 };
 
 function isEnrollmentResponse(value: unknown): value is EnrollmentResponse {
@@ -677,6 +682,7 @@ async function parseEnrollmentResponse(
     }
     return {
       ...parsedData,
+      failedCaptures: parseFailedCaptures(parsedData),
       diagnostics: {
         requestUrl,
         httpStatus: response.status,
@@ -693,10 +699,12 @@ async function parseEnrollmentResponse(
     (response.ok ? 'Request completed.' : `Request failed (${statusLabel}).`);
 
   if (!response.ok) {
+    const failedCaptures = parseFailedCaptures(parsedData);
     logResponseIssue(parsedData);
     return {
       success: false,
       message: derivedMessage,
+      failedCaptures,
       diagnostics: {
         requestUrl,
         httpStatus: response.status,
