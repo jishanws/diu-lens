@@ -798,6 +798,39 @@ def test_demo_mode_uses_simple_message_when_fewer_than_three_faces_are_usable(
     )
 
 
+def test_demo_mode_face_search_includes_validated_enrollments(monkeypatch) -> None:
+    from app.core import face_matching
+
+    monkeypatch.setattr(
+        face_matching,
+        "settings",
+        replace(face_matching.settings, enrollment_demo_mode=True),
+    )
+    observed: list[tuple[str, ...]] = []
+    monkeypatch.setattr(
+        face_matching,
+        "generate_query_features",
+        lambda *args, **kwargs: {
+            "embedding": [1.0] + [0.0] * 511,
+            "embedding_dim": 512,
+            "mirror_embedding": None,
+            "probe_inferred_angle": "front",
+            "preprocessing_warnings": [],
+        },
+    )
+
+    def fake_search(*args, allowed_enrollment_statuses, **kwargs):
+        observed.append(allowed_enrollment_statuses)
+        return []
+
+    monkeypatch.setattr(face_matching, "search_face_matches", fake_search)
+    monkeypatch.setattr(face_matching, "aggregate_student_candidates", lambda *args, **kwargs: [])
+
+    face_matching.match_face_probe(b"synthetic-probe")
+
+    assert observed == [("approved", "processed", "validated")]
+
+
 def test_verification_returns_202_quickly_and_status_is_owner_scoped(
     client, db_session_factory
 ) -> None:

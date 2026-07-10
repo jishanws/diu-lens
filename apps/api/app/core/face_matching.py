@@ -491,16 +491,23 @@ def match_face_probe(
     )
     query_embedding = list(query_features["embedding"])
     mirror_embedding = query_features.get("mirror_embedding")
+    searchable_statuses = (
+        ("approved", "processed", "validated")
+        if settings.enrollment_demo_mode
+        else ("approved", "processed")
+    )
 
     primary_rows = search_face_matches(
         query_embedding,
         candidate_pool_limit=resolved_candidate_pool_limit,
+        allowed_enrollment_statuses=searchable_statuses,
     )
     mirrored_rows: list[dict[str, Any]] = []
     if isinstance(mirror_embedding, list) and len(mirror_embedding) == EMBEDDING_DIMENSION:
         mirrored_rows = search_face_matches(
             [float(v) for v in mirror_embedding],
             candidate_pool_limit=resolved_candidate_pool_limit,
+            allowed_enrollment_statuses=searchable_statuses,
         )
     embedding_rows, mirror_wins = _merge_embedding_rows_by_min_distance(
         primary_rows,
