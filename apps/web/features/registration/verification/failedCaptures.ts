@@ -5,7 +5,8 @@ export type FailedCaptureAngle = (typeof verificationAngles)[number];
 export type FailedCapture = {
   angle: FailedCaptureAngle;
   reason: string;
-  errorCode: string;
+  errorCode?: string | null;
+  message?: string | null;
   measured?: number | Record<string, number>;
   required?: { min?: number; max?: number } | Record<string, { min: number; max: number }>;
 };
@@ -89,8 +90,17 @@ export function failedCaptureAngles(failures: readonly FailedCapture[]): FailedC
   return verificationAngles.filter((angle) => failures.some((failure) => failure.angle === angle));
 }
 
-function readableReason(errorCode: string): string {
-  return errorCode.replaceAll('_', ' ').toLowerCase();
+function readableReason(failure: FailedCapture): string {
+  if (typeof failure.message === 'string' && failure.message.trim()) {
+    return failure.message.trim();
+  }
+
+  const code = typeof failure.errorCode === 'string' && failure.errorCode.trim()
+    ? failure.errorCode.trim()
+    : typeof failure.reason === 'string' && failure.reason.trim()
+      ? failure.reason.trim()
+      : 'UNKNOWN_ERROR';
+  return code.replaceAll('_', ' ').toLowerCase();
 }
 
 export function formatFailedCaptures(failures: FailedCapture[]): string {
@@ -113,7 +123,7 @@ export function formatFailedCaptures(failures: FailedCapture[]): string {
     const required = failure.required && ('min' in failure.required || 'max' in failure.required)
       ? `; required ${'min' in failure.required && failure.required.min !== undefined ? `min ${failure.required.min}` : ''}${'min' in failure.required && 'max' in failure.required ? ', ' : ''}${'max' in failure.required && failure.required.max !== undefined ? `max ${failure.required.max}` : ''}`
       : '';
-    return `${failure.angle}: ${readableReason(failure.errorCode)}${measured}${required}`;
+    return `${failure.angle}: ${readableReason(failure)}${measured}${required}`;
   });
   return [...blurMessages, ...otherMessages].join(' ');
 }

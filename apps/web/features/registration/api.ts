@@ -14,6 +14,7 @@ import {
 } from '@/features/registration/capture/constants';
 import { request, ApiConfigError, buildApiUrl } from '@/lib/api';
 import { updateValidationConfig } from '@/features/registration/capture/enrollmentValidationConfig';
+import { enrollmentResponseMessage } from '@/features/registration/responseValidation';
 
 export async function fetchValidationConfig(): Promise<boolean> {
   try {
@@ -797,6 +798,7 @@ async function parseEnrollmentResponse(
     }
     return {
       ...parsedData,
+      message: enrollmentResponseMessage(parsedData, response.ok),
       verificationJob: parseVerificationStatus(parsedData) ?? undefined,
       failedCaptures: parseFailedCaptures(parsedData),
       diagnostics: {

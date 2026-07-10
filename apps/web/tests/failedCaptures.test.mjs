@@ -88,6 +88,13 @@ test('ignores unknown angles and malformed validation details', () => {
   assert.deepEqual(parseFailedCaptures(null), []);
 });
 
+test('formats code-less capture failures without crashing', () => {
+  assert.equal(
+    formatFailedCaptures([{ angle: 'left', reason: 'face_not_clear' }]),
+    'left: face not clear'
+  );
+});
+
 test('frontend framing thresholds match backend defaults', () => {
   const backendConfig = readFileSync(
     new URL('../../api/app/core/config.py', import.meta.url),
