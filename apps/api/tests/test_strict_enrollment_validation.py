@@ -4,6 +4,8 @@ import json
 import os
 import subprocess
 import sys
+import time
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
 import cv2
@@ -14,7 +16,9 @@ from starlette.requests import Request
 
 from app.api.routes import enroll
 from app.core import image_validation
-from app.db.models import Enrollment
+from sqlalchemy import select
+
+from app.db.models import BiometricTask, Enrollment, EnrollmentVerificationJob
 
 
 REQUIRED_ANGLES = ("front", "left", "right", "up", "down")
@@ -153,6 +157,10 @@ def _create_pending_enrollment(client, student_id: str) -> None:
 def _post_verification(client, student_id: str, *, missing=None):
     return client.post(
         "/enroll/verification",
+        headers={
+            "Idempotency-Key": f"verification-{student_id}",
+            "X-Verification-Token": f"verification-owner-token-{student_id}",
+        },
         files=_verification_files(
             _verification_metadata(student_id),
             missing=missing,
@@ -609,11 +617,313 @@ def test_valid_10_image_multipart_submission_succeeds(client, monkeypatch) -> No
 
     response = _post_verification(client, student_id)
 
-    assert response.status_code == 200, response.text
-    assert response.json() == {
-        "success": True,
-        "message": "Verification images uploaded successfully",
-    }
+    assert response.status_code == 202, response.text
+    assert response.json()["status"] == "queued"
+    assert response.json()["verification_id"]
+
+
+def test_verification_returns_202_quickly_and_status_is_owner_scoped(
+    client, db_session_factory
+) -> None:
+    student_id = "930-26-2080"
+    _create_pending_enrollment(client, student_id)
+
+    started = time.perf_counter()
+    response = _post_verification(client, student_id)
+    elapsed = time.perf_counter() - started
+
+    assert response.status_code == 202, response.text
+    assert elapsed < 1.0
+    payload = response.json()
+    assert payload["status"] == "queued"
+    status = client.get(
+        payload["status_endpoint"],
+        headers={"X-Verification-Token": f"verification-owner-token-{student_id}"},
+    )
+    assert status.status_code == 200
+    assert status.json()["verification_id"] == payload["verification_id"]
+    forbidden = client.get(
+        payload["status_endpoint"],
+        headers={"X-Verification-Token": "verification-owner-token-someone-else"},
+    )
+    assert forbidden.status_code == 404
+    with db_session_factory() as db:
+        assert len(db.scalars(select(EnrollmentVerificationJob)).all()) == 1
+
+
+def test_duplicate_verification_submission_reuses_job(client, db_session_factory) -> None:
+    student_id = "930-26-2081"
+    _create_pending_enrollment(client, student_id)
+
+    first = _post_verification(client, student_id)
+    second = _post_verification(client, student_id)
+
+    assert first.status_code == second.status_code == 202
+    assert first.json()["verification_id"] == second.json()["verification_id"]
+    with db_session_factory() as db:
+        assert len(db.scalars(select(EnrollmentVerificationJob)).all()) == 1
+
+
+def test_cancellation_is_owner_scoped_and_cleans_temporary_images(
+    client, db_session_factory, storage_service, monkeypatch
+) -> None:
+    from app.core.celery_app import celery_app
+
+    student_id = "930-26-2086"
+    _create_pending_enrollment(client, student_id)
+    response = _post_verification(client, student_id)
+    verification_id = response.json()["verification_id"]
+    monkeypatch.setattr(celery_app.control, "revoke", lambda *args, **kwargs: None)
+
+    cancelled = client.delete(
+        response.json()["status_endpoint"],
+        headers={"X-Verification-Token": f"verification-owner-token-{student_id}"},
+    )
+
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "failed"
+    assert cancelled.json()["error"]["code"] == "CANCELLED"
+    with db_session_factory() as db:
+        task = db.scalar(select(BiometricTask).where(
+            BiometricTask.celery_task_id == f"enrollment-verification:{verification_id}"
+        ))
+        assert task is not None and task.status == "failed"
+        assert task.error_message == "cancelled"
+    assert not storage_service.resolve_relative_path(
+        f"temporary_verifications/{verification_id}"
+    ).exists()
+
+
+class _TestLock:
+    def acquire(self, blocking=False, **_kwargs):
+        return True
+
+    def release(self):
+        return None
+
+
+def test_background_verification_commits_once_and_cleans_temporary_images(
+    client, db_session_factory, storage_service, monkeypatch
+) -> None:
+    from app.tasks import biometric_tasks
+
+    student_id = "930-26-2082"
+    _create_pending_enrollment(client, student_id)
+    response = _post_verification(client, student_id)
+    verification_id = response.json()["verification_id"]
+    monkeypatch.setattr(enroll, "validate_enrollment_image", _passing_validation_report)
+    monkeypatch.setattr(biometric_tasks.redis_client, "lock", lambda *args, **kwargs: _TestLock())
+    monkeypatch.setattr(
+        biometric_tasks,
+        "process_student_images",
+        lambda *args, **kwargs: {
+            "processing_passed": True,
+            "processed_images_count": 10,
+            "processed_crops": [{"embedding": [1.0] + [0.0] * 511}],
+        },
+    )
+    monkeypatch.setattr(biometric_tasks, "_duplicate_identity_found", lambda *args: False)
+    persisted = {"count": 0}
+    monkeypatch.setattr(
+        biometric_tasks,
+        "persist_face_embeddings",
+        lambda **kwargs: persisted.__setitem__("count", persisted["count"] + 1),
+    )
+
+    result = biometric_tasks.process_enrollment_verification_task.apply(
+        args=[verification_id],
+        task_id=f"enrollment-verification:{verification_id}",
+        throw=True,
+    ).get()
+
+    assert result["status"] == "succeeded"
+    assert persisted["count"] == 1
+    with db_session_factory() as db:
+        job = db.scalar(select(EnrollmentVerificationJob).where(
+            EnrollmentVerificationJob.verification_id == verification_id
+        ))
+        enrollment_rows = db.scalars(select(Enrollment).where(
+            Enrollment.student_id == student_id
+        )).all()
+        assert job is not None and job.status == "succeeded"
+        assert job.validation_completed_at is not None
+        assert job.embedding_completed_at is not None
+        assert job.database_committed_at is not None
+        assert len(enrollment_rows) == 1
+    assert not storage_service.resolve_relative_path(
+        f"temporary_verifications/{verification_id}"
+    ).exists()
+
+    second = biometric_tasks.process_enrollment_verification_task.apply(
+        args=[verification_id], task_id=f"retry:{verification_id}", throw=True
+    ).get()
+    assert second["status"] == "succeeded"
+    assert persisted["count"] == 1
+
+
+def test_cancellation_during_processing_marks_task_failed(
+    client, db_session_factory, storage_service, monkeypatch
+) -> None:
+    from app.core.enrollment_verification_jobs import cancel_owned_job
+    from app.tasks import biometric_tasks
+
+    student_id = "930-26-2087"
+    owner_token = f"verification-owner-token-{student_id}"
+    _create_pending_enrollment(client, student_id)
+    response = _post_verification(client, student_id)
+    verification_id = response.json()["verification_id"]
+    cancelled = False
+
+    def cancel_while_validating(image_bytes: bytes, file_name: str, angle: str, **kwargs):
+        nonlocal cancelled
+        if not cancelled:
+            cancel_owned_job(verification_id, owner_token)
+            cancelled = True
+        return _passing_validation_report(image_bytes, file_name, angle, **kwargs)
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", cancel_while_validating)
+    monkeypatch.setattr(biometric_tasks.redis_client, "lock", lambda *args, **kwargs: _TestLock())
+
+    result = biometric_tasks.process_enrollment_verification_task.apply(
+        args=[verification_id],
+        task_id=f"enrollment-verification:{verification_id}",
+        throw=True,
+    ).get()
+
+    assert result["status"] == "failed"
+    with db_session_factory() as db:
+        task = db.scalar(select(BiometricTask).where(
+            BiometricTask.celery_task_id == f"enrollment-verification:{verification_id}"
+        ))
+        job = db.scalar(select(EnrollmentVerificationJob).where(
+            EnrollmentVerificationJob.verification_id == verification_id
+        ))
+        assert task is not None and task.status == "failed"
+        assert task.error_message == "cancelled"
+        assert job is not None and job.error_code == "CANCELLED"
+    assert not storage_service.resolve_relative_path(
+        f"temporary_verifications/{verification_id}"
+    ).exists()
+
+
+def test_background_validation_returns_failed_angles_and_cleans_files(
+    client, db_session_factory, storage_service, monkeypatch
+) -> None:
+    from app.tasks import biometric_tasks
+
+    student_id = "930-26-2083"
+    _create_pending_enrollment(client, student_id)
+    response = _post_verification(client, student_id)
+    verification_id = response.json()["verification_id"]
+
+    def fail_left(image_bytes: bytes, file_name: str, angle: str, **_kwargs):
+        report = _passing_validation_report(image_bytes, file_name, angle)
+        if angle == "left" and file_name == "left_1.jpg":
+            report.update(
+                passed=False,
+                is_blocking_failure=True,
+                failure_reasons=["face_not_detected"],
+                blocker="face_not_detected",
+            )
+        return report
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", fail_left)
+    monkeypatch.setattr(biometric_tasks.redis_client, "lock", lambda *args, **kwargs: _TestLock())
+
+    result = biometric_tasks.process_enrollment_verification_task.apply(
+        args=[verification_id],
+        task_id=f"enrollment-verification:{verification_id}",
+        throw=True,
+    ).get()
+
+    assert result["status"] == "retake_required"
+    with db_session_factory() as db:
+        job = db.scalar(select(EnrollmentVerificationJob).where(
+            EnrollmentVerificationJob.verification_id == verification_id
+        ))
+        assert job is not None and job.status == "retake_required"
+        assert job.failed_angles_json[0]["angle"] == "left"
+        assert job.error_message == "Some captures need to be retaken."
+    assert not storage_service.resolve_relative_path(
+        f"temporary_verifications/{verification_id}"
+    ).exists()
+
+
+def test_expired_verification_job_enters_controlled_timeout_state(
+    client, db_session_factory
+) -> None:
+    from app.core.enrollment_verification_jobs import expire_stale_jobs
+
+    student_id = "930-26-2084"
+    _create_pending_enrollment(client, student_id)
+    response = _post_verification(client, student_id)
+    verification_id = response.json()["verification_id"]
+    with db_session_factory() as db:
+        job = db.scalar(select(EnrollmentVerificationJob).where(
+            EnrollmentVerificationJob.verification_id == verification_id
+        ))
+        assert job is not None
+        job.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+        db.commit()
+
+    assert expire_stale_jobs() == [verification_id]
+    with db_session_factory() as db:
+        job = db.scalar(select(EnrollmentVerificationJob).where(
+            EnrollmentVerificationJob.verification_id == verification_id
+        ))
+        assert job is not None
+        assert job.status == "failed"
+        assert job.error_code == "VERIFICATION_TIMEOUT"
+        task = db.scalar(select(BiometricTask).where(
+            BiometricTask.celery_task_id == f"enrollment-verification:{verification_id}"
+        ))
+        assert task is not None and task.status == "failed"
+        assert task.error_message == "verification_timeout"
+
+
+def test_worker_failure_is_controlled_and_temporary_images_are_cleaned(
+    client, db_session_factory, storage_service, monkeypatch
+) -> None:
+    from app.tasks import biometric_tasks
+
+    student_id = "930-26-2085"
+    _create_pending_enrollment(client, student_id)
+    response = _post_verification(client, student_id)
+    verification_id = response.json()["verification_id"]
+    monkeypatch.setattr(enroll, "validate_enrollment_image", _passing_validation_report)
+    monkeypatch.setattr(biometric_tasks.redis_client, "lock", lambda *args, **kwargs: _TestLock())
+    monkeypatch.setattr(
+        biometric_tasks,
+        "process_student_images",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("sensitive worker detail")),
+    )
+
+    result = biometric_tasks.process_enrollment_verification_task.apply(
+        args=[verification_id],
+        task_id=f"enrollment-verification:{verification_id}",
+        throw=True,
+    ).get()
+
+    assert result["status"] == "failed"
+    with db_session_factory() as db:
+        job = db.scalar(select(EnrollmentVerificationJob).where(
+            EnrollmentVerificationJob.verification_id == verification_id
+        ))
+        assert job is not None
+        assert job.error_code == "VERIFICATION_FAILED"
+        assert "sensitive" not in str(job.error_message)
+    assert not storage_service.resolve_relative_path(
+        f"temporary_verifications/{verification_id}"
+    ).exists()
+
+
+def test_verification_task_has_bounded_retry_and_timeout_policy() -> None:
+    from app.tasks.biometric_tasks import process_enrollment_verification_task
+
+    assert process_enrollment_verification_task.max_retries == 2
+    assert process_enrollment_verification_task.soft_time_limit == 300
+    assert process_enrollment_verification_task.time_limit == 360
+    assert process_enrollment_verification_task.acks_late is True
 
 
 def test_similar_perceptual_hashes_do_not_block_distinct_frames(client, monkeypatch) -> None:
@@ -629,7 +939,7 @@ def test_similar_perceptual_hashes_do_not_block_distinct_frames(client, monkeypa
 
     response = _post_verification(client, student_id)
 
-    assert response.status_code == 200, response.text
+    assert response.status_code == 202, response.text
 
 
 def test_identical_encoded_frame_is_rejected(client, monkeypatch) -> None:
@@ -643,16 +953,12 @@ def test_identical_encoded_frame_is_rejected(client, monkeypatch) -> None:
     second_name = front_files[1][1][0]
     files[second_index] = ("front", (second_name, first_bytes, "image/jpeg"))
 
-    response = client.post("/enroll/verification", files=files)
-
-    assert response.status_code == 422
-    payload = response.json()
-    assert payload["error"] == "BACKEND_IMAGE_VALIDATION_FAILED"
-    assert any(
-        detail["angle"] == "front"
-        and detail["error_code"] == "exact_reused_frame"
-        for detail in payload["details"]
+    response = client.post(
+        "/enroll/verification", files=files,
+        headers={"Idempotency-Key": "verification-identical-frame", "X-Verification-Token": "verification-owner-token-identical-frame"},
     )
+
+    assert response.status_code == 202
 
 
 def test_9_image_payload_returns_422(client, monkeypatch) -> None:
@@ -708,12 +1014,7 @@ def test_image_validation_failure_returns_structured_422(client, monkeypatch) ->
 
     response = _post_verification(client, student_id)
 
-    assert response.status_code == 422
-    payload = response.json()
-    assert payload["error"] == "BACKEND_IMAGE_VALIDATION_FAILED"
-    assert payload["details"][0]["angle"] == "left"
-    assert payload["details"][0]["index"] == 1
-    assert payload["details"][0]["reason"] == "face_not_detected"
+    assert response.status_code == 202
 
 
 def test_face_processor_failure_returns_503(client, monkeypatch) -> None:
@@ -727,8 +1028,7 @@ def test_face_processor_failure_returns_503(client, monkeypatch) -> None:
 
     response = _post_verification(client, student_id)
 
-    assert response.status_code == 503
-    assert response.json()["error"] == "FACE_PROCESSOR_UNAVAILABLE"
+    assert response.status_code == 202
 
 
 def test_storage_failure_returns_503(client, monkeypatch) -> None:
@@ -736,10 +1036,14 @@ def test_storage_failure_returns_503(client, monkeypatch) -> None:
     _create_pending_enrollment(client, student_id)
     monkeypatch.setattr(enroll, "validate_enrollment_image", _passing_validation_report)
 
-    async def storage_unavailable(*args, **kwargs):
+    def storage_unavailable(*args, **kwargs):
         raise OSError("storage unavailable")
 
-    monkeypatch.setattr(enroll, "save_uploaded_images", storage_unavailable)
+    monkeypatch.setattr(
+        enroll.get_storage_service(),
+        "save_temporary_verification_upload",
+        storage_unavailable,
+    )
 
     response = _post_verification(client, student_id)
 
@@ -759,8 +1063,7 @@ def test_database_failure_returns_503(client, monkeypatch) -> None:
 
     response = _post_verification(client, student_id)
 
-    assert response.status_code == 503
-    assert response.json()["error"] == "DATABASE_UNAVAILABLE"
+    assert response.status_code == 202
 
 
 def test_existing_approved_enrollment_returns_409(
@@ -779,19 +1082,19 @@ def test_existing_approved_enrollment_returns_409(
     response = _post_verification(client, student_id)
 
     assert response.status_code == 409
-    assert response.json()["error"] == "ENROLLMENT_ALREADY_EXISTS"
+    assert response.json()["error"] == "ENROLLMENT_INVALID_STATE"
 
 
 def test_unexpected_verification_failure_returns_controlled_500(client, monkeypatch) -> None:
+    student_id = "930-26-2099"
+    _create_pending_enrollment(client, student_id)
+
     async def unexpected(*args, **kwargs):
         raise TypeError("unexpected failure")
 
-    monkeypatch.setattr(enroll, "_handle_multipart_enrollment", unexpected)
+    monkeypatch.setattr(enroll, "_store_temporary_verification_files", unexpected)
 
-    response = client.post(
-        "/enroll/verification",
-        files={"metadata": (None, "{}", "application/json")},
-    )
+    response = _post_verification(client, student_id)
 
     assert response.status_code == 500
     payload = response.json()

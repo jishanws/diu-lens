@@ -171,6 +171,7 @@ def search_face_matches(
     query_embedding: list[float],
     *,
     candidate_pool_limit: int,
+    allowed_enrollment_statuses: tuple[str, ...] = ("approved", "processed"),
 ) -> list[dict[str, Any]]:
     """Return nearest embedding rows for approved, active enrollment records."""
     logger.info(
@@ -205,7 +206,7 @@ def search_face_matches(
         .outerjoin(Student, Student.student_id == FaceEmbedding.student_id)
         .where(
             FaceEmbedding.is_active.is_(True),
-            Enrollment.status.in_(["approved", "processed"]),
+            Enrollment.status.in_(allowed_enrollment_statuses),
         )
         .order_by(distance_expr.asc(), FaceEmbedding.id.asc())
         .limit(candidate_pool_limit)

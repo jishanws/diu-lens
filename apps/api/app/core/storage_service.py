@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -57,6 +58,12 @@ class StorageService(Protocol):
         image_bytes: bytes,
     ) -> str: ...
 
+    def save_temporary_verification_upload(
+        self, *, verification_id: str, angle: str, index: int, content_type: str, file_bytes: bytes
+    ) -> str: ...
+
+    def clear_temporary_verification(self, verification_id: str) -> None: ...
+
     def save_json_artifact(
         self,
         *,
@@ -91,6 +98,7 @@ class LocalStorageService:
         self._storage_dir = resolved_storage
         self._uploads_dir = self._storage_dir / "uploads"
         self._processed_dir = self._storage_dir / "processed"
+        self._temporary_verifications_dir = self._storage_dir / "temporary_verifications"
         self._enrollments_file = self._storage_dir / "enrollments.json"
         self._content_type_extensions: dict[str, str] = {
             "image/jpeg": ".jpg",
@@ -181,6 +189,31 @@ class LocalStorageService:
         destination.write_bytes(image_bytes)
 
         return (Path("processed") / sanitized_student_id / angle / filename).as_posix()
+
+    def save_temporary_verification_upload(
+        self,
+        *,
+        verification_id: str,
+        angle: str,
+        index: int,
+        content_type: str,
+        file_bytes: bytes,
+    ) -> str:
+        if angle not in REQUIRED_CAPTURE_ANGLES:
+            raise ValueError(f"Unsupported angle: {angle}")
+        extension = self._content_type_extensions.get(content_type.lower())
+        if not extension:
+            raise ValueError(f"Unsupported file type for angle: {angle}")
+        safe_verification_id = self.sanitize_student_id(verification_id)
+        destination_dir = self._temporary_verifications_dir / safe_verification_id / angle
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        destination = destination_dir / f"{angle}_{index}{extension}"
+        destination.write_bytes(file_bytes)
+        return destination.relative_to(self._storage_dir).as_posix()
+
+    def clear_temporary_verification(self, verification_id: str) -> None:
+        safe_verification_id = self.sanitize_student_id(verification_id)
+        shutil.rmtree(self._temporary_verifications_dir / safe_verification_id, ignore_errors=True)
 
     def save_json_artifact(
         self,

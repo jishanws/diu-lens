@@ -232,7 +232,52 @@ type EnrollmentResponse = {
 export type EnrollmentSubmissionResult = EnrollmentResponse & {
   diagnostics?: EnrollmentSubmitDiagnostics;
   failedCaptures?: FailedCapture[];
+  verificationJob?: EnrollmentVerificationStatus;
 };
+
+export type EnrollmentVerificationStatus = {
+  verification_id: string;
+  status: 'queued' | 'processing' | 'succeeded' | 'retake_required' | 'failed';
+  stage: 'uploading' | 'queued' | 'validating' | 'verifying_identity' | 'completing' | 'completed' | 'retake_required' | 'failed';
+  status_endpoint: string;
+  failed_angles: FailedCapture[];
+  error: { code: string; message: string } | null;
+  timestamps: Record<string, string | null>;
+  stage_durations_ms: Record<string, number>;
+};
+
+export type VerificationCredentials = {
+  idempotencyKey: string;
+  ownerToken: string;
+};
+
+export function createVerificationCredentials(): VerificationCredentials {
+  return {
+    idempotencyKey: crypto.randomUUID(),
+    ownerToken: `${crypto.randomUUID()}${crypto.randomUUID()}`,
+  };
+}
+
+function parseVerificationStatus(value: unknown): EnrollmentVerificationStatus | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as Partial<EnrollmentVerificationStatus>;
+  if (
+    typeof record.verification_id !== 'string' ||
+    typeof record.status !== 'string' ||
+    typeof record.stage !== 'string' ||
+    typeof record.status_endpoint !== 'string'
+  ) return null;
+  return {
+    verification_id: record.verification_id,
+    status: record.status,
+    stage: record.stage,
+    status_endpoint: record.status_endpoint,
+    failed_angles: Array.isArray(record.failed_angles) ? record.failed_angles : [],
+    error: record.error ?? null,
+    timestamps: record.timestamps ?? {},
+    stage_durations_ms: record.stage_durations_ms ?? {},
+  } as EnrollmentVerificationStatus;
+}
 
 function isEnrollmentResponse(value: unknown): value is EnrollmentResponse {
   if (!value || typeof value !== 'object') {
@@ -413,12 +458,14 @@ export async function submitEnrollment(payload: EnrollmentPayload) {
 export async function submitEnrollmentCompletion(
   payload: EnrollmentCompletionPayload,
   capturesByAngle: VerificationCapturesByAngle,
-  frameMetadataByAngle: VerificationFrameMetadataByAngle
+  frameMetadataByAngle: VerificationFrameMetadataByAngle,
+  credentials: VerificationCredentials
 ) {
   return submitEnrollmentCompletionRequest(
     payload,
     capturesByAngle,
     frameMetadataByAngle,
+    credentials,
     GENERIC_REGISTRATION_COMPLETION_ERROR
   );
 }
@@ -465,6 +512,7 @@ async function submitEnrollmentCompletionRequest(
   payload: EnrollmentCompletionPayload,
   capturesByAngle: VerificationCapturesByAngle,
   frameMetadataByAngle: VerificationFrameMetadataByAngle,
+  credentials: VerificationCredentials,
   errorMessage: string
 ) {
   let requestUrl = '';
@@ -592,6 +640,8 @@ async function submitEnrollmentCompletionRequest(
       body: formData,
       headers: {
         Accept: 'application/json',
+        'Idempotency-Key': credentials.idempotencyKey,
+        'X-Verification-Token': credentials.ownerToken,
       },
     };
 
@@ -660,6 +710,22 @@ async function submitEnrollmentCompletionRequest(
   }
 }
 
+export async function fetchEnrollmentVerificationStatus(
+  statusEndpoint: string,
+  ownerToken: string
+): Promise<EnrollmentVerificationStatus> {
+  const response = await request(statusEndpoint, {
+    method: 'GET',
+    headers: { Accept: 'application/json', 'X-Verification-Token': ownerToken },
+  });
+  const body: unknown = await response.json().catch(() => null);
+  const status = parseVerificationStatus(body);
+  if (!response.ok || !status) {
+    throw new Error(toMessageFromUnknown(body) ?? 'Unable to restore verification status.');
+  }
+  return status;
+}
+
 async function parseEnrollmentResponse(
   response: Response,
   errorMessage: string,
@@ -701,6 +767,7 @@ async function parseEnrollmentResponse(
     }
     return {
       ...parsedData,
+      verificationJob: parseVerificationStatus(parsedData) ?? undefined,
       failedCaptures: parseFailedCaptures(parsedData),
       diagnostics: {
         requestUrl,

@@ -33,6 +33,7 @@ type GuidedEnrollmentCaptureProps = {
   ) => Promise<EnrollmentCompletionResult>;
   isSubmittingCompletion?: boolean;
   completionErrorMessage?: string | null;
+  initialFailedCaptures?: FailedCapture[];
 };
 
 type SubmitPhase = 'idle' | 'submitting' | 'success' | 'error';
@@ -94,6 +95,7 @@ export function GuidedEnrollmentCapture({
   onComplete,
   isSubmittingCompletion = false,
   completionErrorMessage,
+  initialFailedCaptures = [],
 }: GuidedEnrollmentCaptureProps) {
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
     null
@@ -153,6 +155,13 @@ export function GuidedEnrollmentCapture({
     });
 
 
+
+  useEffect(() => {
+    if (initialFailedCaptures.length) {
+      setFailedCaptures(initialFailedCaptures);
+      invalidateAngles(failedCaptureAngles(initialFailedCaptures));
+    }
+  }, [initialFailedCaptures, invalidateAngles]);
 
   useEffect(() => {
     currentAngleRef.current = state.currentAngle;
@@ -395,7 +404,9 @@ export function GuidedEnrollmentCapture({
         return;
       }
       setSubmitPhase('success');
-      clearSession();
+      if (result.registrationComplete) {
+        clearSession();
+      }
     } catch (error) {
       const message =
         error instanceof Error && error.message !== 'Load failed'

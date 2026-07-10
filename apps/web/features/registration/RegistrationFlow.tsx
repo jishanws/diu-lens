@@ -12,18 +12,24 @@ import {
   validateStudentId,
   normalizeStudentId,
   fetchValidationConfig,
+  createVerificationCredentials,
+  fetchEnrollmentVerificationStatus,
+  type EnrollmentVerificationStatus,
+  type VerificationCredentials,
 } from '@/features/registration/api';
 import { RegistrationShell } from '@/features/registration/RegistrationShell';
 import { AlreadyRegisteredPanel } from '@/features/registration/steps/AlreadyRegisteredPanel';
 import { BasicInfoStep } from '@/features/registration/steps/BasicInfoStep';
 import { StudentIdStep } from '@/features/registration/steps/StudentIdStep';
 import { SuccessStep } from '@/features/registration/steps/SuccessStep';
+import { VerificationProgressStep } from '@/features/registration/steps/VerificationProgressStep';
 import { VerificationFlow } from '@/features/registration/verification/VerificationFlow';
 import type {
   EnrollmentCompletionResult,
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
 import { formatFailedCaptures } from '@/features/registration/verification/failedCaptures';
+import type { FailedCapture } from '@/features/registration/verification/failedCaptures';
 import type {
   RegistrationFlowProps,
   RegistrationFormValues,
@@ -93,6 +99,14 @@ const initialValues: RegistrationFormValues = {
   universityEmail: '',
 };
 
+const verificationStorageKey = 'diu-lens:active-verification';
+
+type PersistedVerification = VerificationCredentials & {
+  studentId: string;
+  fullName: string;
+  verificationJob?: EnrollmentVerificationStatus;
+};
+
 export function RegistrationFlow({
   className,
   onStepIndexChange,
@@ -116,6 +130,10 @@ export function RegistrationFlow({
   );
   const [alreadyRegistered, setAlreadyRegistered] = useState(false);
   const [alreadyRegisteredName, setAlreadyRegisteredName] = useState<string | undefined>();
+  const [verificationJob, setVerificationJob] = useState<EnrollmentVerificationStatus | null>(null);
+  const [verificationNetworkMessage, setVerificationNetworkMessage] = useState<string | null>(null);
+  const [retakeFailures, setRetakeFailures] = useState<FailedCapture[]>([]);
+  const verificationCredentialsRef = useRef<VerificationCredentials | null>(null);
   // Tracks the student ID that was successfully validated so that Step 2
   // cannot open for a different (or no) validated ID.
   const validatedStudentIdRef = useRef<string | null>(null);
@@ -134,6 +152,77 @@ export function RegistrationFlow({
 
     return fallback;
   }, []);
+
+  useEffect(() => {
+    const raw = window.localStorage.getItem(verificationStorageKey);
+    if (!raw) return;
+    try {
+      const persisted = JSON.parse(raw) as PersistedVerification;
+      if (!persisted.studentId || !persisted.ownerToken || !persisted.idempotencyKey) return;
+      verificationCredentialsRef.current = {
+        ownerToken: persisted.ownerToken,
+        idempotencyKey: persisted.idempotencyKey,
+      };
+      setValues((current) => ({
+        ...current,
+        studentId: persisted.studentId,
+        fullName: persisted.fullName || current.fullName,
+      }));
+      if (persisted.verificationJob) {
+        setVerificationJob(persisted.verificationJob);
+        setActiveStep(3);
+      }
+    } catch {
+      window.localStorage.removeItem(verificationStorageKey);
+    }
+  }, []);
+
+  useEffect(() => {
+    const statusEndpoint = verificationJob?.status_endpoint;
+    if (!statusEndpoint || activeStep !== 3 || !verificationCredentialsRef.current) return;
+    let cancelled = false;
+    let timer = 0;
+    const poll = async () => {
+      try {
+        const next = await fetchEnrollmentVerificationStatus(
+          statusEndpoint,
+          verificationCredentialsRef.current!.ownerToken
+        );
+        if (cancelled) return;
+        setVerificationNetworkMessage(null);
+        setVerificationJob(next);
+        const persisted: PersistedVerification = {
+          ...verificationCredentialsRef.current!,
+          studentId: values.studentId,
+          fullName: values.fullName,
+          verificationJob: next,
+        };
+        window.localStorage.setItem(verificationStorageKey, JSON.stringify(persisted));
+        if (next.status === 'succeeded') {
+          window.localStorage.removeItem(verificationStorageKey);
+          window.localStorage.removeItem(`diu-lens-capture:${values.studentId.trim().toLowerCase()}`);
+          setActiveStep(4);
+          return;
+        }
+        if (next.status === 'failed') {
+          verificationCredentialsRef.current = null;
+          window.localStorage.removeItem(verificationStorageKey);
+          return;
+        }
+        if (next.status === 'retake_required') {
+          return;
+        }
+      } catch {
+        if (!cancelled) setVerificationNetworkMessage('Connection interrupted. Verification continues in the background and will resume here automatically.');
+      }
+      if (!cancelled) timer = window.setTimeout(poll, 1500);
+    };
+    void poll();
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [activeStep, values.fullName, values.studentId, verificationJob?.status_endpoint]);
 
   const handleDone = useCallback(() => {
     if (onDone) {
@@ -155,6 +244,10 @@ export function RegistrationFlow({
     setVerificationError(null);
     setIsSubmittingBasicInfo(false);
     setIsCompletingRegistration(false);
+    setVerificationJob(null);
+    setRetakeFailures([]);
+    verificationCredentialsRef.current = null;
+    window.localStorage.removeItem(verificationStorageKey);
     setActiveStep(0);
   }, [onDone]);
 
@@ -287,6 +380,13 @@ export function RegistrationFlow({
       setIsCompletingRegistration(true);
 
       try {
+        const credentials = verificationCredentialsRef.current ?? createVerificationCredentials();
+        verificationCredentialsRef.current = credentials;
+        window.localStorage.setItem(verificationStorageKey, JSON.stringify({
+          ...credentials,
+          studentId: values.studentId,
+          fullName: values.fullName.trim(),
+        } satisfies PersistedVerification));
         const result = await submitEnrollmentCompletion(
           {
             student_id: values.studentId,
@@ -304,7 +404,8 @@ export function RegistrationFlow({
             })),
           },
           summary.capturesByAngle,
-          summary.frameMetadataByAngle
+          summary.frameMetadataByAngle,
+          credentials
         );
 
         if (!result.success) {
@@ -325,10 +426,33 @@ export function RegistrationFlow({
           };
         }
 
+        if (!result.verificationJob) {
+          verificationCredentialsRef.current = null;
+          window.localStorage.removeItem(verificationStorageKey);
+          return {
+            success: true,
+            registrationComplete: true,
+            message: result.message,
+            diagnostics: result.diagnostics ?? {
+              requestUrl: '',
+              httpStatus: 200,
+              responseBody: null,
+              error: null,
+            },
+          };
+        }
+        setVerificationJob(result.verificationJob);
+        window.localStorage.setItem(verificationStorageKey, JSON.stringify({
+          ...credentials,
+          studentId: values.studentId,
+          fullName: values.fullName.trim(),
+          verificationJob: result.verificationJob,
+        } satisfies PersistedVerification));
         setActiveStep(3);
         return {
           success: true,
-          message: 'Enrollment submitted successfully.',
+          accepted: true,
+          message: 'Verification upload accepted.',
           diagnostics: result.diagnostics ?? {
             requestUrl: '',
             httpStatus: null,
@@ -418,8 +542,31 @@ export function RegistrationFlow({
           onComplete={handleVerificationComplete}
           isSubmittingCompletion={isCompletingRegistration}
           completionErrorMessage={verificationError}
+          initialFailedCaptures={retakeFailures}
         />
       );
+    }
+
+    if (activeStep === 3 && verificationJob) {
+      return <VerificationProgressStep
+        job={verificationJob}
+        networkMessage={verificationNetworkMessage}
+        onRetake={() => {
+          setRetakeFailures(verificationJob.failed_angles);
+          setVerificationError(formatFailedCaptures(verificationJob.failed_angles));
+          setVerificationJob(null);
+          verificationCredentialsRef.current = null;
+          window.localStorage.removeItem(verificationStorageKey);
+          setActiveStep(2);
+        }}
+        onRetry={() => {
+          setVerificationError(verificationJob.error?.message ?? null);
+          setVerificationJob(null);
+          verificationCredentialsRef.current = null;
+          window.localStorage.removeItem(verificationStorageKey);
+          setActiveStep(2);
+        }}
+      />;
     }
 
     return (
@@ -443,6 +590,9 @@ export function RegistrationFlow({
     isSubmittingBasicInfo,
     validationState,
     verificationError,
+    verificationJob,
+    verificationNetworkMessage,
+    retakeFailures,
     values,
   ]);
 

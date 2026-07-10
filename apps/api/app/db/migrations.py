@@ -18,6 +18,11 @@ _ALEMBIC_INI = _PROJECT_ROOT / "alembic.ini"
 _MIGRATIONS_DIR = _PROJECT_ROOT / "migrations"
 
 
+def _alembic_safe_url(database_url: str) -> str:
+    """Escape percent signs consumed by ConfigParser interpolation."""
+    return database_url.replace("%", "%%")
+
+
 def run_migrations_to_head() -> None:
     """Apply Alembic migrations up to head."""
     if os.getenv("PYTEST_CURRENT_TEST"):
@@ -25,7 +30,7 @@ def run_migrations_to_head() -> None:
 
     config = Config(str(_ALEMBIC_INI))
     config.set_main_option("script_location", str(_MIGRATIONS_DIR))
-    config.set_main_option("sqlalchemy.url", settings.database_url)
+    config.set_main_option("sqlalchemy.url", _alembic_safe_url(settings.database_url))
     command.upgrade(config, "head")
 
 

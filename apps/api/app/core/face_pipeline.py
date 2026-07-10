@@ -618,12 +618,16 @@ def _embedding_l2_norm(embedding: list[float]) -> float:
     return float(np.linalg.norm(vector))
 
 
-def process_student_images(student_id: str, storage: StorageService) -> dict[str, Any]:
+def process_student_images(
+    student_id: str, storage: StorageService, *, allow_validated: bool = False
+) -> dict[str, Any]:
     """Process DB-scoped enrollment images for a student."""
     sanitized_student_id = _sanitize_student_id(student_id)
 
     try:
-        source_bundle = get_processing_source_images(sanitized_student_id)
+        source_bundle = get_processing_source_images(
+            sanitized_student_id, allow_validated=allow_validated
+        )
     except (EnrollmentNotFoundError, EnrollmentInvalidStateError, EnrollmentPersistenceError) as exc:
         raise FacePipelineError(str(exc)) from exc
 

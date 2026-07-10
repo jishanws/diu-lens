@@ -5,6 +5,7 @@ import type {
   EnrollmentCompletionResult,
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
+import type { FailedCapture } from '@/features/registration/verification/failedCaptures';
 
 type VerificationFlowProps = {
   studentId: string;
@@ -13,6 +14,7 @@ type VerificationFlowProps = {
   ) => Promise<EnrollmentCompletionResult>;
   isSubmittingCompletion?: boolean;
   completionErrorMessage?: string | null;
+  initialFailedCaptures?: FailedCapture[];
 };
 
 export function VerificationFlow({
@@ -20,6 +22,7 @@ export function VerificationFlow({
   onComplete,
   isSubmittingCompletion = false,
   completionErrorMessage,
+  initialFailedCaptures = [],
 }: VerificationFlowProps) {
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -28,6 +31,7 @@ export function VerificationFlow({
         onComplete={onComplete}
         isSubmittingCompletion={isSubmittingCompletion}
         completionErrorMessage={completionErrorMessage}
+        initialFailedCaptures={initialFailedCaptures}
       />
     </div>
   );

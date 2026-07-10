@@ -11,6 +11,7 @@ from app.db.models.biometric_tasks import BiometricTask
 from app.db.models.recognition_audit_logs import RecognitionAuditLog
 from app.db.models.incident_snapshots import IncidentSnapshot
 from app.db.models.system_health_snapshots import SystemHealthSnapshot
+from app.db.models.enrollment_verification_jobs import EnrollmentVerificationJob
 
 __all__ = [
     "AdminUser",
@@ -24,4 +25,5 @@ __all__ = [
     "RecognitionAuditLog",
     "IncidentSnapshot",
     "SystemHealthSnapshot",
+    "EnrollmentVerificationJob",
 ]

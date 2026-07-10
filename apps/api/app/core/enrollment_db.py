@@ -543,7 +543,9 @@ def mark_enrollment_as_processing(student_id: str) -> None:
             raise EnrollmentPersistenceError(str(exc)) from exc
 
 
-def get_processing_source_images(student_id: str) -> dict[str, Any]:
+def get_processing_source_images(
+    student_id: str, *, allow_validated: bool = False
+) -> dict[str, Any]:
     """Return DB-scoped processing source images after integrity validation."""
     session_factory = get_session_factory()
     storage = get_storage_service()
@@ -561,7 +563,12 @@ def get_processing_source_images(student_id: str) -> dict[str, Any]:
                 raise EnrollmentInvalidStateError(
                     "Processing integrity check failed: enrollment/student mismatch."
                 )
-            if enrollment.status not in {"approved_pending_processing", "processing", "processed", "failed_processing"}:
+            processable_statuses = {
+                "approved_pending_processing", "processing", "processed", "failed_processing"
+            }
+            if allow_validated:
+                processable_statuses.add("validated")
+            if enrollment.status not in processable_statuses:
                 raise EnrollmentInvalidStateError(
                     "Processing integrity check failed: enrollment is not in processable status."
                 )

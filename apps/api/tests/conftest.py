@@ -32,6 +32,7 @@ import app.core.enrollment_db as enrollment_db_module
 import app.core.face_matching as face_matching_module
 import app.core.storage as storage_module
 import app.core.task_db as task_db_module
+import app.core.enrollment_verification_jobs as verification_jobs_module
 import app.db.models  # noqa: F401
 import app.db.session as db_session_module
 from app.core.auth import hash_password
@@ -67,6 +68,7 @@ def db_session_factory(
     monkeypatch.setattr(embeddings_db_module, "get_session_factory", get_factory)
     monkeypatch.setattr(face_matching_module, "get_session_factory", get_factory)
     monkeypatch.setattr(task_db_module, "get_session_factory", get_factory)
+    monkeypatch.setattr(verification_jobs_module, "get_session_factory", get_factory)
     
     import app.core.task_recovery as task_recovery_module
     import app.core.recognition_audit as recognition_audit_module
@@ -95,10 +97,13 @@ def storage_service(
 def client(
     db_session_factory: sessionmaker[Session],
     storage_service: LocalStorageService,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> Generator[TestClient, None, None]:
     from app.core.limiter import limiter
 
     limiter.reset()
+    from app.tasks.biometric_tasks import process_enrollment_verification_task
+    monkeypatch.setattr(process_enrollment_verification_task, "apply_async", lambda *args, **kwargs: None)
     app = create_app()
     with TestClient(app) as test_client:
         yield test_client

@@ -50,6 +50,8 @@ export type EnrollmentCompletionResult = {
   message: string;
   diagnostics: EnrollmentSubmitDiagnostics;
   failedCaptures?: FailedCapture[];
+  accepted?: boolean;
+  registrationComplete?: boolean;
 };
 
 export type CameraHookResult = {

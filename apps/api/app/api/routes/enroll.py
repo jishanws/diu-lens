@@ -5,6 +5,7 @@ import traceback
 import csv
 import io
 import hashlib
+from uuid import uuid4
 from collections import Counter
 from datetime import datetime, timezone
 from time import perf_counter
@@ -40,7 +41,19 @@ from app.core.storage import (
     REQUIRED_CAPTURE_ANGLES,
     empty_uploaded_images,
     save_uploaded_images,
+    get_storage_service,
 )
+from app.core.enrollment_verification_jobs import (
+    VerificationJobUnauthorized,
+    VerificationJobError,
+    assert_verification_submittable,
+    cancel_owned_job,
+    create_job,
+    get_owned_job,
+    serialize_job,
+    update_job,
+)
+from app.core.task_db import create_biometric_task_record, mark_task_failed
 
 
 MIN_IMAGES_PER_ANGLE = ENROLLMENT_VALIDATION_CONFIG.required_samples_per_angle
@@ -1560,9 +1573,57 @@ async def enroll(request: Request) -> JSONResponse:
         )
 
 
-@router.post("/enroll/verification", response_model=EnrollmentResponse)
+def _verification_credentials(request: Request) -> tuple[str, str]:
+    idempotency_key = request.headers.get("idempotency-key", "").strip()
+    owner_token = request.headers.get("x-verification-token", "").strip()
+    if not 16 <= len(idempotency_key) <= 200:
+        raise _bad_request("A valid Idempotency-Key header is required.")
+    if not 24 <= len(owner_token) <= 256:
+        raise _bad_request("A valid X-Verification-Token header is required.")
+    return idempotency_key, owner_token
+
+
+def _fast_image_signature_ok(content_type: str, sample: bytes) -> bool:
+    if content_type == "image/jpeg":
+        return sample.startswith(b"\xff\xd8")
+    if content_type == "image/png":
+        return sample.startswith(b"\x89PNG\r\n\x1a\n")
+    if content_type == "image/webp":
+        return len(sample) >= 12 and sample[:4] == b"RIFF" and sample[8:12] == b"WEBP"
+    return False
+
+
+async def _store_temporary_verification_files(
+    verification_id: str, files_by_angle: dict[str, list[UploadFile]]
+) -> dict[str, list[str]]:
+    storage = get_storage_service()
+    saved = empty_uploaded_images()
+    try:
+        for angle in EXPECTED_REQUIRED_ANGLES:
+            for index, upload in enumerate(files_by_angle.get(angle, []), start=1):
+                content_type = (upload.content_type or "").lower()
+                if content_type not in ALLOWED_IMAGE_CONTENT_TYPES:
+                    raise _bad_request(f"Unsupported file type for angle: {angle}")
+                data = await upload.read(MAX_UPLOAD_IMAGE_SIZE_BYTES + 1)
+                if not data or len(data) > MAX_UPLOAD_IMAGE_SIZE_BYTES:
+                    raise _bad_request(f"Invalid file size for angle: {angle}")
+                if not _fast_image_signature_ok(content_type, data):
+                    raise _bad_request(f"Invalid image signature for angle: {angle}")
+                saved[angle].append(storage.save_temporary_verification_upload(
+                    verification_id=verification_id, angle=angle, index=index,
+                    content_type=content_type, file_bytes=data,
+                ))
+        return saved
+    except Exception:
+        storage.clear_temporary_verification(verification_id)
+        raise
+    finally:
+        await _close_upload_files(files_by_angle)
+
+
+@router.post("/enroll/verification", response_model=None)
 @limiter.limit("20/minute")
-async def enroll_verification(request: Request) -> EnrollmentResponse:
+async def enroll_verification(request: Request) -> Response:
     request_started_at = perf_counter()
     total_uploaded_bytes = 0
     verification_logger.info("[verification-timing] route entered")
@@ -1580,133 +1641,76 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
                 detail={"message": "Unsupported content type for /enroll/verification. Use multipart form data."},
             )
 
+        idempotency_key, owner_token = _verification_credentials(request)
+        form_data = await request.form()
+        payload = _parse_multipart_metadata(form_data.get("metadata"))
         try:
-            (
-                payload,
-                uploaded_images,
-                validation_summary,
-                multipart_timing,
-            ) = await _handle_multipart_enrollment(
-                request
-            )
-            total_uploaded_bytes = _total_uploaded_bytes_from_validation_summary(
-                validation_summary
-            )
-            verification_logger.info(
-                "[verification] uploaded bytes=%s student_id=%s",
-                total_uploaded_bytes,
-                payload.student_id,
-            )
-            total_uploaded_files = sum(
-                len(uploaded_images.get(angle, [])) for angle in ALLOWED_ANGLES
-            )
-            verification_logger.info(
-                "[verification] upload received student_id=%s files=%s",
-                payload.student_id,
-                total_uploaded_files,
-            )
-            verification_logger.info(
-                "[verification-timing] multipart breakdown form_parse_file_access_ms=%s metadata_parse_ms=%s integrity_validation_ms=%s save_files_ms=%s multipart_total_ms=%s",
-                multipart_timing.get("form_parse_file_access_ms", 0.0),
-                multipart_timing.get("metadata_parse_ms", 0.0),
-                multipart_timing.get("integrity_validation_ms", 0.0),
-                multipart_timing.get("save_files_ms", 0.0),
-                multipart_timing.get("multipart_total_ms", 0.0),
-            )
-        except HTTPException as exc:
-            failed_validation = _extract_failed_validation_summary(exc)
-            total_uploaded_bytes = _total_uploaded_bytes_from_validation_summary(
-                failed_validation
-            )
-            verification_logger.info(
-                "[verification] uploaded bytes=%s",
-                total_uploaded_bytes,
-            )
-            verification_logger.warning(
-                "[verification] request failed detail=%s",
-                exc.detail,
-            )
-            raise
-
-        entry = _build_enrollment_entry(
-            payload=payload,
-            uploaded_images=uploaded_images,
-            validation_summary=validation_summary,
-            frame_metadata_by_path=_build_frame_metadata_by_path(
-                uploaded_images,
-                validation_summary,
-            ),
+            assert_verification_submittable(payload.student_id)
+        except VerificationJobError as exc:
+            raise HTTPException(status_code=409, detail={
+                "error": "ENROLLMENT_INVALID_STATE", "message": str(exc)
+            }) from exc
+        files_by_angle = _extract_multipart_files(form_data)
+        _validate_final_multipart_metadata(payload)
+        _validate_file_counts(files_by_angle, payload)
+        verification_id = str(uuid4())
+        temporary_images = await _store_temporary_verification_files(verification_id, files_by_angle)
+        total_uploaded_bytes = sum(
+            get_storage_service().resolve_relative_path(path).stat().st_size
+            for paths in temporary_images.values() for path in paths
         )
-
         try:
-            verification_logger.info(
-                "event=db_write_started student_id=%s",
-                payload.student_id,
+            job, created = create_job(
+                verification_id=verification_id, student_id=payload.student_id,
+                idempotency_key=idempotency_key, owner_token=owner_token,
+                payload=payload.model_dump(mode="json"), temporary_images=temporary_images,
             )
-            _persist_enrollment_metadata(
-                entry,
-                mode="final",
-                event_type="enrollment_validated",
-                event_message="Final enrollment submitted with validated images.",
-                update_existing=True,
-            )
-        except EnrollmentNotFoundError:
-            verification_logger.warning(
-                "[verification] no pending enrollment found for student_id=%s",
-                payload.student_id,
-            )
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "error": "ENROLLMENT_NOT_FOUND",
-                    "message": "No pending enrollment was found. Submit basic information first.",
-                },
-            )
-        except EnrollmentInvalidStateError as exc:
-            verification_logger.warning(
-                "[verification] invalid enrollment state student_id=%s status_error=%s",
-                payload.student_id,
-                str(exc),
-            )
-            raise HTTPException(
-                status_code=409,
-                detail={
-                    "error": "ENROLLMENT_ALREADY_EXISTS",
-                    "message": "This student already has an enrollment record.",
-                },
-            ) from exc
-        except (OSError, EnrollmentPersistenceError) as exc:
-            verification_logger.exception(
-                "event=db_write_failed student_id=%s",
-                payload.student_id,
-            )
-            raise HTTPException(
-                status_code=503,
-                detail={
-                    "error": "DATABASE_UNAVAILABLE",
-                    "message": "Enrollment database is temporarily unavailable.",
-                },
-            ) from exc
-        verification_logger.info(
-            "event=db_write_succeeded student_id=%s",
-            payload.student_id,
-        )
+        except VerificationJobUnauthorized as exc:
+            get_storage_service().clear_temporary_verification(verification_id)
+            raise HTTPException(status_code=403, detail={"message": str(exc)}) from exc
+        if not created:
+            get_storage_service().clear_temporary_verification(verification_id)
+            return JSONResponse(status_code=202, content={
+                "success": True, "message": "Verification is already queued.",
+                **serialize_job(job),
+            })
 
-        verification_logger.info(
-            "[verification] verification completed for student_id=%s",
-            payload.student_id,
+        task_id = f"enrollment-verification:{job.verification_id}"
+        update_job(
+            job.verification_id, celery_task_id=task_id, stage="queued",
+            stage_durations_json={
+                "upload": round((perf_counter() - request_started_at) * 1000, 2)
+            },
         )
-        verification_logger.info(
-            "event=enrollment_submit_success student_id=%s total_images=%s",
-            payload.student_id,
-            payload.total_accepted_shots,
-        )
-        return EnrollmentResponse(
-            success=True,
-            message="Verification images uploaded successfully",
-        )
+        create_biometric_task_record(task_id, payload.student_id, "enrollment_verification")
+        try:
+            from app.tasks.biometric_tasks import process_enrollment_verification_task
+            process_enrollment_verification_task.apply_async(args=[job.verification_id], task_id=task_id)
+        except Exception as exc:
+            get_storage_service().clear_temporary_verification(job.verification_id)
+            update_job(
+                job.verification_id, status="failed", stage="failed",
+                error_code="QUEUE_UNAVAILABLE",
+                error_message="Verification could not be queued. Please retry.",
+                finished_at=datetime.now(timezone.utc),
+            )
+            raise HTTPException(status_code=503, detail={
+                "error": "QUEUE_UNAVAILABLE",
+                "message": "Verification could not be queued. Please retry.",
+            }) from exc
+        accepted_job = get_owned_job(job.verification_id, owner_token)
+        return JSONResponse(status_code=202, content={
+            "success": True, "message": "Verification upload accepted.",
+            **serialize_job(accepted_job),
+        })
     except HTTPException as exc:
         return _verification_error_response(exc)
+    except OSError:
+        verification_logger.exception("[verification] temporary storage failed")
+        return JSONResponse(status_code=503, content={
+            "error": "STORAGE_UNAVAILABLE",
+            "message": "Enrollment image storage is temporarily unavailable.",
+        })
     except Exception as exc:
         verification_logger.exception(
             "[verification] unhandled exception error=%r traceback=%s",
@@ -1717,10 +1721,6 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
             "error": "ENROLLMENT_SUBMIT_FAILED",
             "message": "Enrollment submission failed unexpectedly. Your captures are preserved; retry submission.",
         }
-        if settings.environment == "development":
-            detail["debug_error"] = repr(exc)
-            detail["error_type"] = type(exc).__name__
-            detail["traceback"] = traceback.format_exc()
         return JSONResponse(
             status_code=500,
             content=detail,
@@ -1733,3 +1733,36 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
             elapsed_ms,
             total_uploaded_bytes,
         )
+
+
+@router.get("/enroll/verification/{verification_id}", response_model=None)
+@limiter.limit("60/minute")
+async def enrollment_verification_status(request: Request, verification_id: str) -> Response:
+    _validate_verification_request_origin(request)
+    owner_token = request.headers.get("x-verification-token", "").strip()
+    if not owner_token:
+        raise HTTPException(status_code=401, detail={"message": "Verification authentication is required."})
+    try:
+        job = get_owned_job(verification_id, owner_token)
+    except VerificationJobUnauthorized as exc:
+        raise HTTPException(status_code=404, detail={"message": "Verification job was not found."}) from exc
+    return JSONResponse(status_code=200, content=serialize_job(job))
+
+
+@router.delete("/enroll/verification/{verification_id}", response_model=None)
+@limiter.limit("10/minute")
+async def cancel_enrollment_verification(request: Request, verification_id: str) -> Response:
+    _validate_verification_request_origin(request)
+    owner_token = request.headers.get("x-verification-token", "").strip()
+    if not owner_token:
+        raise HTTPException(status_code=401, detail={"message": "Verification authentication is required."})
+    try:
+        job = cancel_owned_job(verification_id, owner_token)
+    except VerificationJobUnauthorized as exc:
+        raise HTTPException(status_code=404, detail={"message": "Verification job was not found."}) from exc
+    get_storage_service().clear_temporary_verification(verification_id)
+    if job.celery_task_id:
+        mark_task_failed(job.celery_task_id, "cancelled")
+        from app.core.celery_app import celery_app
+        celery_app.control.revoke(job.celery_task_id, terminate=False)
+    return JSONResponse(status_code=200, content=serialize_job(job))
