@@ -25,6 +25,14 @@ test('verification upload sends stable ownership and idempotency credentials', (
   assert.match(apiSource, /crypto\.randomUUID\(\)/);
 });
 
+test('submission errors distinguish network and HTTP failure categories', () => {
+  for (const status of [404, 413, 422, 500, 503]) {
+    assert.match(apiSource, new RegExp(`status === ${status}|status >= ${status}`));
+  }
+  assert.match(apiSource, /requestId: response\.headers\.get\('x-request-id'\)/);
+  assert.match(apiSource, /httpStatus: null/);
+});
+
 test('refresh restores the persisted verification job and resumes polling', () => {
   assert.match(flowSource, /localStorage\.getItem\(verificationStorageKey\)/);
   assert.match(flowSource, /setVerificationJob\(persisted\.verificationJob\)/);

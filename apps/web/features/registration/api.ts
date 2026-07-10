@@ -291,6 +291,16 @@ function isEnrollmentResponse(value: unknown): value is EnrollmentResponse {
   );
 }
 
+export function enrollmentHttpErrorMessage(status: number): string {
+  if (status === 401 || status === 403) return 'Enrollment authorization failed. Refresh the page and try again.';
+  if (status === 404 || status === 405) return 'The enrollment endpoint is not available on the deployed API.';
+  if (status === 413) return 'The enrollment upload is too large. Your captures are preserved; retry after the service is updated.';
+  if (status === 422) return 'The enrollment submission was rejected by validation. Review the capture guidance and retry.';
+  if (status === 503) return 'The enrollment service is temporarily unavailable. Your captures are preserved; retry shortly.';
+  if (status >= 500) return 'The enrollment service encountered a server error. Your captures are preserved; retry shortly.';
+  return `Enrollment submission failed (${status}). Your captures are preserved.`;
+}
+
 function toMessageFromUnknown(value: unknown): string | null {
   if (typeof value === 'string' && value.trim()) {
     return value.trim();
@@ -738,10 +748,15 @@ async function parseEnrollmentResponse(
     ? `${response.status}${response.statusText ? ` ${response.statusText}` : ''}`
     : 'unknown';
   const logResponseIssue = (body: unknown) => {
+    const requestId = response.headers.get('x-request-id');
+    const errorCode = body && typeof body === 'object' && 'error' in body
+      ? String((body as Record<string, unknown>).error)
+      : null;
     const logPayload = {
+      requestUrl,
       status: response.status,
-      statusText: response.statusText,
-      body,
+      requestId,
+      errorCode,
     };
 
     if (response.status >= 500) {
@@ -781,7 +796,8 @@ async function parseEnrollmentResponse(
   const derivedMessage =
     toValidationReasonMessage(parsedData) ||
     toFastApiValidationMessage(parsedData) ||
-    toMessageFromUnknown(parsedData) ||
+    (response.ok ? toMessageFromUnknown(parsedData) : null) ||
+    (!response.ok ? enrollmentHttpErrorMessage(response.status) : null) ||
     (response.ok ? 'Request completed.' : `Request failed (${statusLabel}).`);
 
   if (!response.ok) {
@@ -796,6 +812,10 @@ async function parseEnrollmentResponse(
         httpStatus: response.status,
         responseBody: rawText || null,
         error: derivedMessage,
+        requestId: response.headers.get('x-request-id'),
+        errorCode: parsedData && typeof parsedData === 'object' && 'error' in parsedData
+          ? String((parsedData as Record<string, unknown>).error)
+          : null,
       },
     };
   }

@@ -43,6 +43,8 @@ export type EnrollmentSubmitDiagnostics = {
   httpStatus: number | null;
   responseBody: string | null;
   error: string | null;
+  requestId?: string | null;
+  errorCode?: string | null;
 };
 
 export type EnrollmentCompletionResult = {

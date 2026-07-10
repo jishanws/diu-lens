@@ -34,7 +34,7 @@ def test_options_preflight_succeeds_with_cors_headers(client: TestClient) -> Non
         headers={
             "Origin": "http://localhost:3000",
             "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "authorization,content-type",
+            "Access-Control-Request-Headers": "authorization,content-type,idempotency-key,x-verification-token,x-request-id,x-correlation-id",
         },
     )
 
@@ -43,6 +43,13 @@ def test_options_preflight_succeeds_with_cors_headers(client: TestClient) -> Non
     assert "POST" in response.headers["access-control-allow-methods"]
     assert "authorization" in response.headers["access-control-allow-headers"].lower()
     assert "content-type" in response.headers["access-control-allow-headers"].lower()
+    for header in (
+        "idempotency-key",
+        "x-verification-token",
+        "x-request-id",
+        "x-correlation-id",
+    ):
+        assert header in response.headers["access-control-allow-headers"].lower()
 
 
 def test_deployed_frontend_origins_are_read_from_environment(
