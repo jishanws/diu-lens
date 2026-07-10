@@ -117,6 +117,7 @@ def _passing_validation_report(
     image_bytes: bytes,
     file_name: str,
     angle: str,
+    **_kwargs,
 ) -> dict[str, object]:
     index = int(file_name.rsplit("_", 1)[-1].split(".", 1)[0])
     hash_seed = REQUIRED_ANGLES.index(angle) * 2 + index
@@ -181,7 +182,7 @@ def test_front_pose_not_accepted_as_left_or_right(monkeypatch) -> None:
 
 
 def test_practical_left_pose_threshold_is_accepted(monkeypatch) -> None:
-    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=-12, pitch=14)])
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=12, pitch=14)])
 
     report = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
 
@@ -497,10 +498,29 @@ def test_overexposed_face_region_fails_brightness(monkeypatch) -> None:
 
 
 def test_backend_pose_signs_map_left_and_right_without_mirroring() -> None:
-    assert image_validation._pose_matches("left", -12.0, 0.0) is True
-    assert image_validation._pose_matches("right", 12.0, 0.0) is True
-    assert image_validation._pose_matches("left", 12.0, 0.0) is False
-    assert image_validation._pose_matches("right", -12.0, 0.0) is False
+    assert image_validation._pose_matches("left", 12.0, 0.0) is True
+    assert image_validation._pose_matches("right", -12.0, 0.0) is True
+    assert image_validation._pose_matches("left", -12.0, 0.0) is False
+    assert image_validation._pose_matches("right", 12.0, 0.0) is False
+
+
+def test_validation_config_endpoint_includes_pose_near_thresholds(client) -> None:
+    response = client.get("/enroll/validation-config")
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["poseThresholds"]["left"]["valid"] == {
+        "yawMin": 12.0,
+        "yawMax": 45.0,
+        "pitchMin": -25.0,
+        "pitchMax": 25.0,
+    }
+    assert payload["poseThresholds"]["left"]["near"] == {
+        "yawMin": 8.0,
+        "yawMax": 49.0,
+        "pitchMin": -29.0,
+        "pitchMax": 29.0,
+    }
 
 
 @pytest.mark.parametrize(
@@ -580,7 +600,7 @@ def test_similar_perceptual_hashes_do_not_block_distinct_frames(client, monkeypa
     student_id = "930-26-2020"
     _create_pending_enrollment(client, student_id)
 
-    def same_person_report(image_bytes: bytes, file_name: str, angle: str):
+    def same_person_report(image_bytes: bytes, file_name: str, angle: str, **_kwargs):
         report = _passing_validation_report(image_bytes, file_name, angle)
         report["perceptual_hash"] = "aaaaaaaaaaaaaaaa"
         return report
@@ -653,7 +673,7 @@ def test_image_validation_failure_returns_structured_422(client, monkeypatch) ->
     student_id = "930-26-2013"
     _create_pending_enrollment(client, student_id)
 
-    def fail_left(image_bytes: bytes, file_name: str, angle: str):
+    def fail_left(image_bytes: bytes, file_name: str, angle: str, **_kwargs):
         report = _passing_validation_report(image_bytes, file_name, angle)
         if angle == "left" and file_name == "left_1.jpg":
             report.update(
@@ -819,7 +839,7 @@ def test_calibration_mode_does_not_persist_enrollment(
     db_session_factory,
     monkeypatch,
 ) -> None:
-    def fake_validate(image_bytes: bytes, file_name: str, angle: str):
+    def fake_validate(image_bytes: bytes, file_name: str, angle: str, **_kwargs):
         return {
             "file_name": file_name,
             "angle": angle,

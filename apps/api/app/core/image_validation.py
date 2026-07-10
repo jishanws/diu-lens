@@ -37,7 +37,6 @@ _FACE_CASCADE = cv2.CascadeClassifier(
 )
 logger = logging.getLogger("diu_lens.opencv")
 SEVERELY_BLURRY_VARIANCE = 28.0
-_STRICT_FACE_DETECTION_ANGLES: set[str] = {"front"}
 _INSIGHTFACE_ANALYZER: Any = None
 _INSIGHTFACE_INIT_FAILED = False
 
@@ -714,7 +713,7 @@ def validate_uploaded_image_sanity(
 ) -> dict[str, Any]:
     report = _default_report(file_name=file_name, angle=angle)
     report["image_size_bytes"] = len(image_bytes)
-    strict_face_detection = angle in _STRICT_FACE_DETECTION_ANGLES
+    strict_face_detection = angle == "front"
 
     if not image_bytes:
         _append_reason(report, reason="missing_image_data", blocking=True)
@@ -754,6 +753,16 @@ def validate_uploaded_image_sanity(
 
     report["readable"] = True
     report["decoded_shape"] = [int(v) for v in image.shape]
+    try:
+        report["perceptual_hash"] = compute_phash(image)
+    except cv2.error:
+        logger.exception(
+            "[guided-sanity] perceptual hash generation failed file=%s angle=%s",
+            file_name,
+            angle,
+        )
+        _append_reason(report, reason="image_processing_failed", blocking=True)
+        return _finalize_guided_sanity_report(report)
 
     height, width = image.shape[:2]
     report["dimensions"] = f"{width}x{height}"

@@ -782,6 +782,48 @@ async def _validate_files(
     return summary
 
 
+@router.get("/enroll/validation-config")
+async def get_validation_config() -> JSONResponse:
+    config = ENROLLMENT_VALIDATION_CONFIG
+    payload = {
+        "minDetectionScore": config.min_detection_score,
+        "minFaceAreaRatio": config.min_face_area_ratio,
+        "maxFaceAreaRatio": config.max_face_area_ratio,
+        "maxCenterOffset": config.max_center_offset,
+        "minEdgeMarginRatio": config.min_edge_margin_ratio,
+        "minBlurVariance": config.min_blur_variance,
+        "brightnessRange": {
+            "min": config.min_brightness,
+            "max": config.max_brightness,
+        },
+        "minResolution": {
+            "width": config.min_width,
+            "height": config.min_height,
+        },
+        "stabilityDurationMs": config.stability_duration_ms,
+        "requiredSamplesPerAngle": config.required_samples_per_angle,
+        "livenessChallengeCount": config.liveness_challenge_count,
+        "poseThresholds": {
+            angle: {
+                "valid": {
+                    "yawMin": t.yaw_min,
+                    "yawMax": t.yaw_max,
+                    "pitchMin": t.pitch_min,
+                    "pitchMax": t.pitch_max,
+                },
+                "near": {
+                    "yawMin": t.yaw_min - 4.0,
+                    "yawMax": t.yaw_max + 4.0,
+                    "pitchMin": t.pitch_min - 4.0,
+                    "pitchMax": t.pitch_max + 4.0,
+                },
+            }
+            for angle, t in config.pose_thresholds.items()
+        }
+    }
+    return JSONResponse(content=payload)
+
+
 @router.post("/enroll/calibration", response_model=None)
 async def calibrate_enrollment_capture(request: Request) -> dict[str, object] | Response:
     try:
@@ -1399,7 +1441,7 @@ async def validate_student_id(
     if student_record:
         enroll_logger.info("[validate-id] already_registered student_id=%s", normalized)
         return StudentIdValidationResponse(
-            valid=False, 
+            valid=False,
             reason="already_registered",
             student=StudentInfo(student_id=student_record.student_id, name=student_record.full_name)
         )
@@ -1530,7 +1572,7 @@ async def enroll_verification(request: Request) -> EnrollmentResponse:
     )
     try:
         _validate_verification_request_origin(request)
-            
+
         content_type = request.headers.get("content-type", "").lower()
         if "multipart/form-data" not in content_type:
             raise HTTPException(

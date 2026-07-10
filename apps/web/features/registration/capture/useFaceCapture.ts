@@ -19,6 +19,13 @@ import {
   livenessChallengePool,
   type LivenessChallenge,
 } from '@/features/registration/capture/enrollmentValidationConfig';
+import {
+  getHybridPoseState,
+  getPoseState,
+  hasStableCaptureWindow,
+  isFrameLocallyAcceptable,
+  normalizeYawForUser,
+} from '@/features/registration/capture/captureValidation';
 import { useAngleProgress } from '@/features/registration/capture/useAngleProgress';
 import type {
   CapturePersistencePayload,
@@ -26,7 +33,6 @@ import type {
   CapturedShotsByAngle,
   FaceCaptureState,
   CaptureFeedback,
-  PoseValidationState,
 } from '@/features/registration/capture/types';
 import type {
   VerificationAngle,
@@ -72,8 +78,7 @@ const MIN_CAPTURE_FILE_SIZE_BYTES = 10 * 1024;
 const LIVENESS_HOLD_MS = enrollmentValidationConfig.livenessMotionHoldMs;
 const LIVENESS_CHALLENGE_TIMEOUT_MS =
   enrollmentValidationConfig.livenessChallengeTimeoutMs;
-const FACE_GUIDANCE_WASM_BASE_PATH =
-  '/vendor/mediapipe/tasks-vision/wasm';
+const FACE_GUIDANCE_WASM_BASE_PATH = '/vendor/mediapipe/tasks-vision/wasm';
 const FACE_GUIDANCE_WASM_LOADER_PATH = `${FACE_GUIDANCE_WASM_BASE_PATH}/vision_wasm_internal.js`;
 const FACE_GUIDANCE_MODEL_PATH =
   '/vendor/mediapipe/models/face_landmarker.task';
@@ -292,67 +297,15 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): {
 
   const yawNorm = (noseTip.x - eyeMidX) / (eyeDistance * 0.5);
   const pitchNorm = (noseTip.y - eyeMidY) / verticalSpan - 0.5;
-  const roll = Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x) * (180 / Math.PI);
+  const roll =
+    Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x) *
+    (180 / Math.PI);
 
   return {
     yaw: clamp(yawNorm * 32, -45, 45),
     pitch: clamp(-pitchNorm * 42, -35, 35),
     roll: clamp(roll, -45, 45),
   };
-}
-
-function thresholdContains(
-  threshold: { yawMin: number; yawMax: number; pitchMin: number; pitchMax: number },
-  yaw: number,
-  pitch: number,
-  marginBoost: number = 0
-) {
-  return (
-    yaw >= threshold.yawMin - marginBoost &&
-    yaw <= threshold.yawMax + marginBoost &&
-    pitch >= threshold.pitchMin - marginBoost &&
-    pitch <= threshold.pitchMax + marginBoost
-  );
-}
-
-function getPoseState(
-  angle: VerificationAngle,
-  yaw: number,
-  pitch: number,
-  marginBoost: number = 0
-): PoseValidationState {
-  if (angle === 'natural_front') return 'valid';
-  const threshold = ANGLE_THRESHOLDS[angle];
-  if (!threshold) return 'invalid';
-  if (thresholdContains(threshold.valid, yaw, pitch, marginBoost)) {
-    return 'valid';
-  }
-  if (thresholdContains(threshold.near, yaw, pitch, marginBoost)) {
-    return 'near_valid';
-  }
-  return 'invalid';
-}
-
-function getLivenessExpectedDirection(
-  challenge: LivenessChallenge,
-  observedLeftDirection: number | null
-) {
-  if (challenge === 'center') return 'center';
-  if (challenge === 'blink') return 'blink';
-
-  const mode = enrollmentValidationConfig.livenessYawDirectionMode;
-  if (mode === 'either') return 'either';
-  if (mode === 'negative-left') return challenge === 'left' ? 'negative' : 'positive';
-  if (mode === 'positive-left') return challenge === 'left' ? 'positive' : 'negative';
-  if (observedLeftDirection) {
-    const expected = challenge === 'left' ? observedLeftDirection : -observedLeftDirection;
-    return expected < 0 ? 'negative' : 'positive';
-  }
-  return 'either';
-}
-
-function normalizeYawForUser(rawYaw: number) {
-  return rawYaw;
 }
 
 function normalizePitchForUser(rawPitch: number) {
@@ -381,42 +334,27 @@ function getRequiredPitchRange(angle: VerificationAngle) {
   return `${threshold.valid.pitchMin}..${threshold.valid.pitchMax}`;
 }
 
-function getHybridPoseState(
-  angle: VerificationAngle,
-  yaw: number,
-  pitch: number,
-  baseline: { yaw: number; pitch: number } | null,
-  marginBoost: number = 0
-): PoseValidationState {
-  const absoluteState = getPoseState(angle, yaw, pitch, marginBoost);
-  if (absoluteState === 'invalid' || angle === 'natural_front') return absoluteState;
-  if (!baseline || angle === 'front') return absoluteState;
+function getLivenessExpectedDirection(
+  challenge: LivenessChallenge,
+  observedLeftDirection: number | null
+) {
+  if (challenge === 'center') return 'center';
+  if (challenge === 'blink') return 'blink';
 
-  const yawDelta = yaw - baseline.yaw;
-  const pitchDelta = pitch - baseline.pitch;
-  const delta = enrollmentValidationConfig.poseDeltaThresholds;
-  let moved = false;
-
-  if (angle === 'left') {
-    moved =
-      yawDelta <= -delta.yawDegrees &&
-      Math.abs(pitchDelta) <= delta.centerPitchToleranceDegrees + 8;
-  } else if (angle === 'right') {
-    moved =
-      yawDelta >= delta.yawDegrees &&
-      Math.abs(pitchDelta) <= delta.centerPitchToleranceDegrees + 8;
-  } else if (angle === 'up') {
-    moved =
-      pitchDelta >= delta.pitchDegrees &&
-      Math.abs(yawDelta) <= delta.centerYawToleranceDegrees + 8;
-  } else if (angle === 'down') {
-    moved =
-      pitchDelta <= -delta.pitchDegrees &&
-      Math.abs(yawDelta) <= delta.centerYawToleranceDegrees + 8;
+  const mode = enrollmentValidationConfig.livenessYawDirectionMode;
+  if (mode === 'either') return 'either';
+  if (mode === 'negative-left') {
+    return challenge === 'left' ? 'negative' : 'positive';
   }
-
-  if (moved) return absoluteState;
-  return absoluteState === 'valid' ? 'near_valid' : 'invalid';
+  if (mode === 'positive-left') {
+    return challenge === 'left' ? 'positive' : 'negative';
+  }
+  if (observedLeftDirection) {
+    const expected =
+      challenge === 'left' ? observedLeftDirection : -observedLeftDirection;
+    return expected < 0 ? 'negative' : 'positive';
+  }
+  return 'either';
 }
 
 function isHybridAngleMatch(
@@ -426,7 +364,16 @@ function isHybridAngleMatch(
   baseline: { yaw: number; pitch: number } | null,
   marginBoost: number = 0
 ) {
-  return getHybridPoseState(angle, yaw, pitch, baseline, marginBoost) === 'valid';
+  return (
+    getHybridPoseState(
+      angle,
+      enrollmentValidationConfig.poseThresholds,
+      yaw,
+      pitch,
+      baseline,
+      marginBoost
+    ) === 'valid'
+  );
 }
 
 function livenessChallengeMatched(
@@ -435,7 +382,12 @@ function livenessChallengeMatched(
   landmarks: LandmarkPoint[],
   baselineYaw: number | null,
   observedLeftDirection: number | null
-): { matched: boolean; yawDelta: number | null; expectedDirection: string; observedDirection: number | null } {
+): {
+  matched: boolean;
+  yawDelta: number | null;
+  expectedDirection: string;
+  observedDirection: number | null;
+} {
   if (challenge === 'blink') {
     return {
       matched: areEyesClosed(landmarks),
@@ -448,34 +400,47 @@ function livenessChallengeMatched(
     return {
       matched: false,
       yawDelta: null,
-      expectedDirection: getLivenessExpectedDirection(challenge, observedLeftDirection),
+      expectedDirection: getLivenessExpectedDirection(
+        challenge,
+        observedLeftDirection
+      ),
       observedDirection: null,
     };
   }
 
   const yawDelta = yaw - baselineYaw;
   const absDelta = Math.abs(yawDelta);
-  const observedDirection = absDelta >= enrollmentValidationConfig.livenessMinYawDeltaDegrees
-    ? Math.sign(yawDelta)
-    : null;
+  const observedDirection =
+    absDelta >= enrollmentValidationConfig.livenessMinYawDeltaDegrees
+      ? Math.sign(yawDelta)
+      : null;
 
   if (challenge === 'center') {
     return {
-      matched: absDelta <= enrollmentValidationConfig.livenessCenterYawToleranceDegrees,
+      matched:
+        absDelta <=
+        enrollmentValidationConfig.livenessCenterYawToleranceDegrees,
       yawDelta,
       expectedDirection: 'center',
       observedDirection: null,
     };
   }
 
-  const expectedDirection = getLivenessExpectedDirection(challenge, observedLeftDirection);
+  const expectedDirection = getLivenessExpectedDirection(
+    challenge,
+    observedLeftDirection
+  );
   const directionOk =
     expectedDirection === 'either' ||
-    (expectedDirection === 'negative' && yawDelta <= -enrollmentValidationConfig.livenessMinYawDeltaDegrees) ||
-    (expectedDirection === 'positive' && yawDelta >= enrollmentValidationConfig.livenessMinYawDeltaDegrees);
+    (expectedDirection === 'negative' &&
+      yawDelta <= -enrollmentValidationConfig.livenessMinYawDeltaDegrees) ||
+    (expectedDirection === 'positive' &&
+      yawDelta >= enrollmentValidationConfig.livenessMinYawDeltaDegrees);
 
   return {
-    matched: absDelta >= enrollmentValidationConfig.livenessMinYawDeltaDegrees && directionOk,
+    matched:
+      absDelta >= enrollmentValidationConfig.livenessMinYawDeltaDegrees &&
+      directionOk,
     yawDelta,
     expectedDirection,
     observedDirection,
@@ -485,9 +450,9 @@ function livenessChallengeMatched(
 function areEyesVisible(landmarks: LandmarkPoint[]) {
   return Boolean(
     getLandmark(landmarks, 33) &&
-      getLandmark(landmarks, 263) &&
-      getLandmark(landmarks, 159) &&
-      getLandmark(landmarks, 386)
+    getLandmark(landmarks, 263) &&
+    getLandmark(landmarks, 159) &&
+    getLandmark(landmarks, 386)
   );
 }
 
@@ -500,11 +465,24 @@ function areEyesClosed(landmarks: LandmarkPoint[]) {
   const leftInner = getLandmark(landmarks, 133);
   const rightInner = getLandmark(landmarks, 362);
   const rightOuter = getLandmark(landmarks, 263);
-  if (!leftTop || !leftBottom || !rightTop || !rightBottom || !leftOuter || !leftInner || !rightInner || !rightOuter) {
+  if (
+    !leftTop ||
+    !leftBottom ||
+    !rightTop ||
+    !rightBottom ||
+    !leftOuter ||
+    !leftInner ||
+    !rightInner ||
+    !rightOuter
+  ) {
     return false;
   }
-  const leftOpen = Math.abs(leftTop.y - leftBottom.y) / Math.max(0.001, Math.abs(leftInner.x - leftOuter.x));
-  const rightOpen = Math.abs(rightTop.y - rightBottom.y) / Math.max(0.001, Math.abs(rightOuter.x - rightInner.x));
+  const leftOpen =
+    Math.abs(leftTop.y - leftBottom.y) /
+    Math.max(0.001, Math.abs(leftInner.x - leftOuter.x));
+  const rightOpen =
+    Math.abs(rightTop.y - rightBottom.y) /
+    Math.max(0.001, Math.abs(rightOuter.x - rightInner.x));
   return leftOpen < 0.12 && rightOpen < 0.12;
 }
 
@@ -515,7 +493,10 @@ type NormalizedFaceBox = {
   maxY: number;
 };
 
-function analyzeVideoQuality(video: HTMLVideoElement, faceBox?: NormalizedFaceBox): {
+function analyzeVideoQuality(
+  video: HTMLVideoElement,
+  faceBox?: NormalizedFaceBox
+): {
   blurVariance: number;
   brightness: number;
   resolutionOk: boolean;
@@ -556,14 +537,17 @@ function analyzeVideoQuality(video: HTMLVideoElement, faceBox?: NormalizedFaceBo
     : null;
 
   for (let index = 0, pixel = 0; index < data.length; index += 4, pixel += 1) {
-    const value = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
+    const value =
+      data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
     gray[pixel] = value;
     const x = pixel % width;
     const y = Math.floor(pixel / width);
     if (
       !brightnessBounds ||
-      (x >= brightnessBounds.minX && x < brightnessBounds.maxX &&
-        y >= brightnessBounds.minY && y < brightnessBounds.maxY)
+      (x >= brightnessBounds.minX &&
+        x < brightnessBounds.maxX &&
+        y >= brightnessBounds.minY &&
+        y < brightnessBounds.maxY)
     ) {
       brightnessTotal += value;
       brightnessCount += 1;
@@ -589,10 +573,14 @@ function analyzeVideoQuality(video: HTMLVideoElement, faceBox?: NormalizedFaceBo
     }
   }
 
-  const laplacianMean = laplacianCount > 0 ? laplacianTotal / laplacianCount : 0;
+  const laplacianMean =
+    laplacianCount > 0 ? laplacianTotal / laplacianCount : 0;
   const blurVariance =
     laplacianCount > 0
-      ? Math.max(0, laplacianSquaredTotal / laplacianCount - laplacianMean * laplacianMean)
+      ? Math.max(
+          0,
+          laplacianSquaredTotal / laplacianCount - laplacianMean * laplacianMean
+        )
       : 0;
 
   return {
@@ -615,42 +603,126 @@ function getDynamicAngleGuidance(
     return { instruction: 'Move back', liveMessage: 'Face too close' };
   }
 
-  if (angle === 'natural_front') return { instruction: 'Look naturally', liveMessage: 'Look at the camera naturally' };
-  
+  if (angle === 'natural_front')
+    return {
+      instruction: 'Look naturally',
+      liveMessage: 'Look at the camera naturally',
+    };
+
   if (angle === 'front') {
-    if (yaw < ANGLE_THRESHOLDS.front.valid.yawMin || yaw > ANGLE_THRESHOLDS.front.valid.yawMax) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
-    if (pitch < ANGLE_THRESHOLDS.front.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
-    if (pitch > ANGLE_THRESHOLDS.front.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    if (
+      yaw < ANGLE_THRESHOLDS.front.valid.yawMin ||
+      yaw > ANGLE_THRESHOLDS.front.valid.yawMax
+    )
+      return {
+        instruction: 'Face the camera.',
+        liveMessage: 'Face the camera.',
+      };
+    if (pitch < ANGLE_THRESHOLDS.front.valid.pitchMin)
+      return {
+        instruction: 'Lower your chin a little',
+        liveMessage: 'Lower your chin a little',
+      };
+    if (pitch > ANGLE_THRESHOLDS.front.valid.pitchMax)
+      return {
+        instruction: 'Lift your chin a little',
+        liveMessage: 'Lift your chin a little',
+      };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
   if (angle === 'left') {
-    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax) return { instruction: 'Turn your head left.', liveMessage: 'Turn your head left.' };
-    if (yaw < ANGLE_THRESHOLDS.left.valid.yawMin) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
-    if (pitch < ANGLE_THRESHOLDS.left.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
-    if (pitch > ANGLE_THRESHOLDS.left.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    if (yaw < ANGLE_THRESHOLDS.left.valid.yawMin)
+      return {
+        instruction: 'Turn your head left.',
+        liveMessage: 'Turn your head left.',
+      };
+    if (yaw > ANGLE_THRESHOLDS.left.valid.yawMax)
+      return {
+        instruction: 'Face the camera.',
+        liveMessage: 'Face the camera.',
+      };
+    if (pitch < ANGLE_THRESHOLDS.left.valid.pitchMin)
+      return {
+        instruction: 'Lower your chin a little',
+        liveMessage: 'Lower your chin a little',
+      };
+    if (pitch > ANGLE_THRESHOLDS.left.valid.pitchMax)
+      return {
+        instruction: 'Lift your chin a little',
+        liveMessage: 'Lift your chin a little',
+      };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
   if (angle === 'right') {
-    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin) return { instruction: 'Turn your head right.', liveMessage: 'Turn your head right.' };
-    if (yaw > ANGLE_THRESHOLDS.right.valid.yawMax) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
-    if (pitch < ANGLE_THRESHOLDS.right.valid.pitchMin) return { instruction: 'Lower your chin a little', liveMessage: 'Lower your chin a little' };
-    if (pitch > ANGLE_THRESHOLDS.right.valid.pitchMax) return { instruction: 'Lift your chin a little', liveMessage: 'Lift your chin a little' };
+    if (yaw > ANGLE_THRESHOLDS.right.valid.yawMax)
+      return {
+        instruction: 'Turn your head right.',
+        liveMessage: 'Turn your head right.',
+      };
+    if (yaw < ANGLE_THRESHOLDS.right.valid.yawMin)
+      return {
+        instruction: 'Face the camera.',
+        liveMessage: 'Face the camera.',
+      };
+    if (pitch < ANGLE_THRESHOLDS.right.valid.pitchMin)
+      return {
+        instruction: 'Lower your chin a little',
+        liveMessage: 'Lower your chin a little',
+      };
+    if (pitch > ANGLE_THRESHOLDS.right.valid.pitchMax)
+      return {
+        instruction: 'Lift your chin a little',
+        liveMessage: 'Lift your chin a little',
+      };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
   if (angle === 'up') {
-    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Raise your chin slightly', liveMessage: 'Raise your chin slightly' };
-    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
-    if (yaw < ANGLE_THRESHOLDS.up.valid.yawMin || yaw > ANGLE_THRESHOLDS.up.valid.yawMax) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
+    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin)
+      return {
+        instruction: 'Raise your chin slightly',
+        liveMessage: 'Raise your chin slightly',
+      };
+    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax)
+      return {
+        instruction: 'Lower your chin slightly',
+        liveMessage: 'Lower your chin slightly',
+      };
+    if (
+      yaw < ANGLE_THRESHOLDS.up.valid.yawMin ||
+      yaw > ANGLE_THRESHOLDS.up.valid.yawMax
+    )
+      return {
+        instruction: 'Face the camera.',
+        liveMessage: 'Face the camera.',
+      };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
   if (angle === 'down') {
-    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
-    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Raise your chin slightly', liveMessage: 'Raise your chin slightly' };
-    if (yaw < ANGLE_THRESHOLDS.down.valid.yawMin || yaw > ANGLE_THRESHOLDS.down.valid.yawMax) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
+    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax)
+      return {
+        instruction: 'Lower your chin slightly',
+        liveMessage: 'Lower your chin slightly',
+      };
+    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin)
+      return {
+        instruction: 'Raise your chin slightly',
+        liveMessage: 'Raise your chin slightly',
+      };
+    if (
+      yaw < ANGLE_THRESHOLDS.down.valid.yawMin ||
+      yaw > ANGLE_THRESHOLDS.down.valid.yawMax
+    )
+      return {
+        instruction: 'Face the camera.',
+        liveMessage: 'Face the camera.',
+      };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
 
-  return { instruction: getAngleGuidance(angle), liveMessage: getAngleGuidance(angle) };
+  return {
+    instruction: getAngleGuidance(angle),
+    liveMessage: getAngleGuidance(angle),
+  };
 }
 
 function getAngleGuidance(angle: VerificationAngle) {
@@ -721,7 +793,9 @@ export function useFaceCapture({
   const consecutiveFailuresRef = useRef<number>(0);
   const stableSinceRef = useRef<number>(0);
   const stableGraceUntilRef = useRef<number>(0);
-  const livenessSequenceRef = useRef<LivenessChallenge[]>(makeLivenessSequence());
+  const livenessSequenceRef = useRef<LivenessChallenge[]>(
+    makeLivenessSequence()
+  );
   const livenessIndexRef = useRef(0);
   const livenessPassCountRef = useRef(0);
   const livenessAttemptsRef = useRef(0);
@@ -730,7 +804,13 @@ export function useFaceCapture({
   const livenessBaselineYawRef = useRef<number | null>(null);
   const livenessBaselinePitchRef = useRef<number | null>(null);
   const livenessObservedLeftDirectionRef = useRef<number | null>(null);
-  const lastGuidanceRef = useRef<{ instruction: string; liveMessage: string; timestamp: number }>({
+  const stableInitialYawRef = useRef<number | null>(null);
+  const stableInitialPitchRef = useRef<number | null>(null);
+  const lastGuidanceRef = useRef<{
+    instruction: string;
+    liveMessage: string;
+    timestamp: number;
+  }>({
     instruction: '',
     liveMessage: '',
     timestamp: 0,
@@ -761,7 +841,9 @@ export function useFaceCapture({
       livenessPassed: false,
     },
   });
-  const [livenessState, setLivenessState] = useState<FaceCaptureState['liveness']>({
+  const [livenessState, setLivenessState] = useState<
+    FaceCaptureState['liveness']
+  >({
     completed: false,
     failed: false,
     currentChallenge: livenessSequenceRef.current[0] ?? null,
@@ -795,7 +877,7 @@ export function useFaceCapture({
     roll: null,
     userFacingDirection: 'unknown',
     expectedPose: 'Look Straight',
-    leftRightMappingReversed: true,
+    leftRightMappingReversed: false,
     guidanceMessage: perAngleInstruction.front,
     baselineYaw: null,
     baselinePitch: null,
@@ -875,6 +957,11 @@ export function useFaceCapture({
 
   useEffect(() => {
     currentAngleRef.current = currentAngle;
+    stableSinceRef.current = 0;
+    stableGraceUntilRef.current = 0;
+    stableInitialYawRef.current = null;
+    stableInitialPitchRef.current = null;
+    consecutiveFailuresRef.current = 0;
   }, [currentAngle]);
 
   useEffect(() => {
@@ -1019,7 +1106,9 @@ export function useFaceCapture({
           faceModelError: modelReady
             ? 'Face landmarker instance is unavailable.'
             : prev.faceModelError,
-          blockerReason: modelReady ? 'face_model_failed' : 'face_model_loading',
+          blockerReason: modelReady
+            ? 'face_model_failed'
+            : 'face_model_loading',
         }));
         return null;
       }
@@ -1093,7 +1182,11 @@ export function useFaceCapture({
   );
 
   const captureAngle = useCallback(
-    async (targetAngle: VerificationAngle, force: boolean, captureLatencyMs?: number) => {
+    async (
+      targetAngle: VerificationAngle,
+      force: boolean,
+      captureLatencyMs?: number
+    ) => {
       if (!videoElement) return false;
       if (finalizedRef.current) return false;
       if (isAngleComplete(latestShotsRef.current, targetAngle)) return false;
@@ -1119,8 +1212,16 @@ export function useFaceCapture({
             0,
             (box.maxX - box.minX) * (box.maxY - box.minY)
           );
-          centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
-          const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
+          centerOffset = Math.hypot(
+            (box.minX + box.maxX) / 2 - 0.5,
+            (box.minY + box.maxY) / 2 - 0.5
+          );
+          const edgeMargin = Math.min(
+            box.minX,
+            box.minY,
+            1 - box.maxX,
+            1 - box.maxY
+          );
           const videoQuality = analyzeVideoQuality(videoElement, box);
           blurVariance = videoQuality.blurVariance;
           brightness = videoQuality.brightness;
@@ -1142,16 +1243,28 @@ export function useFaceCapture({
           pitch = pose.pitch;
         }
 
-        const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
+        const marginBoost = Math.min(
+          10,
+          Math.floor(consecutiveFailuresRef.current / 10) * 2
+        );
         const baseline =
-          livenessBaselineYawRef.current === null || livenessBaselinePitchRef.current === null
+          livenessBaselineYawRef.current === null ||
+          livenessBaselinePitchRef.current === null
             ? null
             : {
                 yaw: livenessBaselineYawRef.current,
                 pitch: livenessBaselinePitchRef.current,
               };
-        const angleOk = isHybridAngleMatch(targetAngle, yaw, pitch, baseline, marginBoost);
-        const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
+        const angleOk = isHybridAngleMatch(
+          targetAngle,
+          yaw,
+          pitch,
+          baseline,
+          marginBoost
+        );
+        const sizeOk =
+          faceAreaRatio >= MIN_FACE_AREA_RATIO &&
+          faceAreaRatio <= MAX_FACE_AREA_RATIO;
         if (!force && (!angleOk || !sizeOk)) {
           return false;
         }
@@ -1236,11 +1349,17 @@ export function useFaceCapture({
       const nextAngle = findFirstMissingAngle(nextShots);
       cooldownUntilRef.current = performance.now() + POST_CAPTURE_COOLDOWN_MS;
       if (nextAngle && nextAngle !== targetAngle) {
+        stableSinceRef.current = 0;
+        stableGraceUntilRef.current = 0;
+        stableInitialYawRef.current = null;
+        stableInitialPitchRef.current = null;
+        consecutiveFailuresRef.current = 0;
+        currentAngleRef.current = nextAngle;
         console.log('[capture] angle complete, advancing', {
           completedAngle: targetAngle,
           nextAngle,
-          totalCompleted: captureAngles.filter(
-            (a) => isAngleComplete(nextShots, a)
+          totalCompleted: captureAngles.filter((a) =>
+            isAngleComplete(nextShots, a)
           ).length,
           totalRequired: captureAngles.length,
         });
@@ -1332,7 +1451,7 @@ export function useFaceCapture({
         const angle = currentAngleRef.current;
         const captured = latestShotsRef.current[angle]?.length ?? 0;
         const total = getRequiredFramesForAngle(angle);
-        
+
         setFeedback((prev) => ({
           ...prev,
           guidanceState: 'cooldown',
@@ -1393,14 +1512,18 @@ export function useFaceCapture({
         return;
       }
       const faces = detection?.faceLandmarks ?? [];
+      const singleFace = faces.length === 1;
 
       if (faces.length === 0) {
         const videoQuality = analyzeVideoQuality(videoElement);
         const brightnessOk =
-          videoQuality.brightness >= enrollmentValidationConfig.brightnessRange.min &&
-          videoQuality.brightness <= enrollmentValidationConfig.brightnessRange.max;
+          videoQuality.brightness >=
+            enrollmentValidationConfig.brightnessRange.min &&
+          videoQuality.brightness <=
+            enrollmentValidationConfig.brightnessRange.max;
         const sharpEnough =
-          videoQuality.blurVariance >= enrollmentValidationConfig.minBlurVariance;
+          videoQuality.blurVariance >=
+          enrollmentValidationConfig.minBlurVariance;
         stableSinceRef.current = 0;
         stableGraceUntilRef.current = 0;
         setFeedback({
@@ -1438,7 +1561,7 @@ export function useFaceCapture({
           requiredPitchRange: getRequiredPitchRange(angle),
           livenessChallenge: livenessState.completed
             ? null
-            : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
+            : (livenessSequenceRef.current[livenessIndexRef.current] ?? null),
           stableForMs: 0,
           captureQualityState: 'no_face',
           faceDetected: false,
@@ -1509,7 +1632,7 @@ export function useFaceCapture({
           requiredPitchRange: getRequiredPitchRange(angle),
           livenessChallenge: livenessState.completed
             ? null
-            : livenessSequenceRef.current[livenessIndexRef.current] ?? null,
+            : (livenessSequenceRef.current[livenessIndexRef.current] ?? null),
           stableForMs: 0,
           captureQualityState: 'multiple_faces',
           faceDetected: true,
@@ -1546,51 +1669,67 @@ export function useFaceCapture({
         (box.maxX - box.minX) * (box.maxY - box.minY)
       );
       const pose = estimateYawPitch(landmarks);
-      const centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
-      const centered = centerOffset <= enrollmentValidationConfig.maxCenterOffset;
-      const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
-      const edgeOk = edgeMargin >= enrollmentValidationConfig.minEdgeMarginRatio;
-      
+      const centerOffset = Math.hypot(
+        (box.minX + box.maxX) / 2 - 0.5,
+        (box.minY + box.maxY) / 2 - 0.5
+      );
+      const centered =
+        centerOffset <= enrollmentValidationConfig.maxCenterOffset;
+      const edgeMargin = Math.min(
+        box.minX,
+        box.minY,
+        1 - box.maxX,
+        1 - box.maxY
+      );
+      const edgeOk =
+        edgeMargin >= enrollmentValidationConfig.minEdgeMarginRatio;
+
       const eyesVisible = areEyesVisible(landmarks);
       const videoQuality = analyzeVideoQuality(videoElement, box);
       const resolutionOk = videoQuality.resolutionOk;
       const sharpEnough =
         videoQuality.blurVariance >= enrollmentValidationConfig.minBlurVariance;
       const brightnessOk =
-        videoQuality.brightness >= enrollmentValidationConfig.brightnessRange.min &&
-        videoQuality.brightness <= enrollmentValidationConfig.brightnessRange.max;
-      const sizeOk = faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO;
+        videoQuality.brightness >=
+          enrollmentValidationConfig.brightnessRange.min &&
+        videoQuality.brightness <=
+          enrollmentValidationConfig.brightnessRange.max;
+      const sizeOk =
+        faceAreaRatio >= MIN_FACE_AREA_RATIO &&
+        faceAreaRatio <= MAX_FACE_AREA_RATIO;
       const faceCenterOffsetX = (box.minX + box.maxX) / 2 - 0.5;
       const faceCenterOffsetY = (box.minY + box.maxY) / 2 - 0.5;
-      if (debugEnabledRef.current) setDebugState((prev) => ({
-        ...prev,
-        faceDetected: true,
-        faceBox: JSON.stringify({
-          minX: box.minX.toFixed(2),
-          maxX: box.maxX.toFixed(2),
-          minY: box.minY.toFixed(2),
-          maxY: box.maxY.toFixed(2),
-        }),
-        faceBoxX: box.minX,
-        faceBoxY: box.minY,
-        faceBoxWidth: box.maxX - box.minX,
-        faceBoxHeight: box.maxY - box.minY,
-        faceCenterOffsetX,
-        faceCenterOffsetY,
-        faceCenterOffset: centerOffset,
-        faceSizeRatio: faceAreaRatio,
-        visibilityValid: landmarks.length > 0,
-        eyesValid: eyesVisible,
-        framingValid: centered && edgeOk,
-        lightingValid: brightnessOk,
-        brightnessValue: videoQuality.brightness,
-        blurValid: sharpEnough && resolutionOk,
-        currentAngle: angle,
-        currentAngleAccepted: latestShotsRef.current[angle]?.length ?? 0,
-        requiredSamplesPerAngle: getRequiredFramesForAngle(angle),
-      }));
+      if (debugEnabledRef.current)
+        setDebugState((prev) => ({
+          ...prev,
+          faceDetected: true,
+          faceBox: JSON.stringify({
+            minX: box.minX.toFixed(2),
+            maxX: box.maxX.toFixed(2),
+            minY: box.minY.toFixed(2),
+            maxY: box.maxY.toFixed(2),
+          }),
+          faceBoxX: box.minX,
+          faceBoxY: box.minY,
+          faceBoxWidth: box.maxX - box.minX,
+          faceBoxHeight: box.maxY - box.minY,
+          faceCenterOffsetX,
+          faceCenterOffsetY,
+          faceCenterOffset: centerOffset,
+          faceSizeRatio: faceAreaRatio,
+          visibilityValid: landmarks.length > 0,
+          eyesValid: eyesVisible,
+          framingValid: centered && edgeOk,
+          lightingValid: brightnessOk,
+          brightnessValue: videoQuality.brightness,
+          blurValid: sharpEnough && resolutionOk,
+          currentAngle: angle,
+          currentAngleAccepted: latestShotsRef.current[angle]?.length ?? 0,
+          requiredSamplesPerAngle: getRequiredFramesForAngle(angle),
+        }));
       const livenessComplete =
-        livenessPassCountRef.current >= enrollmentValidationConfig.livenessPassCount;
+        livenessPassCountRef.current >=
+        enrollmentValidationConfig.livenessPassCount;
       if (!livenessComplete) {
         let challenge = livenessSequenceRef.current[livenessIndexRef.current];
         if (!challenge) {
@@ -1617,7 +1756,9 @@ export function useFaceCapture({
           livenessInstruction = 'Keep your eyes visible';
         } else if (!sizeOk) {
           livenessBlockerReason =
-            faceAreaRatio < MIN_FACE_AREA_RATIO ? 'face_too_small' : 'face_too_large';
+            faceAreaRatio < MIN_FACE_AREA_RATIO
+              ? 'face_too_small'
+              : 'face_too_large';
           livenessInstruction =
             faceAreaRatio < MIN_FACE_AREA_RATIO ? 'Move closer' : 'Move back';
         } else if (!centered || !edgeOk) {
@@ -1625,11 +1766,13 @@ export function useFaceCapture({
           livenessInstruction = 'Center your face';
         } else if (!brightnessOk) {
           livenessBlockerReason =
-            videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+            videoQuality.brightness <
+            enrollmentValidationConfig.brightnessRange.min
               ? 'lighting_low'
               : 'lighting_high';
           livenessInstruction =
-            videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+            videoQuality.brightness <
+            enrollmentValidationConfig.brightnessRange.min
               ? 'Move into brighter light'
               : 'Reduce direct light';
         } else if (livenessBaselineYawRef.current === null) {
@@ -1639,9 +1782,9 @@ export function useFaceCapture({
 
         const challengeResult = livenessQualityOk
           ? livenessChallengeMatched(
-          challenge,
-          pose.yaw,
-          landmarks,
+              challenge,
+              pose.yaw,
+              landmarks,
               livenessBaselineYawRef.current,
               livenessObservedLeftDirectionRef.current
             )
@@ -1681,14 +1824,14 @@ export function useFaceCapture({
               challengeResult.observedDirection !== null &&
               livenessObservedLeftDirectionRef.current === null
             ) {
-              livenessObservedLeftDirectionRef.current = challengeResult.observedDirection;
+              livenessObservedLeftDirectionRef.current =
+                challengeResult.observedDirection;
             }
             livenessPassCountRef.current += 1;
             livenessIndexRef.current += 1;
             livenessMatchedSinceRef.current = 0;
             livenessChallengeStartedAtRef.current = 0;
-            livenessBaselineYawRef.current = null;
-            livenessBaselinePitchRef.current = null;
+            // Do not clear baseline here, keep it for hybrid pose checks
           }
         } else {
           livenessMatchedSinceRef.current = 0;
@@ -1696,21 +1839,25 @@ export function useFaceCapture({
 
         const timedOut =
           livenessChallengeStartedAtRef.current > 0 &&
-          now - livenessChallengeStartedAtRef.current >= LIVENESS_CHALLENGE_TIMEOUT_MS;
+          now - livenessChallengeStartedAtRef.current >=
+            LIVENESS_CHALLENGE_TIMEOUT_MS;
         if (timedOut) {
           livenessIndexRef.current += 1;
           livenessMatchedSinceRef.current = 0;
           livenessChallengeStartedAtRef.current = 0;
-          livenessBaselineYawRef.current = null;
-          livenessBaselinePitchRef.current = null;
+          // Do not clear baseline here
         }
 
         if (
           livenessIndexRef.current >= livenessSequenceRef.current.length &&
-          livenessPassCountRef.current < enrollmentValidationConfig.livenessPassCount
+          livenessPassCountRef.current <
+            enrollmentValidationConfig.livenessPassCount
         ) {
           livenessAttemptsRef.current += 1;
-          if (livenessAttemptsRef.current > enrollmentValidationConfig.livenessMaxRetries) {
+          if (
+            livenessAttemptsRef.current >
+            enrollmentValidationConfig.livenessMaxRetries
+          ) {
             livenessAttemptsRef.current = 0;
           }
           livenessSequenceRef.current = makeLivenessSequence();
@@ -1724,7 +1871,7 @@ export function useFaceCapture({
           completedCount >= enrollmentValidationConfig.livenessPassCount;
         const nextChallenge = done
           ? null
-          : livenessSequenceRef.current[livenessIndexRef.current] ?? null;
+          : (livenessSequenceRef.current[livenessIndexRef.current] ?? null);
         setLivenessState({
           completed: done,
           failed: false,
@@ -1755,20 +1902,33 @@ export function useFaceCapture({
               ? null
               : pose.pitch - livenessBaselinePitchRef.current,
           expectedAngle: angle,
-          angleState: getPoseState(angle, pose.yaw, pose.pitch),
-          currentPoseState: getPoseState(angle, pose.yaw, pose.pitch),
+          angleState: getPoseState(
+            angle,
+            enrollmentValidationConfig.poseThresholds,
+            pose.yaw,
+            pose.pitch
+          ),
+          currentPoseState: getPoseState(
+            angle,
+            enrollmentValidationConfig.poseThresholds,
+            pose.yaw,
+            pose.pitch
+          ),
           requiredPitchRange: getRequiredPitchRange(angle),
           livenessChallenge: nextChallenge,
           livenessExpectedDirection: challengeResult.expectedDirection,
           livenessCompletedCount: completedCount,
-          livenessRequiredPassCount: enrollmentValidationConfig.livenessPassCount,
+          livenessRequiredPassCount:
+            enrollmentValidationConfig.livenessPassCount,
           livenessAttempts: livenessAttemptsRef.current,
           livenessBlockerReason,
           movementValid: matched,
           canCapture: false,
           stableMs: 0,
           stableForMs: 0,
-          captureQualityState: done ? 'liveness_complete' : livenessBlockerReason,
+          captureQualityState: done
+            ? 'liveness_complete'
+            : livenessBlockerReason,
           currentSampleCount: latestShotsRef.current[angle]?.length ?? 0,
           blockedReason: done ? 'liveness_complete' : livenessBlockerReason,
           blockerReason: done ? 'liveness_complete' : livenessBlockerReason,
@@ -1778,11 +1938,18 @@ export function useFaceCapture({
             guidanceState: eyesVisible ? 'liveness' : 'eyes_hidden',
             instruction: livenessInstruction,
             liveMessage: livenessInstruction,
-            holdProgress: matched ? Math.min(1, (now - livenessMatchedSinceRef.current) / LIVENESS_HOLD_MS) : 0,
+            holdProgress: matched
+              ? Math.min(
+                  1,
+                  (now - livenessMatchedSinceRef.current) / LIVENESS_HOLD_MS
+                )
+              : 0,
             readiness: {
               faceDetected: true,
               singleFace: true,
-              faceLargeEnough: faceAreaRatio >= MIN_FACE_AREA_RATIO && faceAreaRatio <= MAX_FACE_AREA_RATIO,
+              faceLargeEnough:
+                faceAreaRatio >= MIN_FACE_AREA_RATIO &&
+                faceAreaRatio <= MAX_FACE_AREA_RATIO,
               centered,
               eyesVisible,
               sharpEnough: sharpEnough && resolutionOk,
@@ -1795,29 +1962,44 @@ export function useFaceCapture({
           return;
         }
       }
-      const marginBoost = Math.min(10, Math.floor(consecutiveFailuresRef.current / 10) * 2);
+      const marginBoost = Math.min(
+        10,
+        Math.floor(consecutiveFailuresRef.current / 10) * 2
+      );
       const baseline =
-        livenessBaselineYawRef.current === null || livenessBaselinePitchRef.current === null
+        livenessBaselineYawRef.current === null ||
+        livenessBaselinePitchRef.current === null
           ? null
           : {
               yaw: livenessBaselineYawRef.current,
               pitch: livenessBaselinePitchRef.current,
             };
-      const angleState = getHybridPoseState(angle, pose.yaw, pose.pitch, baseline, marginBoost);
+      const angleState = getHybridPoseState(
+        angle,
+        enrollmentValidationConfig.poseThresholds,
+        pose.yaw,
+        pose.pitch,
+        baseline,
+        marginBoost
+      );
       const angleValid = angleState === 'valid';
-      const gateOk =
-        angleValid &&
-        sizeOk &&
-        centered &&
-        edgeOk &&
-        eyesVisible &&
-        sharpEnough &&
-        brightnessOk &&
-        resolutionOk;
+      const gateOk = isFrameLocallyAcceptable({
+        singleFace,
+        angleValid,
+        sizeOk,
+        centered,
+        edgeOk,
+        eyesVisible,
+        sharpEnough,
+        brightnessOk,
+        resolutionOk,
+      });
 
       if (gateOk) {
         if (stableSinceRef.current === 0) {
           stableSinceRef.current = now;
+          stableInitialYawRef.current = pose.yaw;
+          stableInitialPitchRef.current = pose.pitch;
         }
         stableGraceUntilRef.current = now + STABILITY_GRACE_MS;
       } else if (
@@ -1830,23 +2012,67 @@ export function useFaceCapture({
       } else {
         stableSinceRef.current = 0;
         stableGraceUntilRef.current = 0;
+        stableInitialYawRef.current = null;
+        stableInitialPitchRef.current = null;
         consecutiveFailuresRef.current += 1;
       }
 
-      const stableFor = stableSinceRef.current > 0 ? now - stableSinceRef.current : 0;
-      const isStable = stableFor >= STABILITY_WINDOW_MS;
+      let motionOk = true;
+      if (
+        stableSinceRef.current > 0 &&
+        stableInitialYawRef.current !== null &&
+        stableInitialPitchRef.current !== null
+      ) {
+        const yawDelta = Math.abs(pose.yaw - stableInitialYawRef.current);
+        const pitchDelta = Math.abs(pose.pitch - stableInitialPitchRef.current);
+        if (
+          yawDelta > enrollmentValidationConfig.motionDeltaMaxDegrees ||
+          pitchDelta > enrollmentValidationConfig.motionDeltaMaxDegrees
+        ) {
+          motionOk = false;
+        }
+      }
 
-      let { instruction, liveMessage } = getDynamicAngleGuidance(angle, pose.yaw, pose.pitch, faceAreaRatio);
+      if (!motionOk && gateOk) {
+        // Reset stability window due to motion, but keep tracking
+        stableSinceRef.current = now;
+        stableInitialYawRef.current = pose.yaw;
+        stableInitialPitchRef.current = pose.pitch;
+      }
+
+      const stableFor =
+        stableSinceRef.current > 0 ? now - stableSinceRef.current : 0;
+      const isStable =
+        hasStableCaptureWindow(
+          stableSinceRef.current,
+          now,
+          STABILITY_WINDOW_MS
+        ) && motionOk;
+
+      let { instruction, liveMessage } = getDynamicAngleGuidance(
+        angle,
+        pose.yaw,
+        pose.pitch,
+        faceAreaRatio
+      );
       const lastG = lastGuidanceRef.current;
-      
+
       // Debounce logic for guidance text
-      if (now - lastG.timestamp < GUIDANCE_STICK_MS && lastG.instruction && (!angleValid || !sizeOk)) {
+      if (
+        now - lastG.timestamp < GUIDANCE_STICK_MS &&
+        lastG.instruction &&
+        (!angleValid || !sizeOk)
+      ) {
         instruction = lastG.instruction;
         liveMessage = lastG.liveMessage;
       } else if (!angleValid || !sizeOk) {
         lastGuidanceRef.current = { instruction, liveMessage, timestamp: now };
       } else {
-        lastGuidanceRef.current = { instruction: '', liveMessage: '', timestamp: 0 };
+        lastGuidanceRef.current = {
+          instruction: '',
+          liveMessage: '',
+          timestamp: 0,
+        };
       }
 
       let guidanceState: CaptureFeedback['guidanceState'] = 'wrong_angle';
@@ -1874,15 +2100,18 @@ export function useFaceCapture({
         blockedReason = !edgeOk ? 'face_too_close_to_edge' : 'off_center';
       } else if (!brightnessOk) {
         guidanceState =
-          videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+          videoQuality.brightness <
+          enrollmentValidationConfig.brightnessRange.min
             ? 'lighting_low'
             : 'lighting_high';
         instruction =
-          videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+          videoQuality.brightness <
+          enrollmentValidationConfig.brightnessRange.min
             ? 'Move into brighter light'
             : 'Reduce direct light';
         liveMessage =
-          videoQuality.brightness < enrollmentValidationConfig.brightnessRange.min
+          videoQuality.brightness <
+          enrollmentValidationConfig.brightnessRange.min
             ? 'Lighting is too low'
             : 'Lighting is too bright';
         blockedReason = guidanceState;
@@ -1923,7 +2152,9 @@ export function useFaceCapture({
         liveMessage: gateOk
           ? isStable
             ? `Capturing ${Math.min(total, captured + 1)}/${total}`
-            : captured > 0 ? `Hold still (${captured}/${total})` : 'Hold still'
+            : captured > 0
+              ? `Hold still (${captured}/${total})`
+              : 'Hold still'
           : liveMessage,
         holdProgress: gateOk ? Math.min(1, stableFor / STABILITY_WINDOW_MS) : 0,
         readiness: {
@@ -1974,7 +2205,12 @@ export function useFaceCapture({
         cameraReady: videoElement !== null && videoElement.readyState >= 2,
         frameLoopRunning: runningRef.current,
         faceDetected: true,
-        faceBox: JSON.stringify({ minX: box.minX.toFixed(2), maxX: box.maxX.toFixed(2), minY: box.minY.toFixed(2), maxY: box.maxY.toFixed(2) }),
+        faceBox: JSON.stringify({
+          minX: box.minX.toFixed(2),
+          maxX: box.maxX.toFixed(2),
+          minY: box.minY.toFixed(2),
+          maxY: box.maxY.toFixed(2),
+        }),
         faceBoxX: box.minX,
         faceBoxY: box.minY,
         faceBoxWidth: box.maxX - box.minX,
@@ -2054,6 +2290,10 @@ export function useFaceCapture({
     runningRef.current = false;
     stableSinceRef.current = 0;
     stableGraceUntilRef.current = 0;
+    stableInitialYawRef.current = null;
+    stableInitialPitchRef.current = null;
+    consecutiveFailuresRef.current = 0;
+    currentAngleRef.current = angle;
     setActiveAngle(angle);
     setFeedback((prev) => ({
       ...prev,
@@ -2063,24 +2303,32 @@ export function useFaceCapture({
     }));
   }, []);
 
-  const invalidateAngles = useCallback((angles: readonly FailedCaptureAngle[]) => {
-    if (angles.length === 0) return;
-    setCapturedShots((current) => {
-      for (const angle of angles) {
-        for (const existing of current[angle]) URL.revokeObjectURL(existing.previewUrl);
-      }
-      return {
-        ...current,
-        ...clearFailedAngleValues(current, angles),
-      };
-    });
-    cooldownUntilRef.current = 0;
-    finalizedRef.current = false;
-    runningRef.current = false;
-    stableSinceRef.current = 0;
-    stableGraceUntilRef.current = 0;
-    setActiveAngle(angles[0]);
-  }, []);
+  const invalidateAngles = useCallback(
+    (angles: readonly FailedCaptureAngle[]) => {
+      if (angles.length === 0) return;
+      setCapturedShots((current) => {
+        for (const angle of angles) {
+          for (const existing of current[angle])
+            URL.revokeObjectURL(existing.previewUrl);
+        }
+        return {
+          ...current,
+          ...clearFailedAngleValues(current, angles),
+        };
+      });
+      cooldownUntilRef.current = 0;
+      finalizedRef.current = false;
+      runningRef.current = false;
+      stableSinceRef.current = 0;
+      stableGraceUntilRef.current = 0;
+      stableInitialYawRef.current = null;
+      stableInitialPitchRef.current = null;
+      consecutiveFailuresRef.current = 0;
+      currentAngleRef.current = angles[0];
+      setActiveAngle(angles[0]);
+    },
+    []
+  );
 
   const restartCapture = useCallback(() => {
     setCapturedShots((current) => {
@@ -2102,9 +2350,12 @@ export function useFaceCapture({
     livenessObservedLeftDirectionRef.current = null;
     stableSinceRef.current = 0;
     stableGraceUntilRef.current = 0;
+    stableInitialYawRef.current = null;
+    stableInitialPitchRef.current = null;
     consecutiveFailuresRef.current = 0;
     cooldownUntilRef.current = 0;
     finalizedRef.current = false;
+    currentAngleRef.current = 'front';
     setActiveAngle('front');
     setLivenessState({
       completed: false,
