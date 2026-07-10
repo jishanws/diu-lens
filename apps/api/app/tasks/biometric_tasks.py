@@ -234,12 +234,22 @@ def _temporary_upload_files(job) -> tuple[dict[str, list[UploadFile]], list[obje
     return uploads, handles
 
 
-def _promote_verified_images(job) -> dict[str, list[str]]:
+def _promote_verified_images(job, validation_summary: dict | None = None) -> dict[str, list[str]]:
     storage = get_storage_service()
     storage.clear_student_uploads(job.student_id)
     promoted = {angle: [] for angle in ("front", "left", "right", "up", "down", "natural_front")}
+    accepted: set[tuple[str, int]] | None = None
+    if settings.enrollment_demo_mode and validation_summary is not None:
+        reports = validation_summary.get("image_reports", [])
+        accepted = {
+            (str(report.get("angle")), int(report.get("image_index") or 0))
+            for report in reports
+            if isinstance(report, dict) and bool(report.get("demo_usable"))
+        }
     for angle, paths in dict(job.temporary_images_json or {}).items():
-        for relative_path in paths:
+        for index, relative_path in enumerate(paths, start=1):
+            if accepted is not None and (str(angle), index) not in accepted:
+                continue
             path = storage.resolve_relative_path(str(relative_path))
             content_type = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
             promoted[str(angle)].append(storage.save_raw_upload(
@@ -356,7 +366,7 @@ def process_enrollment_verification_task(self, verification_id: str) -> dict:
             stage_durations_json=durations,
         )
 
-        promoted_images = _promote_verified_images(job)
+        promoted_images = _promote_verified_images(job, validation_summary)
         entry = enroll_route._build_enrollment_entry(
             payload=payload, uploaded_images=promoted_images,
             validation_summary=validation_summary,

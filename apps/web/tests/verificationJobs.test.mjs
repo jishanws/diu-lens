@@ -27,6 +27,7 @@ test('verification upload sends stable ownership and idempotency credentials', (
   assert.match(apiSource, /'Idempotency-Key': credentials\.idempotencyKey/);
   assert.match(apiSource, /'X-Verification-Token': credentials\.ownerToken/);
   assert.match(apiSource, /crypto\.randomUUID\(\)/);
+  assert.match(flowSource, /verificationCredentialsRef\.current \?\? createVerificationCredentials\(\)/);
 });
 
 test('exact stored captures pass authoritative precheck before job submission', () => {

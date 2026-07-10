@@ -5,6 +5,7 @@ import os
 import subprocess
 import sys
 import time
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
@@ -678,6 +679,123 @@ def test_precheck_returns_failed_angle_before_job_creation(
     assert response.json()["details"][0]["error_code"] == "face_too_close_to_edge"
     with db_session_factory() as db:
         assert db.scalars(select(EnrollmentVerificationJob)).all() == []
+
+
+def test_demo_mode_generates_stable_fallback_idempotency_key(
+    client, db_session_factory, monkeypatch
+) -> None:
+    student_id = "930-26-2092"
+    _create_pending_enrollment(client, student_id)
+    monkeypatch.setattr(
+        enroll,
+        "settings",
+        replace(enroll.settings, enrollment_demo_mode=True),
+    )
+
+    headers = {"X-Verification-Token": f"verification-owner-token-{student_id}"}
+    first = client.post(
+        "/enroll/verification",
+        headers=headers,
+        files=_verification_files(_verification_metadata(student_id)),
+    )
+    second = client.post(
+        "/enroll/verification",
+        headers=headers,
+        files=_verification_files(_verification_metadata(student_id)),
+    )
+
+    assert first.status_code == second.status_code == 202
+    assert first.json()["verification_id"] == second.json()["verification_id"]
+    with db_session_factory() as db:
+        assert len(db.scalars(select(EnrollmentVerificationJob)).all()) == 1
+
+
+def test_demo_mode_accepts_three_usable_faces_and_ignores_quality_failures(
+    client, monkeypatch
+) -> None:
+    student_id = "930-26-2093"
+    _create_pending_enrollment(client, student_id)
+    monkeypatch.setattr(
+        enroll,
+        "settings",
+        replace(enroll.settings, enrollment_demo_mode=True),
+    )
+    calls = 0
+
+    def demo_report(image_bytes: bytes, file_name: str, angle: str, **kwargs):
+        nonlocal calls
+        calls += 1
+        report = _passing_validation_report(image_bytes, file_name, angle, **kwargs)
+        report.update(face_count=1, dimensions_ok=True)
+        if calls <= 3:
+            report.update(
+                passed=False,
+                is_blocking_failure=True,
+                failure_reasons=["wrong_pose(angle:down,yaw:0,pitch:0)"],
+                blocking_reasons=["wrong_pose(angle:down,yaw:0,pitch:0)"],
+                blocker="wrong_pose",
+            )
+        else:
+            report.update(
+                passed=False,
+                face_detected=False,
+                face_count=0,
+                is_blocking_failure=True,
+                failure_reasons=["face_not_detected"],
+                blocking_reasons=["face_not_detected"],
+                blocker="face_not_detected",
+            )
+        return report
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", demo_report)
+    response = client.post(
+        "/enroll/verification/precheck",
+        headers={
+            "X-Verification-Token": f"verification-owner-token-{student_id}",
+        },
+        files=_verification_files(_verification_metadata(student_id)),
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["validation_passed"] is True
+
+
+def test_demo_mode_uses_simple_message_when_fewer_than_three_faces_are_usable(
+    client, monkeypatch
+) -> None:
+    student_id = "930-26-2094"
+    _create_pending_enrollment(client, student_id)
+    monkeypatch.setattr(
+        enroll,
+        "settings",
+        replace(enroll.settings, enrollment_demo_mode=True),
+    )
+
+    def no_face(image_bytes: bytes, file_name: str, angle: str, **kwargs):
+        report = _passing_validation_report(image_bytes, file_name, angle, **kwargs)
+        report.update(
+            passed=False,
+            face_detected=False,
+            face_count=0,
+            dimensions_ok=True,
+            is_blocking_failure=True,
+            failure_reasons=["face_not_detected"],
+            blocking_reasons=["face_not_detected"],
+            blocker="face_not_detected",
+        )
+        return report
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", no_face)
+    response = client.post(
+        "/enroll/verification/precheck",
+        headers={},
+        files=_verification_files(_verification_metadata(student_id)),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["message"] == (
+        "We couldn't detect your face clearly. Please try again in better lighting."
+    )
 
 
 def test_verification_returns_202_quickly_and_status_is_owner_scoped(

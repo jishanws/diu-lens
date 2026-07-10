@@ -175,6 +175,7 @@ class Settings:
     enrollment_pose_right: str
     enrollment_pose_up: str
     enrollment_pose_down: str
+    enrollment_demo_mode: bool
 
 
 _environment = _get_env("APP_ENV", "development").lower()
@@ -257,4 +258,5 @@ settings = Settings(
     enrollment_pose_right=_get_env("ENROLLMENT_POSE_RIGHT", "12,45,-25,25"),
     enrollment_pose_up=_get_env("ENROLLMENT_POSE_UP", "-35,35,8,40"),
     enrollment_pose_down=_get_env("ENROLLMENT_POSE_DOWN", "-35,35,-40,-7"),
+    enrollment_demo_mode=_get_bool_env("ENROLLMENT_DEMO_MODE", False),
 )

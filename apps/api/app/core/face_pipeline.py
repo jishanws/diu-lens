@@ -43,6 +43,7 @@ _MIN_DET_SCORE = 0.45
 _MIN_FACE_AREA_RATIO = 0.06
 _MIN_BLUR_VARIANCE = 22.0
 _MIN_BRIGHTNESS = 35.0
+_DEMO_MIN_USABLE_IMAGES = 3
 _MAX_BRIGHTNESS = 235.0
 _EXTREME_MIN_DET_SCORE = 0.20
 _EXTREME_MIN_FACE_AREA_RATIO = 0.03
@@ -830,7 +831,7 @@ def process_student_images(
         min_selected_for_angle = int(
             minimum_required_by_angle.get(angle, _MIN_SELECTED_FRAMES_PER_ANGLE)
         )
-        if len(selected) < min_selected_for_angle:
+        if len(selected) < min_selected_for_angle and not settings.enrollment_demo_mode:
             reason = (
                 f"insufficient_selected_frames_for_angle:{angle}"
                 f"(selected={len(selected)},required={min_selected_for_angle})"
@@ -879,9 +880,16 @@ def process_student_images(
             minimum_required_by_angle.get(angle, _MIN_SELECTED_FRAMES_PER_ANGLE)
         )
     ]
+    if settings.enrollment_demo_mode:
+        missing_angles = []
+    processing_passed = (
+        embeddings_generated_count >= _DEMO_MIN_USABLE_IMAGES
+        if settings.enrollment_demo_mode
+        else bool(processed_crops) and len(missing_angles) == 0
+    )
     result = {
         "student_id": sanitized_student_id,
-        "processing_passed": bool(processed_crops) and len(missing_angles) == 0,
+        "processing_passed": processing_passed,
         "processed_images_count": len(processed_crops),
         "embeddings_generated_count": embeddings_generated_count,
         "selection_policy": {

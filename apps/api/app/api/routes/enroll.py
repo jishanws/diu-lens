@@ -61,6 +61,7 @@ MAX_IMAGES_PER_ANGLE = ENROLLMENT_VALIDATION_CONFIG.required_samples_per_angle
 REQUIRED_IMAGES_PER_ANGLE = ENROLLMENT_VALIDATION_CONFIG.required_samples_per_angle
 EXPECTED_REQUIRED_ANGLES: tuple[str, ...] = REQUIRED_CAPTURE_ANGLES
 EXPECTED_TOTAL_SHOTS = len(EXPECTED_REQUIRED_ANGLES) * REQUIRED_IMAGES_PER_ANGLE
+DEMO_MIN_USABLE_IMAGES = 3
 EYES_VISIBLE_VALUES: tuple[str, ...] = ("passed", "failed", "not_yet_implemented")
 REQUIRED_ENROLLMENT_FIELDS: tuple[str, ...] = (
     "student_id",
@@ -176,7 +177,11 @@ def _verification_error_response(exc: HTTPException) -> JSONResponse:
             status_code=422,
             content={
                 "error": "BACKEND_IMAGE_VALIDATION_FAILED",
-                "message": "One or more enrollment images failed validation.",
+                "message": (
+                    "We couldn't detect your face clearly. Please try again in better lighting."
+                    if settings.enrollment_demo_mode
+                    else "One or more enrollment images failed validation."
+                ),
                 "details": detail.get("details", []),
             },
         )
@@ -652,6 +657,24 @@ async def _validate_files(
                         "message": "Face processing service is temporarily unavailable.",
                     },
                 ) from exc
+            if settings.enrollment_demo_mode:
+                demo_usable = bool(
+                    image_report.get("readable")
+                    and image_report.get("dimensions_ok")
+                    and image_report.get("face_detected")
+                    and int(image_report.get("face_count") or 0) == 1
+                )
+                image_report["demo_usable"] = demo_usable
+                if demo_usable:
+                    image_report["demo_ignored_reasons"] = list(
+                        image_report.get("failure_reasons") or []
+                    )
+                    image_report["failure_reasons"] = []
+                    image_report["blocking_reasons"] = []
+                    image_report["is_blocking_failure"] = False
+                    image_report["passed"] = True
+                    image_report["final_decision"] = "accept"
+                    image_report["blocker"] = "ready"
             image_report["image_index"] = index + 1
             captured_at_rows = capture_timestamps_by_angle.get(angle, [])
             frame_metadata = captured_at_rows[index] if index < len(captured_at_rows) else None
@@ -680,7 +703,7 @@ async def _validate_files(
             duplicate_distance = min(duplicate_distances) if duplicate_distances else None
             replay_flags: list[str] = []
             reused_frame = seen_encoded_frames.get(encoded_digest)
-            if reused_frame is not None:
+            if reused_frame is not None and not settings.enrollment_demo_mode:
                 previous_angle, previous_file = reused_frame
                 replay_flags.append("exact_reused_frame")
                 reasons = image_report.setdefault("failure_reasons", [])
@@ -754,6 +777,12 @@ async def _validate_files(
             image_reports.append(image_report)
 
     summary = build_validation_summary(image_reports)
+    if settings.enrollment_demo_mode:
+        usable_count = sum(bool(report.get("demo_usable")) for report in image_reports)
+        summary["demo_mode"] = True
+        summary["usable_images_count"] = usable_count
+        summary["minimum_usable_images"] = DEMO_MIN_USABLE_IMAGES
+        summary["validation_passed"] = usable_count >= DEMO_MIN_USABLE_IMAGES
     verification_logger.info(
         "[guided-sanity] summary total=%s passed=%s failed=%s",
         summary.get("total_images_checked"),
@@ -768,7 +797,11 @@ async def _validate_files(
             "[guided-sanity] validation_failed details=%s",
             failure_details,
         )
-        specific_message = "Image validation failed."
+        specific_message = (
+            "We couldn't detect your face clearly. Please try again in better lighting."
+            if settings.enrollment_demo_mode
+            else "Image validation failed."
+        )
         if failure_details:
             first_failure = failure_details[0]
             reason = str(first_failure.get("reason", "unknown"))
@@ -1576,6 +1609,13 @@ async def enroll(request: Request) -> JSONResponse:
 def _verification_credentials(request: Request) -> tuple[str, str]:
     idempotency_key = request.headers.get("idempotency-key", "").strip()
     owner_token = request.headers.get("x-verification-token", "").strip()
+    if settings.enrollment_demo_mode:
+        if len(owner_token) < 24:
+            owner_token = f"demo-owner-{uuid4().hex}"
+        if len(idempotency_key) < 16:
+            idempotency_key = "demo-" + hashlib.sha256(
+                owner_token.encode("utf-8")
+            ).hexdigest()
     if not 16 <= len(idempotency_key) <= 200:
         raise _bad_request("A valid Idempotency-Key header is required.")
     if not 24 <= len(owner_token) <= 256:

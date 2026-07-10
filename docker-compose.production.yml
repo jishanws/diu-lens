@@ -60,6 +60,7 @@ services:
       - BIOMETRIC_STARTUP_VALIDATION=true
       - MPLCONFIGDIR=/tmp/matplotlib
       - APP_ENV=production
+      - ENROLLMENT_DEMO_MODE=${ENROLLMENT_DEMO_MODE:-false}
     volumes:
       - api_storage:/app/storage
     depends_on:
@@ -96,6 +97,7 @@ services:
       - BIOMETRIC_STARTUP_VALIDATION=true
       - MPLCONFIGDIR=/tmp/matplotlib
       - APP_ENV=production
+      - ENROLLMENT_DEMO_MODE=${ENROLLMENT_DEMO_MODE:-false}
       - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL}
       - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD}
       - BOOTSTRAP_ADMIN_FULL_NAME=${BOOTSTRAP_ADMIN_FULL_NAME}
