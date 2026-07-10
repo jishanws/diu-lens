@@ -398,6 +398,7 @@ export function GuidedEnrollmentCapture({
         if (result.failedCaptures?.length) {
           setFailedCaptures(result.failedCaptures);
           invalidateAngles(failedCaptureAngles(result.failedCaptures));
+          await requestAccess();
         }
         setSubmitPhase('error');
         setLocalErrorMessage(result.message);
@@ -427,6 +428,7 @@ export function GuidedEnrollmentCapture({
     isSubmittingCompletion,
     onComplete,
     invalidateAngles,
+    requestAccess,
     state.canSubmit,
     state.capturedCount,
     state.liveness.completed,

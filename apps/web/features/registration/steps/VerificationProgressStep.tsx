@@ -4,6 +4,7 @@ import { CheckCircle2, Loader2, RotateCcw, ShieldCheck } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import type { EnrollmentVerificationStatus } from '@/features/registration/api';
+import { formatFailedCaptures } from '@/features/registration/verification/failedCaptures';
 
 const stages = [
   ['uploading', 'Uploading'],
@@ -30,7 +31,7 @@ export function VerificationProgressStep({ job, networkMessage, onRetake, onRetr
       </div>
       <div>
         <h3 className="landing-text-primary text-xl font-semibold">
-          {succeeded ? 'Registration complete' : retake ? 'A few captures need another look' : failed ? 'Verification could not finish' : 'Secure verification in progress'}
+          {succeeded ? 'Registration complete' : retake ? 'A specific capture must be retaken' : failed ? 'Verification could not finish' : 'Secure verification in progress'}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
           {succeeded ? 'Your enrollment transaction has been committed successfully.' : retake ? 'Only the listed angles will be recaptured; your successful captures are preserved.' : failed ? job.error?.message ?? 'Your captures are preserved and you can retry safely.' : 'Your upload is complete. You no longer need to hold your face in position.'}
@@ -51,6 +52,11 @@ export function VerificationProgressStep({ job, networkMessage, onRetake, onRetr
       {retake && <div className="flex flex-wrap justify-center gap-2">
         {[...new Set(job.failed_angles.map((failure) => failure.angle))].map((angle) => <span key={angle} className="rounded-full border border-amber-300/20 bg-amber-300/5 px-3 py-1 text-xs capitalize text-amber-200">{angle}</span>)}
       </div>}
+      {retake && job.failed_angles.length > 0 && (
+        <p className="mx-auto max-w-lg rounded-xl border border-amber-300/15 bg-amber-300/5 px-4 py-3 text-left text-xs leading-relaxed text-amber-100">
+          {formatFailedCaptures(job.failed_angles)}
+        </p>
+      )}
       {networkMessage && !succeeded && <p className="text-xs text-amber-200">{networkMessage}</p>}
       {retake && <Button onClick={onRetake}>Retake affected angles</Button>}
       {failed && <Button onClick={onRetry}>Retry verification</Button>}

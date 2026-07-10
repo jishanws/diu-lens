@@ -622,6 +622,64 @@ def test_valid_10_image_multipart_submission_succeeds(client, monkeypatch) -> No
     assert response.json()["verification_id"]
 
 
+def test_precheck_validates_exact_files_without_creating_job(
+    client, db_session_factory, monkeypatch
+) -> None:
+    student_id = "930-26-2090"
+    _create_pending_enrollment(client, student_id)
+    monkeypatch.setattr(enroll, "validate_enrollment_image", _passing_validation_report)
+
+    response = client.post(
+        "/enroll/verification/precheck",
+        headers={
+            "Idempotency-Key": f"verification-{student_id}",
+            "X-Verification-Token": f"verification-owner-token-{student_id}",
+        },
+        files=_verification_files(_verification_metadata(student_id)),
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["validation_passed"] is True
+    assert response.json()["total_images_checked"] == 10
+    with db_session_factory() as db:
+        assert db.scalars(select(EnrollmentVerificationJob)).all() == []
+
+
+def test_precheck_returns_failed_angle_before_job_creation(
+    client, db_session_factory, monkeypatch
+) -> None:
+    student_id = "930-26-2091"
+    _create_pending_enrollment(client, student_id)
+
+    def fail_down(image_bytes: bytes, file_name: str, angle: str, **kwargs):
+        report = _passing_validation_report(image_bytes, file_name, angle, **kwargs)
+        if angle == "down" and file_name == "down_1.jpg":
+            report.update(
+                passed=False,
+                is_blocking_failure=True,
+                failure_reasons=["face_too_close_to_edge(margin:0.029,min:0.030)"],
+                blocking_reasons=["face_too_close_to_edge(margin:0.029,min:0.030)"],
+                blocker="face_too_close_to_edge",
+            )
+        return report
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", fail_down)
+    response = client.post(
+        "/enroll/verification/precheck",
+        headers={
+            "Idempotency-Key": f"verification-{student_id}",
+            "X-Verification-Token": f"verification-owner-token-{student_id}",
+        },
+        files=_verification_files(_verification_metadata(student_id)),
+    )
+
+    assert response.status_code == 422, response.text
+    assert response.json()["details"][0]["angle"] == "down"
+    assert response.json()["details"][0]["error_code"] == "face_too_close_to_edge"
+    with db_session_factory() as db:
+        assert db.scalars(select(EnrollmentVerificationJob)).all() == []
+
+
 def test_verification_returns_202_quickly_and_status_is_owner_scoped(
     client, db_session_factory
 ) -> None:

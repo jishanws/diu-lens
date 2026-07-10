@@ -29,6 +29,15 @@ test('verification upload sends stable ownership and idempotency credentials', (
   assert.match(apiSource, /crypto\.randomUUID\(\)/);
 });
 
+test('exact stored captures pass authoritative precheck before job submission', () => {
+  const precheckIndex = apiSource.indexOf("request(\n      '/enroll/verification/precheck'");
+  const submitIndex = apiSource.indexOf("request('/enroll/verification', requestOptions)");
+  assert.ok(precheckIndex >= 0);
+  assert.ok(submitIndex > precheckIndex);
+  assert.match(apiSource, /if \(!precheckResult\.success\) \{\s*return precheckResult;/);
+  assert.match(captureSource, /invalidateAngles\(failedCaptureAngles\(result\.failedCaptures\)\);\s*await requestAccess\(\)/);
+});
+
 test('submission errors distinguish network and HTTP failure categories', () => {
   for (const status of [404, 413, 422, 500, 503]) {
     assert.match(apiSource, new RegExp(`status === ${status}|status >= ${status}`));
@@ -67,6 +76,7 @@ test('failed verification removes the persisted ownership token immediately', ()
 test('failed-angle jobs return only affected angles to capture', () => {
   assert.match(flowSource, /setRetakeFailures\(verificationJob\.failed_angles\)/);
   assert.match(captureSource, /invalidateAngles\(failedCaptureAngles\(initialFailedCaptures\)\)/);
+  assert.match(progressSource, /formatFailedCaptures\(job\.failed_angles\)/);
 });
 
 test('progress UI exposes the required bounded stages and controlled retry', () => {

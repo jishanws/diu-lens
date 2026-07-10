@@ -655,6 +655,21 @@ async function submitEnrollmentCompletionRequest(
       },
     };
 
+    const precheckUrl = buildApiUrl('/enroll/verification/precheck');
+    const precheckResponse = await request(
+      '/enroll/verification/precheck',
+      requestOptions
+    );
+    const precheckResult = await parseEnrollmentResponse(
+      precheckResponse,
+      errorMessage,
+      'verification-precheck',
+      precheckUrl
+    );
+    if (!precheckResult.success) {
+      return precheckResult;
+    }
+
     const debugEnabled =
       process.env.NODE_ENV !== 'production' ||
       (typeof window !== 'undefined' &&

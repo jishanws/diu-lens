@@ -1621,6 +1621,47 @@ async def _store_temporary_verification_files(
         await _close_upload_files(files_by_angle)
 
 
+@router.post("/enroll/verification/precheck", response_model=None)
+@limiter.limit("20/minute")
+async def precheck_enrollment_verification(request: Request) -> Response:
+    """Validate the exact upload bytes before creating an asynchronous job."""
+    files_by_angle: dict[str, list[UploadFile]] | None = None
+    try:
+        _validate_verification_request_origin(request)
+        if "multipart/form-data" not in request.headers.get("content-type", "").lower():
+            raise HTTPException(
+                status_code=415,
+                detail={"message": "Enrollment precheck requires multipart form data."},
+            )
+        _verification_credentials(request)
+        form_data = await request.form()
+        payload = _parse_multipart_metadata(form_data.get("metadata"))
+        try:
+            assert_verification_submittable(payload.student_id)
+        except VerificationJobError as exc:
+            raise HTTPException(status_code=409, detail={
+                "error": "ENROLLMENT_INVALID_STATE", "message": str(exc)
+            }) from exc
+        files_by_angle = _extract_multipart_files(form_data)
+        _validate_final_multipart_metadata(payload)
+        _validate_file_counts(files_by_angle, payload)
+        validation = await _validate_files(
+            files_by_angle,
+            _capture_timestamps_by_angle(payload),
+        )
+        return JSONResponse(status_code=200, content={
+            "success": True,
+            "message": "All stored captures passed final validation.",
+            "validation_passed": True,
+            "total_images_checked": validation.get("total_images_checked", 0),
+        })
+    except HTTPException as exc:
+        return _verification_error_response(exc)
+    finally:
+        if files_by_angle is not None:
+            await _close_upload_files(files_by_angle)
+
+
 @router.post("/enroll/verification", response_model=None)
 @limiter.limit("20/minute")
 async def enroll_verification(request: Request) -> Response:
