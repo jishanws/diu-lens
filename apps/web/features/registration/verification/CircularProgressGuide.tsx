@@ -11,7 +11,15 @@ type CircularProgressGuideProps = {
   requiredCount: number;
 };
 
-const ANGLES_ORDER: VerificationAngle[] = ['up', 'right', 'down', 'left', 'front'];
+const DIRECTION_SEGMENT_ANGLES = {
+  up: -90,
+  right: 0,
+  down: 90,
+  left: 180,
+} as const;
+
+type DirectionalAngle = keyof typeof DIRECTION_SEGMENT_ANGLES;
+const DIRECTIONAL_ANGLES = Object.keys(DIRECTION_SEGMENT_ANGLES) as DirectionalAngle[];
 
 export function CircularProgressGuide({
   activeDirection,
@@ -26,11 +34,7 @@ export function CircularProgressGuide({
   const segmentR = 150;
   const orbitR = 161;
 
-  // 5 segments = 360 / 5 = 72 degrees each
-  // We'll leave a small gap between them, e.g., 4 degrees
-  const segmentAngle = 72;
-  const gapAngle = 4;
-  const drawAngle = segmentAngle - gapAngle;
+  const drawAngle = 62;
   
   // Circumference
   const circumference = 2 * Math.PI * segmentR;
@@ -83,13 +87,46 @@ export function CircularProgressGuide({
         strokeWidth="1"
       />
 
-      {/* Render 5 segments */}
-      <g style={{ transformOrigin: 'center', transform: 'rotate(-90deg)' }}>
-        {ANGLES_ORDER.map((angle, index) => {
+      {/* Front is the neutral/default state and does not displace a direction. */}
+      {(() => {
+        const count = captureCounts.front ?? 0;
+        const isComplete = count >= requiredCount;
+        const isActive = activeDirection === 'front' && !isComplete;
+        const stroke = isComplete
+          ? '#86efac'
+          : isActive && poseState === 'valid'
+            ? '#86efac'
+            : isActive && poseState === 'near_valid'
+              ? '#fbbf24'
+              : isActive
+                ? '#7BA8C0'
+                : 'rgba(160, 185, 210, 0.10)';
+
+        return (
+          <motion.circle
+            cx={cx}
+            cy={cy}
+            r={segmentR - 11}
+            fill="none"
+            stroke={stroke}
+            strokeWidth={isActive ? 5 : isComplete ? 4 : 2}
+            strokeDasharray="3 8"
+            strokeLinecap="round"
+            animate={{ opacity: isActive ? [0.58, 1, 0.58] : isComplete ? 0.78 : 0.42 }}
+            transition={isActive
+              ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }
+              : { duration: 0.5, ease: 'easeOut' }}
+          />
+        );
+      })()}
+
+      {/* Cardinal positions are fixed and never depend on capture-array order. */}
+      <g>
+        {DIRECTIONAL_ANGLES.map((angle) => {
           const count = captureCounts[angle] ?? 0;
           const isComplete = count >= requiredCount;
           const isActive = activeDirection === angle && !isComplete;
-          const startAngle = index * segmentAngle + gapAngle / 2;
+          const rotation = DIRECTION_SEGMENT_ANGLES[angle] - drawAngle / 2;
 
           let strokeColor = 'rgba(160, 185, 210, 0.15)'; // base muted blue/gray
           let strokeWidth = 5;
@@ -121,7 +158,7 @@ export function CircularProgressGuide({
           }
 
           return (
-            <g key={angle} style={{ transformOrigin: 'center', transform: `rotate(${startAngle}deg)` }}>
+            <g key={angle} style={{ transformOrigin: 'center', transform: `rotate(${rotation}deg)` }}>
               {/* Base Segment */}
               <circle
                 cx={cx}

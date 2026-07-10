@@ -18,6 +18,10 @@ const progressSource = readFileSync(
   new URL('../features/registration/steps/VerificationProgressStep.tsx', import.meta.url),
   'utf8'
 );
+const circularGuideSource = readFileSync(
+  new URL('../features/registration/verification/CircularProgressGuide.tsx', import.meta.url),
+  'utf8'
+);
 
 test('verification upload sends stable ownership and idempotency credentials', () => {
   assert.match(apiSource, /'Idempotency-Key': credentials\.idempotencyKey/);
@@ -70,4 +74,13 @@ test('progress UI exposes the required bounded stages and controlled retry', () 
     assert.match(progressSource, new RegExp(label));
   }
   assert.match(progressSource, /failed && <Button onClick=\{onRetry\}>Retry verification<\/Button>/);
+});
+
+test('verification ring uses fixed user-relative cardinal positions', () => {
+  assert.match(circularGuideSource, /up: -90/);
+  assert.match(circularGuideSource, /right: 0/);
+  assert.match(circularGuideSource, /down: 90/);
+  assert.match(circularGuideSource, /left: 180/);
+  assert.match(circularGuideSource, /activeDirection === 'front'/);
+  assert.doesNotMatch(circularGuideSource, /index \* segmentAngle/);
 });
