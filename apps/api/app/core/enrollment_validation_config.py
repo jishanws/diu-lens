@@ -31,6 +31,20 @@ class EnrollmentValidationConfig:
     pose_thresholds: dict[str, PoseThreshold]
 
 
+def _pose_threshold(raw: str, angle: str) -> PoseThreshold:
+    try:
+        yaw_min, yaw_max, pitch_min, pitch_max = (
+            float(value.strip()) for value in raw.split(",")
+        )
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(
+            f"ENROLLMENT_POSE_{angle.upper()} must contain four comma-separated numbers"
+        ) from exc
+    if yaw_min >= yaw_max or pitch_min >= pitch_max:
+        raise RuntimeError(f"Invalid enrollment pose range for {angle}")
+    return PoseThreshold(yaw_min, yaw_max, pitch_min, pitch_max)
+
+
 ENROLLMENT_VALIDATION_CONFIG = EnrollmentValidationConfig(
     min_detection_score=settings.enrollment_min_detection_score,
     min_face_area_ratio=settings.enrollment_min_face_area_ratio,
@@ -46,10 +60,10 @@ ENROLLMENT_VALIDATION_CONFIG = EnrollmentValidationConfig(
     stability_duration_ms=settings.enrollment_stability_duration_ms,
     liveness_challenge_count=settings.enrollment_liveness_challenge_count,
     pose_thresholds={
-        "front": PoseThreshold(yaw_min=-15, yaw_max=15, pitch_min=-12, pitch_max=12),
-        "left": PoseThreshold(yaw_min=8, yaw_max=45, pitch_min=-20, pitch_max=20),
-        "right": PoseThreshold(yaw_min=-45, yaw_max=-8, pitch_min=-20, pitch_max=20),
-        "up": PoseThreshold(yaw_min=-22, yaw_max=22, pitch_min=-40, pitch_max=-6),
-        "down": PoseThreshold(yaw_min=-22, yaw_max=22, pitch_min=6, pitch_max=40),
+        "front": _pose_threshold(settings.enrollment_pose_front, "front"),
+        "left": _pose_threshold(settings.enrollment_pose_left, "left"),
+        "right": _pose_threshold(settings.enrollment_pose_right, "right"),
+        "up": _pose_threshold(settings.enrollment_pose_up, "up"),
+        "down": _pose_threshold(settings.enrollment_pose_down, "down"),
     },
 )

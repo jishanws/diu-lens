@@ -295,9 +295,7 @@ def _detect_faces_for_enrollment(image: np.ndarray) -> list[dict[str, Any]]:
         yaw = pitch = roll = None
         if pose is not None and len(pose) >= 3:
             try:
-                pitch = float(pose[0])
-                yaw = float(pose[1])
-                roll = float(pose[2])
+                yaw, pitch, roll = _normalize_insightface_pose(pose)
             except (TypeError, ValueError):
                 yaw = pitch = roll = None
         raw_detected.append(
@@ -341,6 +339,13 @@ def _detect_faces_for_enrollment(image: np.ndarray) -> list[dict[str, Any]]:
         ],
     )
     return detected
+
+
+def _normalize_insightface_pose(pose: Any) -> tuple[float, float, float]:
+    raw_pitch = float(pose[0])
+    raw_yaw = float(pose[1])
+    raw_roll = float(pose[2])
+    return -raw_yaw, raw_pitch, raw_roll
 
 
 def _bbox_iou(left: list[float], right: list[float]) -> float:

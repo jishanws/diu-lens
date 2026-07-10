@@ -29,10 +29,10 @@ export const perAngleInstruction: Record<VerificationAngle, string> = {
 };
 
 export const perAngleHint: Record<VerificationAngle, string> = {
-  front: 'Face the camera.',
-  left: 'Turn your head left.',
-  right: 'Turn your head right.',
-  up: 'Lift your chin slightly.',
+  front: 'Look straight at the camera.',
+  left: 'Turn your head slightly left.',
+  right: 'Turn your head slightly right.',
+  up: 'Raise your chin slightly.',
   down: 'Lower your chin slightly.',
   natural_front: 'No strict pose needed. Keep one face visible.',
 };

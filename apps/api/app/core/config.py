@@ -170,6 +170,11 @@ class Settings:
     enrollment_required_samples_per_angle: int
     enrollment_stability_duration_ms: int
     enrollment_liveness_challenge_count: int
+    enrollment_pose_front: str
+    enrollment_pose_left: str
+    enrollment_pose_right: str
+    enrollment_pose_up: str
+    enrollment_pose_down: str
 
 
 _environment = _get_env("APP_ENV", "development").lower()
@@ -247,4 +252,9 @@ settings = Settings(
     enrollment_required_samples_per_angle=int(os.getenv("ENROLLMENT_REQUIRED_SAMPLES_PER_ANGLE", "2")),
     enrollment_stability_duration_ms=int(os.getenv("ENROLLMENT_STABILITY_DURATION_MS", "650")),
     enrollment_liveness_challenge_count=int(os.getenv("ENROLLMENT_LIVENESS_CHALLENGE_COUNT", "3")),
+    enrollment_pose_front=_get_env("ENROLLMENT_POSE_FRONT", "-18,18,-18,18"),
+    enrollment_pose_left=_get_env("ENROLLMENT_POSE_LEFT", "-45,-12,-25,25"),
+    enrollment_pose_right=_get_env("ENROLLMENT_POSE_RIGHT", "12,45,-25,25"),
+    enrollment_pose_up=_get_env("ENROLLMENT_POSE_UP", "-35,35,8,40"),
+    enrollment_pose_down=_get_env("ENROLLMENT_POSE_DOWN", "-35,35,-40,-7"),
 )

@@ -296,7 +296,7 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): {
 
   return {
     yaw: clamp(yawNorm * 32, -45, 45),
-    pitch: clamp(pitchNorm * 42, -35, 35),
+    pitch: clamp(-pitchNorm * 42, -35, 35),
     roll: clamp(roll, -45, 45),
   };
 }
@@ -352,9 +352,7 @@ function getLivenessExpectedDirection(
 }
 
 function normalizeYawForUser(rawYaw: number) {
-  const mode = enrollmentValidationConfig.livenessYawDirectionMode;
-  if (mode === 'positive-left') return rawYaw;
-  return -rawYaw;
+  return rawYaw;
 }
 
 function normalizePitchForUser(rawPitch: number) {
@@ -363,8 +361,8 @@ function normalizePitchForUser(rawPitch: number) {
 
 function getUserFacingDirection(rawYaw: number) {
   const normalizedYaw = normalizeYawForUser(rawYaw);
-  if (normalizedYaw <= -8) return 'right';
-  if (normalizedYaw >= 8) return 'left';
+  if (normalizedYaw <= -8) return 'left';
+  if (normalizedYaw >= 8) return 'right';
   return 'center';
 }
 
@@ -409,11 +407,11 @@ function getHybridPoseState(
       Math.abs(pitchDelta) <= delta.centerPitchToleranceDegrees + 8;
   } else if (angle === 'up') {
     moved =
-      pitchDelta <= -delta.pitchDegrees &&
+      pitchDelta >= delta.pitchDegrees &&
       Math.abs(yawDelta) <= delta.centerYawToleranceDegrees + 8;
   } else if (angle === 'down') {
     moved =
-      pitchDelta >= delta.pitchDegrees &&
+      pitchDelta <= -delta.pitchDegrees &&
       Math.abs(yawDelta) <= delta.centerYawToleranceDegrees + 8;
   }
 
@@ -640,14 +638,14 @@ function getDynamicAngleGuidance(
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
   if (angle === 'up') {
-    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lift your chin slightly', liveMessage: 'Lift your chin slightly' };
-    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
+    if (pitch < ANGLE_THRESHOLDS.up.valid.pitchMin) return { instruction: 'Raise your chin slightly', liveMessage: 'Raise your chin slightly' };
+    if (pitch > ANGLE_THRESHOLDS.up.valid.pitchMax) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
     if (yaw < ANGLE_THRESHOLDS.up.valid.yawMin || yaw > ANGLE_THRESHOLDS.up.valid.yawMax) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }
   if (angle === 'down') {
-    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
-    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Lift your chin slightly', liveMessage: 'Lift your chin slightly' };
+    if (pitch > ANGLE_THRESHOLDS.down.valid.pitchMax) return { instruction: 'Lower your chin slightly', liveMessage: 'Lower your chin slightly' };
+    if (pitch < ANGLE_THRESHOLDS.down.valid.pitchMin) return { instruction: 'Raise your chin slightly', liveMessage: 'Raise your chin slightly' };
     if (yaw < ANGLE_THRESHOLDS.down.valid.yawMin || yaw > ANGLE_THRESHOLDS.down.valid.yawMax) return { instruction: 'Face the camera.', liveMessage: 'Face the camera.' };
     return { instruction: 'Hold still', liveMessage: 'Hold still' };
   }

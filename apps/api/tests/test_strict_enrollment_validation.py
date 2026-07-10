@@ -101,7 +101,13 @@ def _verification_files(
             files.append(
                 (
                     angle,
-                    (f"{angle}_{index + 1}.jpg", _jpeg_bytes(), "image/jpeg"),
+                    (
+                        f"{angle}_{index + 1}.jpg",
+                        _jpeg_bytes(
+                            brightness=110 + REQUIRED_ANGLES.index(angle) * 5 + index
+                        ),
+                        "image/jpeg",
+                    ),
                 )
             )
     return files
@@ -175,7 +181,7 @@ def test_front_pose_not_accepted_as_left_or_right(monkeypatch) -> None:
 
 
 def test_practical_left_pose_threshold_is_accepted(monkeypatch) -> None:
-    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=12, pitch=14)])
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=-12, pitch=14)])
 
     report = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
 
@@ -270,6 +276,27 @@ def test_sharpness_environment_override_is_respected() -> None:
     )
 
     assert result.stdout.strip() == "39.5"
+
+
+def test_pose_environment_override_is_respected() -> None:
+    environment = {**os.environ, "ENROLLMENT_POSE_UP": "-36,36,7,42"}
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from app.core.enrollment_validation_config import "
+            "ENROLLMENT_VALIDATION_CONFIG as c; print(c.pose_thresholds['up'])",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert result.stdout.strip() == (
+        "PoseThreshold(yaw_min=-36.0, yaw_max=36.0, "
+        "pitch_min=7.0, pitch_max=42.0)"
+    )
 
 
 def test_dark_image_rejected(monkeypatch) -> None:
@@ -470,10 +497,63 @@ def test_overexposed_face_region_fails_brightness(monkeypatch) -> None:
 
 
 def test_backend_pose_signs_map_left_and_right_without_mirroring() -> None:
-    assert image_validation._pose_matches("left", 12.0, 0.0) is True
-    assert image_validation._pose_matches("right", -12.0, 0.0) is True
-    assert image_validation._pose_matches("left", -12.0, 0.0) is False
-    assert image_validation._pose_matches("right", 12.0, 0.0) is False
+    assert image_validation._pose_matches("left", -12.0, 0.0) is True
+    assert image_validation._pose_matches("right", 12.0, 0.0) is True
+    assert image_validation._pose_matches("left", 12.0, 0.0) is False
+    assert image_validation._pose_matches("right", -12.0, 0.0) is False
+
+
+@pytest.mark.parametrize(
+    ("angle", "yaw", "pitch"),
+    [
+        ("up", -31.62, 12.02),
+        ("up", -15.95, 14.73),
+        ("down", -0.53, -9.55),
+        ("down", -0.51, -8.97),
+    ],
+)
+def test_real_vertical_pose_measurements_pass(angle: str, yaw: float, pitch: float) -> None:
+    assert image_validation._pose_matches(angle, yaw, pitch) is True
+
+
+@pytest.mark.parametrize(
+    ("angle", "pitch"),
+    [("up", 7.99), ("down", -6.99)],
+)
+def test_insufficient_vertical_movement_fails(angle: str, pitch: float) -> None:
+    assert image_validation._pose_matches(angle, 0.0, pitch) is False
+
+
+def test_insightface_pose_is_normalized_to_application_signs() -> None:
+    raw_yaw, raw_pitch, raw_roll = 20.0, 12.0, 1.0
+
+    yaw, pitch, roll = image_validation._normalize_insightface_pose(
+        [raw_pitch, raw_yaw, raw_roll]
+    )
+
+    assert (yaw, pitch, roll) == (-20.0, 12.0, 1.0)
+
+
+def test_controlled_insightface_rotation_signs() -> None:
+    from insightface.utils import transform
+
+    yaw_radians = np.deg2rad(20.0)
+    rotation = np.array(
+        [
+            [np.cos(yaw_radians), 0.0, np.sin(yaw_radians)],
+            [0.0, 1.0, 0.0],
+            [-np.sin(yaw_radians), 0.0, np.cos(yaw_radians)],
+        ]
+    )
+    raw_pitch, raw_yaw, raw_roll = transform.matrix2angle(rotation)
+    yaw, pitch, roll = image_validation._normalize_insightface_pose(
+        [raw_pitch, raw_yaw, raw_roll]
+    )
+
+    assert raw_yaw == pytest.approx(20.0)
+    assert yaw == pytest.approx(-20.0)
+    assert pitch == pytest.approx(0.0)
+    assert roll == pytest.approx(0.0)
 
 
 def test_valid_capture_structure_requires_exactly_10_samples() -> None:
@@ -494,6 +574,45 @@ def test_valid_10_image_multipart_submission_succeeds(client, monkeypatch) -> No
         "success": True,
         "message": "Verification images uploaded successfully",
     }
+
+
+def test_similar_perceptual_hashes_do_not_block_distinct_frames(client, monkeypatch) -> None:
+    student_id = "930-26-2020"
+    _create_pending_enrollment(client, student_id)
+
+    def same_person_report(image_bytes: bytes, file_name: str, angle: str):
+        report = _passing_validation_report(image_bytes, file_name, angle)
+        report["perceptual_hash"] = "aaaaaaaaaaaaaaaa"
+        return report
+
+    monkeypatch.setattr(enroll, "validate_enrollment_image", same_person_report)
+
+    response = _post_verification(client, student_id)
+
+    assert response.status_code == 200, response.text
+
+
+def test_identical_encoded_frame_is_rejected(client, monkeypatch) -> None:
+    student_id = "930-26-2021"
+    _create_pending_enrollment(client, student_id)
+    monkeypatch.setattr(enroll, "validate_enrollment_image", _passing_validation_report)
+    files = _verification_files(_verification_metadata(student_id))
+    front_files = [entry for entry in files if entry[0] == "front"]
+    first_bytes = front_files[0][1][1]
+    second_index = files.index(front_files[1])
+    second_name = front_files[1][1][0]
+    files[second_index] = ("front", (second_name, first_bytes, "image/jpeg"))
+
+    response = client.post("/enroll/verification", files=files)
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["error"] == "BACKEND_IMAGE_VALIDATION_FAILED"
+    assert any(
+        detail["angle"] == "front"
+        and detail["error_code"] == "exact_reused_frame"
+        for detail in payload["details"]
+    )
 
 
 def test_9_image_payload_returns_422(client, monkeypatch) -> None:

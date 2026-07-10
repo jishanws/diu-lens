@@ -54,24 +54,24 @@ export const enrollmentValidationConfig = {
     process.env.NEXT_PUBLIC_ENROLLMENT_CAPTURE_DEBUG === 'true',
   poseThresholds: {
     front: {
-      valid: { yawMin: -15, yawMax: 15, pitchMin: -12, pitchMax: 12 },
-      near: { yawMin: -20, yawMax: 20, pitchMin: -16, pitchMax: 16 },
+      valid: { yawMin: -18, yawMax: 18, pitchMin: -18, pitchMax: 18 },
+      near: { yawMin: -22, yawMax: 22, pitchMin: -22, pitchMax: 22 },
     },
     left: {
-      valid: { yawMin: 8, yawMax: 45, pitchMin: -20, pitchMax: 20 },
-      near: { yawMin: 5, yawMax: 52, pitchMin: -24, pitchMax: 24 },
+      valid: { yawMin: -45, yawMax: -12, pitchMin: -25, pitchMax: 25 },
+      near: { yawMin: -52, yawMax: -8, pitchMin: -30, pitchMax: 30 },
     },
     right: {
-      valid: { yawMin: -45, yawMax: -8, pitchMin: -20, pitchMax: 20 },
-      near: { yawMin: -52, yawMax: -5, pitchMin: -24, pitchMax: 24 },
+      valid: { yawMin: 12, yawMax: 45, pitchMin: -25, pitchMax: 25 },
+      near: { yawMin: 8, yawMax: 52, pitchMin: -30, pitchMax: 30 },
     },
     up: {
-      valid: { yawMin: -22, yawMax: 22, pitchMin: -40, pitchMax: -6 },
-      near: { yawMin: -26, yawMax: 26, pitchMin: -45, pitchMax: -3 },
+      valid: { yawMin: -35, yawMax: 35, pitchMin: 8, pitchMax: 40 },
+      near: { yawMin: -40, yawMax: 40, pitchMin: 5, pitchMax: 45 },
     },
     down: {
-      valid: { yawMin: -22, yawMax: 22, pitchMin: 6, pitchMax: 40 },
-      near: { yawMin: -26, yawMax: 26, pitchMin: 3, pitchMax: 45 },
+      valid: { yawMin: -35, yawMax: 35, pitchMin: -40, pitchMax: -7 },
+      near: { yawMin: -40, yawMax: 40, pitchMin: -45, pitchMax: -4 },
     },
   } satisfies Record<Exclude<VerificationAngle, 'natural_front'>, PoseThresholdSet>,
 } as const;

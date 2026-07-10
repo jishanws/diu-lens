@@ -74,6 +74,33 @@ test('frontend framing thresholds match backend defaults', () => {
   assert.equal(enrollmentValidationConfig.minBlurVariance, Number(blurVariance[1]));
 });
 
+test('frontend pose thresholds match backend defaults', () => {
+  const backendConfig = readFileSync(
+    new URL('../../api/app/core/config.py', import.meta.url),
+    'utf8'
+  );
+  const expected = {
+    front: [-18, 18, -18, 18],
+    left: [-45, -12, -25, 25],
+    right: [12, 45, -25, 25],
+    up: [-35, 35, 8, 40],
+    down: [-35, 35, -40, -7],
+  };
+
+  for (const [angle, values] of Object.entries(expected)) {
+    const match = backendConfig.match(
+      new RegExp(`ENROLLMENT_POSE_${angle.toUpperCase()}", "([^"]+)"`)
+    );
+    assert.ok(match);
+    assert.deepEqual(match[1].split(',').map(Number), values);
+    const threshold = enrollmentValidationConfig.poseThresholds[angle].valid;
+    assert.deepEqual(
+      [threshold.yawMin, threshold.yawMax, threshold.pitchMin, threshold.pitchMax],
+      values
+    );
+  }
+});
+
 test('sharpness failure gives a readable angle-specific retake instruction', () => {
   const failures = parseFailedCaptures({
     error: 'BACKEND_IMAGE_VALIDATION_FAILED',

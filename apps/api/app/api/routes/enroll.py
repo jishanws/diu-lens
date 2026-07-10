@@ -4,6 +4,7 @@ import re
 import traceback
 import csv
 import io
+import hashlib
 from collections import Counter
 from datetime import datetime, timezone
 from time import perf_counter
@@ -590,6 +591,7 @@ async def _validate_files(
     reports_by_angle: dict[str, list[dict[str, object]]] = {
         angle: [] for angle in EXPECTED_REQUIRED_ANGLES
     }
+    seen_encoded_frames: dict[str, tuple[str, str]] = {}
 
     for angle in EXPECTED_REQUIRED_ANGLES:
         for index, upload in enumerate(files_by_angle.get(angle, [])):
@@ -616,6 +618,7 @@ async def _validate_files(
             total_uploaded_bytes += len(sample)
 
             file_name = upload.filename or "unknown"
+            encoded_digest = hashlib.sha256(sample).hexdigest()
             try:
                 image_report = validate_enrollment_image(
                     image_bytes=sample,
@@ -663,15 +666,22 @@ async def _validate_files(
             ]
             duplicate_distance = min(duplicate_distances) if duplicate_distances else None
             replay_flags: list[str] = []
-            if duplicate_distance is not None and duplicate_distance <= 4:
-                replay_flags.append("near_duplicate_frame")
+            reused_frame = seen_encoded_frames.get(encoded_digest)
+            if reused_frame is not None:
+                previous_angle, previous_file = reused_frame
+                replay_flags.append("exact_reused_frame")
                 reasons = image_report.setdefault("failure_reasons", [])
                 if isinstance(reasons, list):
-                    reasons.append(f"near_duplicate_frame(phash_distance:{duplicate_distance})")
+                    reasons.append(
+                        "exact_reused_frame("
+                        f"previous_angle:{previous_angle},previous_file:{previous_file})"
+                    )
                 image_report["passed"] = False
                 image_report["is_blocking_failure"] = True
                 image_report["final_decision"] = "reject"
-                image_report["blocker"] = "near_duplicate_frame"
+                image_report["blocker"] = "exact_reused_frame"
+            else:
+                seen_encoded_frames[encoded_digest] = (angle, file_name)
             image_report["duplicate_distance"] = duplicate_distance
             image_report["replay_flags"] = replay_flags
             image_report["capture_latency_ms"] = capture_latency_ms
@@ -729,25 +739,6 @@ async def _validate_files(
                     image_report.get("blocker", "unknown"),
                 )
             image_reports.append(image_report)
-
-    all_hashes = [
-        str(report.get("perceptual_hash"))
-        for report in image_reports
-        if report.get("perceptual_hash")
-    ]
-    unique_hashes = set(all_hashes)
-    if len(all_hashes) >= EXPECTED_TOTAL_SHOTS and len(unique_hashes) <= max(3, len(all_hashes) // 3):
-        for report in image_reports:
-            flags = report.setdefault("replay_flags", [])
-            if isinstance(flags, list):
-                flags.append("low_perceptual_motion_sequence")
-            reasons = report.setdefault("failure_reasons", [])
-            if isinstance(reasons, list):
-                reasons.append("low_perceptual_motion_sequence")
-            report["passed"] = False
-            report["is_blocking_failure"] = True
-            report["final_decision"] = "reject"
-            report["blocker"] = "low_perceptual_motion_sequence"
 
     summary = build_validation_summary(image_reports)
     verification_logger.info(
