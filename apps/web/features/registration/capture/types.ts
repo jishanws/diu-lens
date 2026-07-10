@@ -85,7 +85,6 @@ export type CaptureDebugState = {
   roll: number | null;
   userFacingDirection: string;
   expectedPose: string;
-  leftRightMappingReversed: boolean;
   guidanceMessage: string;
   baselineYaw: number | null;
   baselinePitch: number | null;

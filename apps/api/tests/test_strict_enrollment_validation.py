@@ -182,7 +182,11 @@ def test_front_pose_not_accepted_as_left_or_right(monkeypatch) -> None:
 
 
 def test_practical_left_pose_threshold_is_accepted(monkeypatch) -> None:
-    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face(yaw=12, pitch=14)])
+    monkeypatch.setattr(
+        image_validation,
+        "_detect_faces_for_enrollment",
+        lambda image: [_face(yaw=-12, pitch=14)],
+    )
 
     report = image_validation.validate_enrollment_image(_jpeg_bytes(), "left.jpg", "left")
 
@@ -498,10 +502,10 @@ def test_overexposed_face_region_fails_brightness(monkeypatch) -> None:
 
 
 def test_backend_pose_signs_map_left_and_right_without_mirroring() -> None:
-    assert image_validation._pose_matches("left", 12.0, 0.0) is True
-    assert image_validation._pose_matches("right", -12.0, 0.0) is True
-    assert image_validation._pose_matches("left", -12.0, 0.0) is False
-    assert image_validation._pose_matches("right", 12.0, 0.0) is False
+    assert image_validation._pose_matches("left", -12.0, 0.0) is True
+    assert image_validation._pose_matches("right", 12.0, 0.0) is True
+    assert image_validation._pose_matches("left", 12.0, 0.0) is False
+    assert image_validation._pose_matches("right", -12.0, 0.0) is False
 
 
 def test_validation_config_endpoint_includes_pose_near_thresholds(client) -> None:
@@ -510,14 +514,14 @@ def test_validation_config_endpoint_includes_pose_near_thresholds(client) -> Non
     assert response.status_code == 200, response.text
     payload = response.json()
     assert payload["poseThresholds"]["left"]["valid"] == {
-        "yawMin": 12.0,
-        "yawMax": 45.0,
+        "yawMin": -45.0,
+        "yawMax": -12.0,
         "pitchMin": -25.0,
         "pitchMax": 25.0,
     }
     assert payload["poseThresholds"]["left"]["near"] == {
-        "yawMin": 8.0,
-        "yawMax": 49.0,
+        "yawMin": -49.0,
+        "yawMax": -8.0,
         "pitchMin": -29.0,
         "pitchMax": 29.0,
     }
@@ -552,6 +556,22 @@ def test_insightface_pose_is_normalized_to_application_signs() -> None:
     )
 
     assert (yaw, pitch, roll) == (-20.0, 12.0, 1.0)
+
+
+def test_controlled_insightface_outputs_match_user_relative_ranges() -> None:
+    physical_left_yaw, _, _ = image_validation._normalize_insightface_pose(
+        [0.0, 20.0, 0.0]
+    )
+    physical_right_yaw, _, _ = image_validation._normalize_insightface_pose(
+        [0.0, -20.0, 0.0]
+    )
+
+    assert physical_left_yaw == -20.0
+    assert physical_right_yaw == 20.0
+    assert image_validation._pose_matches("left", physical_left_yaw, 0.0) is True
+    assert image_validation._pose_matches("right", physical_right_yaw, 0.0) is True
+    assert image_validation._pose_matches("right", physical_left_yaw, 0.0) is False
+    assert image_validation._pose_matches("left", physical_right_yaw, 0.0) is False
 
 
 def test_controlled_insightface_rotation_signs() -> None:

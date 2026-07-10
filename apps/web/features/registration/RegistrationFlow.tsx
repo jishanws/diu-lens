@@ -11,6 +11,7 @@ import {
   submitEnrollmentCompletion,
   validateStudentId,
   normalizeStudentId,
+  fetchValidationConfig,
 } from '@/features/registration/api';
 import { RegistrationShell } from '@/features/registration/RegistrationShell';
 import { AlreadyRegisteredPanel } from '@/features/registration/steps/AlreadyRegisteredPanel';
@@ -97,6 +98,10 @@ export function RegistrationFlow({
   onStepIndexChange,
   onDone,
 }: RegistrationFlowProps) {
+  useEffect(() => {
+    fetchValidationConfig();
+  }, []);
+
   const [values, setValues] = useState<RegistrationFormValues>(initialValues);
   const [activeStep, setActiveStep] = useState(0);
   const [validationState, setValidationState] = useState<StudentIdValidationState>(

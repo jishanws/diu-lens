@@ -126,8 +126,8 @@ test('frontend pose thresholds match backend defaults', () => {
   );
   const expected = {
     front: [-18, 18, -18, 18],
-    left: [12, 45, -25, 25],
-    right: [-45, -12, -25, 25],
+    left: [-45, -12, -25, 25],
+    right: [12, 45, -25, 25],
     up: [-35, 35, 8, 40],
     down: [-35, 35, -40, -7],
   };
@@ -188,6 +188,19 @@ test('camera export uses fresh standalone canvases without compositing overlays'
     /const exportCanvas = document\.createElement\('canvas'\)/
   );
   assert.match(cameraSource, /exportContext\.drawImage\(sourceCanvas,/);
+  assert.doesNotMatch(
+    cameraSource,
+    /(sourceContext|exportContext)\.(scale|translate|transform|setTransform)\(/
+  );
+
+  const previewSource = readFileSync(
+    new URL(
+      '../features/registration/capture/CameraPreview.tsx',
+      import.meta.url
+    ),
+    'utf8'
+  );
+  assert.match(previewSource, /scaleX\(-1\)/);
 });
 
 test('multipart upload uses named angle fields and replaces failed angle arrays', () => {

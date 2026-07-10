@@ -50,6 +50,23 @@ export function normalizeYawForUser(rawYaw: number) {
   return -rawYaw;
 }
 
+export function estimateRawLandmarkYaw(
+  leftEyeX: number,
+  rightEyeX: number,
+  noseTipX: number
+) {
+  const eyeMidX = (leftEyeX + rightEyeX) / 2;
+  const eyeDistance = Math.max(0.001, Math.abs(rightEyeX - leftEyeX));
+  const yawNorm = (noseTipX - eyeMidX) / (eyeDistance * 0.5);
+  return Math.max(-45, Math.min(45, yawNorm * 32));
+}
+
+export function getUserFacingDirection(normalizedYaw: number) {
+  if (normalizedYaw <= -8) return 'left';
+  if (normalizedYaw >= 8) return 'right';
+  return 'center';
+}
+
 export function shouldResetStabilityWindow(
   previousAngle: VerificationAngle,
   nextAngle: VerificationAngle

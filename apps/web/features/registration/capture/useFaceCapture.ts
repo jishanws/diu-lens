@@ -20,6 +20,8 @@ import {
   type LivenessChallenge,
 } from '@/features/registration/capture/enrollmentValidationConfig';
 import {
+  estimateRawLandmarkYaw,
+  getUserFacingDirection,
   getHybridPoseState,
   getPoseState,
   hasStableCaptureWindow,
@@ -275,6 +277,7 @@ function computeFaceBox(landmarks: LandmarkPoint[]) {
 }
 
 function estimateYawPitch(landmarks: LandmarkPoint[]): {
+  rawYaw: number;
   yaw: number;
   pitch: number;
   roll: number;
@@ -286,23 +289,22 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): {
   const lowerLip = getLandmark(landmarks, 14);
 
   if (!leftEye || !rightEye || !noseTip || !upperLip || !lowerLip) {
-    return { yaw: 0, pitch: 0, roll: 0 };
+    return { rawYaw: 0, yaw: 0, pitch: 0, roll: 0 };
   }
 
-  const eyeMidX = (leftEye.x + rightEye.x) / 2;
   const eyeMidY = (leftEye.y + rightEye.y) / 2;
-  const eyeDistance = Math.max(0.001, Math.abs(rightEye.x - leftEye.x));
   const mouthMidY = (upperLip.y + lowerLip.y) / 2;
   const verticalSpan = Math.max(0.02, mouthMidY - eyeMidY);
 
-  const yawNorm = (noseTip.x - eyeMidX) / (eyeDistance * 0.5);
+  const rawYaw = estimateRawLandmarkYaw(leftEye.x, rightEye.x, noseTip.x);
   const pitchNorm = (noseTip.y - eyeMidY) / verticalSpan - 0.5;
   const roll =
     Math.atan2(rightEye.y - leftEye.y, rightEye.x - leftEye.x) *
     (180 / Math.PI);
 
   return {
-    yaw: clamp(yawNorm * 32, -45, 45),
+    rawYaw,
+    yaw: normalizeYawForUser(rawYaw),
     pitch: clamp(-pitchNorm * 42, -35, 35),
     roll: clamp(roll, -45, 45),
   };
@@ -310,13 +312,6 @@ function estimateYawPitch(landmarks: LandmarkPoint[]): {
 
 function normalizePitchForUser(rawPitch: number) {
   return rawPitch;
-}
-
-function getUserFacingDirection(rawYaw: number) {
-  const normalizedYaw = normalizeYawForUser(rawYaw);
-  if (normalizedYaw <= -8) return 'left';
-  if (normalizedYaw >= 8) return 'right';
-  return 'center';
 }
 
 function getExpectedPoseLabel(angle: VerificationAngle) {
@@ -335,26 +330,11 @@ function getRequiredPitchRange(angle: VerificationAngle) {
 }
 
 function getLivenessExpectedDirection(
-  challenge: LivenessChallenge,
-  observedLeftDirection: number | null
+  challenge: LivenessChallenge
 ) {
   if (challenge === 'center') return 'center';
   if (challenge === 'blink') return 'blink';
-
-  const mode = enrollmentValidationConfig.livenessYawDirectionMode;
-  if (mode === 'either') return 'either';
-  if (mode === 'negative-left') {
-    return challenge === 'left' ? 'negative' : 'positive';
-  }
-  if (mode === 'positive-left') {
-    return challenge === 'left' ? 'positive' : 'negative';
-  }
-  if (observedLeftDirection) {
-    const expected =
-      challenge === 'left' ? observedLeftDirection : -observedLeftDirection;
-    return expected < 0 ? 'negative' : 'positive';
-  }
-  return 'either';
+  return challenge === 'left' ? 'negative' : 'positive';
 }
 
 function isHybridAngleMatch(
@@ -380,8 +360,7 @@ function livenessChallengeMatched(
   challenge: LivenessChallenge,
   yaw: number,
   landmarks: LandmarkPoint[],
-  baselineYaw: number | null,
-  observedLeftDirection: number | null
+  baselineYaw: number | null
 ): {
   matched: boolean;
   yawDelta: number | null;
@@ -400,10 +379,7 @@ function livenessChallengeMatched(
     return {
       matched: false,
       yawDelta: null,
-      expectedDirection: getLivenessExpectedDirection(
-        challenge,
-        observedLeftDirection
-      ),
+      expectedDirection: getLivenessExpectedDirection(challenge),
       observedDirection: null,
     };
   }
@@ -426,12 +402,8 @@ function livenessChallengeMatched(
     };
   }
 
-  const expectedDirection = getLivenessExpectedDirection(
-    challenge,
-    observedLeftDirection
-  );
+  const expectedDirection = getLivenessExpectedDirection(challenge);
   const directionOk =
-    expectedDirection === 'either' ||
     (expectedDirection === 'negative' &&
       yawDelta <= -enrollmentValidationConfig.livenessMinYawDeltaDegrees) ||
     (expectedDirection === 'positive' &&
@@ -803,7 +775,6 @@ export function useFaceCapture({
   const livenessChallengeStartedAtRef = useRef(0);
   const livenessBaselineYawRef = useRef<number | null>(null);
   const livenessBaselinePitchRef = useRef<number | null>(null);
-  const livenessObservedLeftDirectionRef = useRef<number | null>(null);
   const stableInitialYawRef = useRef<number | null>(null);
   const stableInitialPitchRef = useRef<number | null>(null);
   const lastGuidanceRef = useRef<{
@@ -877,7 +848,6 @@ export function useFaceCapture({
     roll: null,
     userFacingDirection: 'unknown',
     expectedPose: 'Look Straight',
-    leftRightMappingReversed: false,
     guidanceMessage: perAngleInstruction.front,
     baselineYaw: null,
     baselinePitch: null,
@@ -1785,8 +1755,7 @@ export function useFaceCapture({
               challenge,
               pose.yaw,
               landmarks,
-              livenessBaselineYawRef.current,
-              livenessObservedLeftDirectionRef.current
+              livenessBaselineYawRef.current
             )
           : {
               matched: false,
@@ -1794,10 +1763,7 @@ export function useFaceCapture({
                 livenessBaselineYawRef.current === null
                   ? null
                   : pose.yaw - livenessBaselineYawRef.current,
-              expectedDirection: getLivenessExpectedDirection(
-                challenge,
-                livenessObservedLeftDirectionRef.current
-              ),
+              expectedDirection: getLivenessExpectedDirection(challenge),
               observedDirection: null,
             };
         if (livenessQualityOk && livenessChallengeStartedAtRef.current === 0) {
@@ -1819,14 +1785,6 @@ export function useFaceCapture({
             livenessMatchedSinceRef.current = now;
           }
           if (now - livenessMatchedSinceRef.current >= LIVENESS_HOLD_MS) {
-            if (
-              challenge === 'left' &&
-              challengeResult.observedDirection !== null &&
-              livenessObservedLeftDirectionRef.current === null
-            ) {
-              livenessObservedLeftDirectionRef.current =
-                challengeResult.observedDirection;
-            }
             livenessPassCountRef.current += 1;
             livenessIndexRef.current += 1;
             livenessMatchedSinceRef.current = 0;
@@ -1885,8 +1843,8 @@ export function useFaceCapture({
         setDebugState((prev) => ({
           ...prev,
           yaw: pose.yaw,
-          rawYaw: pose.yaw,
-          normalizedYaw: normalizeYawForUser(pose.yaw),
+          rawYaw: pose.rawYaw,
+          normalizedYaw: pose.yaw,
           pitch: pose.pitch,
           rawPitch: pose.pitch,
           normalizedPitch: normalizePitchForUser(pose.pitch),
@@ -2172,8 +2130,8 @@ export function useFaceCapture({
       setDebugState((prev) => ({
         ...prev,
         yaw: pose.yaw,
-        rawYaw: pose.yaw,
-        normalizedYaw: normalizeYawForUser(pose.yaw),
+        rawYaw: pose.rawYaw,
+        normalizedYaw: pose.yaw,
         pitch: pose.pitch,
         rawPitch: pose.pitch,
         normalizedPitch: normalizePitchForUser(pose.pitch),
@@ -2347,7 +2305,6 @@ export function useFaceCapture({
     livenessChallengeStartedAtRef.current = 0;
     livenessBaselineYawRef.current = null;
     livenessBaselinePitchRef.current = null;
-    livenessObservedLeftDirectionRef.current = null;
     stableSinceRef.current = 0;
     stableGraceUntilRef.current = 0;
     stableInitialYawRef.current = null;

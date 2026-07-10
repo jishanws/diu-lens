@@ -20,12 +20,6 @@ export type LivenessChallenge =
   | 'down'
   | 'center';
 
-export type LivenessYawDirectionMode =
-  | 'auto'
-  | 'negative-left'
-  | 'positive-left'
-  | 'either';
-
 export const enrollmentValidationConfig = {
   minDetectionScore: 0.55,
   minFaceAreaRatio: 0.09,
@@ -44,7 +38,6 @@ export const enrollmentValidationConfig = {
   livenessChallengeTimeoutMs: 6500,
   livenessMinYawDeltaDegrees: 11,
   livenessCenterYawToleranceDegrees: 9,
-  livenessYawDirectionMode: 'positive-left' as LivenessYawDirectionMode,
   poseDeltaThresholds: {
     yawDegrees: 9,
     pitchDegrees: 6,
@@ -64,12 +57,12 @@ export const enrollmentValidationConfig = {
       near: { yawMin: -22, yawMax: 22, pitchMin: -22, pitchMax: 22 },
     },
     left: {
-      valid: { yawMin: 12, yawMax: 45, pitchMin: -25, pitchMax: 25 },
-      near: { yawMin: 8, yawMax: 52, pitchMin: -30, pitchMax: 30 },
+      valid: { yawMin: -45, yawMax: -12, pitchMin: -25, pitchMax: 25 },
+      near: { yawMin: -49, yawMax: -8, pitchMin: -29, pitchMax: 29 },
     },
     right: {
-      valid: { yawMin: -45, yawMax: -12, pitchMin: -25, pitchMax: 25 },
-      near: { yawMin: -52, yawMax: -8, pitchMin: -30, pitchMax: 30 },
+      valid: { yawMin: 12, yawMax: 45, pitchMin: -25, pitchMax: 25 },
+      near: { yawMin: 8, yawMax: 49, pitchMin: -29, pitchMax: 29 },
     },
     up: {
       valid: { yawMin: -35, yawMax: 35, pitchMin: 8, pitchMax: 40 },

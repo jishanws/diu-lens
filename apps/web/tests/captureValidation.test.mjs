@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  estimateRawLandmarkYaw,
+  getHybridPoseState,
   getPoseState,
+  getUserFacingDirection,
   hasStableCaptureWindow,
   isFrameLocallyAcceptable,
   normalizeYawForUser,
@@ -13,10 +16,42 @@ import { enrollmentValidationConfig } from '../features/registration/capture/enr
 
 test('left and right capture only accept their matching pose polarity', () => {
   const thresholds = enrollmentValidationConfig.poseThresholds;
-  assert.equal(getPoseState('left', thresholds, 20, 0), 'valid');
-  assert.equal(getPoseState('left', thresholds, -20, 0), 'invalid');
-  assert.equal(getPoseState('right', thresholds, -20, 0), 'valid');
-  assert.equal(getPoseState('right', thresholds, 20, 0), 'invalid');
+  assert.equal(getPoseState('left', thresholds, -20, 0), 'valid');
+  assert.equal(getPoseState('left', thresholds, 20, 0), 'invalid');
+  assert.equal(getPoseState('right', thresholds, 20, 0), 'valid');
+  assert.equal(getPoseState('right', thresholds, -20, 0), 'invalid');
+});
+
+test('controlled unmirrored landmarks map physical left and right once', () => {
+  const physicalLeftRawYaw = estimateRawLandmarkYaw(0.35, 0.65, 0.6);
+  const physicalRightRawYaw = estimateRawLandmarkYaw(0.35, 0.65, 0.4);
+  const physicalLeftYaw = normalizeYawForUser(physicalLeftRawYaw);
+  const physicalRightYaw = normalizeYawForUser(physicalRightRawYaw);
+
+  assert.ok(Math.abs(physicalLeftRawYaw - 21.33333333333333) < 1e-9);
+  assert.ok(Math.abs(physicalRightRawYaw + 21.33333333333333) < 1e-9);
+  assert.ok(physicalLeftYaw < 0);
+  assert.ok(physicalRightYaw > 0);
+  assert.equal(getUserFacingDirection(physicalLeftYaw), 'left');
+  assert.equal(getUserFacingDirection(physicalRightYaw), 'right');
+});
+
+test('left and right hybrid auto-capture gates require the correct stable pose', () => {
+  const thresholds = enrollmentValidationConfig.poseThresholds;
+  const baseline = { yaw: 0, pitch: 0 };
+  const heldLongEnough = hasStableCaptureWindow(
+    100,
+    100 + enrollmentValidationConfig.stabilityDurationMs,
+    enrollmentValidationConfig.stabilityDurationMs
+  );
+
+  assert.equal(heldLongEnough, true);
+  assert.equal(getHybridPoseState('left', thresholds, 0, 0, baseline), 'invalid');
+  assert.equal(getHybridPoseState('left', thresholds, 20, 0, baseline), 'invalid');
+  assert.equal(getHybridPoseState('left', thresholds, -20, 0, baseline), 'valid');
+  assert.equal(getHybridPoseState('right', thresholds, 0, 0, baseline), 'invalid');
+  assert.equal(getHybridPoseState('right', thresholds, -20, 0, baseline), 'invalid');
+  assert.equal(getHybridPoseState('right', thresholds, 20, 0, baseline), 'valid');
 });
 
 test('up and down capture require the corrected pose envelope', () => {

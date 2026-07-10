@@ -13,6 +13,25 @@ import {
   getRequiredFramesForAngle,
 } from '@/features/registration/capture/constants';
 import { request, ApiConfigError, buildApiUrl } from '@/lib/api';
+import { updateValidationConfig } from '@/features/registration/capture/enrollmentValidationConfig';
+
+export async function fetchValidationConfig(): Promise<boolean> {
+  try {
+    const response = await request('/enroll/validation-config', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+    if (response.ok) {
+      const json = await response.json();
+      updateValidationConfig(json);
+      return true;
+    }
+  } catch (error) {
+    console.error('Failed to fetch validation config:', error);
+  }
+  return false;
+}
+
 
 // ─── Student ID Validation ─────────────────────────────────────────────────
 
