@@ -7,10 +7,10 @@ import type { EnrollmentVerificationStatus } from '@/features/registration/api';
 import { formatFailedCaptures } from '@/features/registration/verification/failedCaptures';
 
 const stages = [
-  ['uploading', 'Uploading'],
-  ['validating', 'Validating'],
-  ['verifying_identity', 'Verifying identity'],
-  ['completing', 'Completing registration'],
+  ['queued', 'Queued'],
+  ['validating', 'Checking images'],
+  ['verifying_identity', 'Generating face template'],
+  ['completing', 'Saving enrollment'],
 ] as const;
 
 export function VerificationProgressStep({ job, networkMessage, onRetake, onRetry }: {
@@ -31,10 +31,10 @@ export function VerificationProgressStep({ job, networkMessage, onRetake, onRetr
       </div>
       <div>
         <h3 className="landing-text-primary text-xl font-semibold">
-          {succeeded ? 'Registration complete' : retake ? 'A specific capture must be retaken' : failed ? 'Verification could not finish' : 'Secure verification in progress'}
+          {succeeded ? 'Registration complete' : retake ? 'A specific capture must be retaken' : failed ? 'Verification could not finish' : 'Registration submitted'}
         </h3>
         <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-400">
-          {succeeded ? 'Your enrollment transaction has been committed successfully.' : retake ? 'Only the listed angles will be recaptured; your successful captures are preserved.' : failed ? job.error?.message ?? 'Your captures are preserved and you can retry safely.' : 'Your upload is complete. You no longer need to hold your face in position.'}
+          {succeeded ? 'Your enrollment transaction has been committed successfully.' : retake ? 'Only the listed angles will be recaptured; your successful captures are preserved.' : failed ? job.error?.message ?? 'Your captures are preserved and you can retry safely.' : 'Your upload is complete and your enrollment is being verified in the background. You no longer need to keep the camera open.'}
         </p>
       </div>
       {!succeeded && !retake && !failed && (

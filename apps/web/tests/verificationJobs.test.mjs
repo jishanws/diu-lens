@@ -67,11 +67,12 @@ test('new frontend accepts the legacy synchronous committed response during roll
   );
 });
 
-test('failed verification removes the persisted ownership token immediately', () => {
+test('failed verification remains restorable until the user chooses retry', () => {
   assert.match(
     flowSource,
-    /if \(next\.status === 'failed'\)[\s\S]*verificationCredentialsRef\.current = null;[\s\S]*localStorage\.removeItem\(verificationStorageKey\)/
+    /if \(next\.status === 'failed'\) \{\s*return;\s*\}/
   );
+  assert.match(flowSource, /onRetry=\{\(\) => \{[\s\S]*localStorage\.removeItem\(verificationStorageKey\)/);
 });
 
 test('failed-angle jobs return only affected angles to capture', () => {
@@ -80,10 +81,18 @@ test('failed-angle jobs return only affected angles to capture', () => {
   assert.match(progressSource, /formatFailedCaptures\(job\.failed_angles\)/);
 });
 
-test('progress UI exposes the required bounded stages and controlled retry', () => {
-  for (const label of ['Uploading', 'Validating', 'Verifying identity', 'Completing registration']) {
+test('accepted upload renders an immediate submission receipt with real job stages', () => {
+  for (const label of ['Queued', 'Checking images', 'Generating face template', 'Saving enrollment']) {
     assert.match(progressSource, new RegExp(label));
   }
+  assert.match(progressSource, /Registration submitted/);
+  assert.match(progressSource, /upload is complete and your enrollment is being verified in the background/);
+  const persistedIndex = flowSource.indexOf('window.localStorage.setItem(verificationStorageKey', flowSource.indexOf('setVerificationJob(result.verificationJob)'));
+  const captureExitIndex = flowSource.indexOf('setActiveStep(3)', persistedIndex);
+  const autoExitIndex = flowSource.indexOf('setExitAfterAcceptedSubmission(true)', captureExitIndex);
+  assert.ok(persistedIndex >= 0 && captureExitIndex > persistedIndex && autoExitIndex > captureExitIndex);
+  assert.match(flowSource, /window\.setTimeout\(\(\) => \{[\s\S]*window\.location\.assign\('\/'\);[\s\S]*\}, 1600\)/);
+  assert.match(progressSource, /succeeded \? 'Registration complete'/);
   assert.match(progressSource, /failed && <Button onClick=\{onRetry\}>Retry verification<\/Button>/);
 });
 

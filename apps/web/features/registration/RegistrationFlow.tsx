@@ -133,6 +133,7 @@ export function RegistrationFlow({
   const [verificationJob, setVerificationJob] = useState<EnrollmentVerificationStatus | null>(null);
   const [verificationNetworkMessage, setVerificationNetworkMessage] = useState<string | null>(null);
   const [retakeFailures, setRetakeFailures] = useState<FailedCapture[]>([]);
+  const [exitAfterAcceptedSubmission, setExitAfterAcceptedSubmission] = useState(false);
   const verificationCredentialsRef = useRef<VerificationCredentials | null>(null);
   // Tracks the student ID that was successfully validated so that Step 2
   // cannot open for a different (or no) validated ID.
@@ -205,8 +206,6 @@ export function RegistrationFlow({
           return;
         }
         if (next.status === 'failed') {
-          verificationCredentialsRef.current = null;
-          window.localStorage.removeItem(verificationStorageKey);
           return;
         }
         if (next.status === 'retake_required') {
@@ -250,6 +249,20 @@ export function RegistrationFlow({
     window.localStorage.removeItem(verificationStorageKey);
     setActiveStep(0);
   }, [onDone]);
+
+  useEffect(() => {
+    if (!exitAfterAcceptedSubmission || activeStep !== 3 || !verificationJob) return;
+
+    const timer = window.setTimeout(() => {
+      if (onDone) {
+        onDone();
+        return;
+      }
+      window.location.assign('/');
+    }, 1600);
+
+    return () => window.clearTimeout(timer);
+  }, [activeStep, exitAfterAcceptedSubmission, onDone, verificationJob]);
 
   /**
    * Step 1 — Validate student ID before advancing.
@@ -449,6 +462,7 @@ export function RegistrationFlow({
           verificationJob: result.verificationJob,
         } satisfies PersistedVerification));
         setActiveStep(3);
+        setExitAfterAcceptedSubmission(true);
         return {
           success: true,
           accepted: true,
