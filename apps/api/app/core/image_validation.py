@@ -257,15 +257,9 @@ def _try_load_insightface_analyzer() -> Any | None:
         return None
 
     try:
-        from insightface.app import FaceAnalysis
-        from app.core.config import settings
+        from app.core.face_pipeline import _load_analyzer
 
-        analyzer = FaceAnalysis(
-            name=settings.insightface_model_pack,
-            root=settings.insightface_root,
-            providers=["CPUExecutionProvider"],
-        )
-        analyzer.prepare(ctx_id=-1, det_size=(640, 640))
+        analyzer = _load_analyzer()
         _INSIGHTFACE_ANALYZER = analyzer
         return analyzer
     except Exception as exc:  # noqa: BLE001
@@ -276,59 +270,87 @@ def _try_load_insightface_analyzer() -> Any | None:
 
 def _detect_faces_for_enrollment(image: np.ndarray) -> list[dict[str, Any]]:
     analyzer = _try_load_insightface_analyzer()
-    if analyzer is not None:
-        try:
-            faces = analyzer.get(image)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("[enrollment-validation] InsightFace detection failed: %r", exc)
-            faces = []
-        detected: list[dict[str, Any]] = []
-        for face in faces:
-            bbox = getattr(face, "bbox", None)
-            if bbox is None or len(bbox) < 4:
-                continue
-            pose = getattr(face, "pose", None)
-            yaw = pitch = roll = None
-            if pose is not None and len(pose) >= 3:
-                try:
-                    pitch = float(pose[0])
-                    yaw = float(pose[1])
-                    roll = float(pose[2])
-                except (TypeError, ValueError):
-                    yaw = pitch = roll = None
-            detected.append(
-                {
-                    "bbox": [float(v) for v in bbox[:4]],
-                    "det_score": float(getattr(face, "det_score", 0.0) or 0.0),
-                    "yaw": yaw,
-                    "pitch": pitch,
-                    "roll": roll,
-                    "landmarks": getattr(face, "kps", None),
-                }
-            )
-        return detected
+    if analyzer is None:
+        raise RuntimeError("InsightFace enrollment detector is unavailable")
 
-    if _FACE_CASCADE.empty():
-        return []
+    try:
+        faces = analyzer.get(image)
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError("InsightFace enrollment detection failed") from exc
 
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    faces = _FACE_CASCADE.detectMultiScale(
-        gray,
-        scaleFactor=1.1,
-        minNeighbors=5,
-        minSize=(40, 40),
-    )
-    return [
-        {
-            "bbox": [float(x), float(y), float(x + w), float(y + h)],
-            "det_score": 1.0,
-            "yaw": 0.0,
-            "pitch": 0.0,
-            "roll": 0.0,
-            "landmarks": None,
-        }
-        for x, y, w, h in faces
+    height, width = image.shape[:2]
+    raw_detected: list[dict[str, Any]] = []
+    for face in faces:
+        bbox = getattr(face, "bbox", None)
+        if bbox is None or len(bbox) < 4:
+            continue
+        det_score = float(getattr(face, "det_score", 0.0) or 0.0)
+        x1 = min(max(float(bbox[0]), 0.0), float(width))
+        y1 = min(max(float(bbox[1]), 0.0), float(height))
+        x2 = min(max(float(bbox[2]), 0.0), float(width))
+        y2 = min(max(float(bbox[3]), 0.0), float(height))
+        if x2 <= x1 or y2 <= y1:
+            continue
+        pose = getattr(face, "pose", None)
+        yaw = pitch = roll = None
+        if pose is not None and len(pose) >= 3:
+            try:
+                pitch = float(pose[0])
+                yaw = float(pose[1])
+                roll = float(pose[2])
+            except (TypeError, ValueError):
+                yaw = pitch = roll = None
+        raw_detected.append(
+            {
+                "bbox": [x1, y1, x2, y2],
+                "det_score": det_score,
+                "yaw": yaw,
+                "pitch": pitch,
+                "roll": roll,
+                "landmarks": getattr(face, "kps", None),
+            }
+        )
+    detected = [
+        face
+        for face in raw_detected
+        if float(face["det_score"]) >= ENROLLMENT_VALIDATION_CONFIG.min_detection_score
     ]
+    max_iou = max(
+        (
+            _bbox_iou(left["bbox"], right["bbox"])
+            for index, left in enumerate(raw_detected)
+            for right in raw_detected[index + 1 :]
+        ),
+        default=0.0,
+    )
+    logger.info(
+        "[enrollment-detection] dimensions=%sx%s raw_count=%s filtered_count=%s "
+        "min_confidence=%.2f max_pair_iou=%.3f candidates=%s",
+        width,
+        height,
+        len(raw_detected),
+        len(detected),
+        ENROLLMENT_VALIDATION_CONFIG.min_detection_score,
+        max_iou,
+        [
+            {
+                "bbox": [round(float(value), 2) for value in face["bbox"]],
+                "confidence": round(float(face["det_score"]), 4),
+            }
+            for face in raw_detected
+        ],
+    )
+    return detected
+
+
+def _bbox_iou(left: list[float], right: list[float]) -> float:
+    intersection_width = max(0.0, min(left[2], right[2]) - max(left[0], right[0]))
+    intersection_height = max(0.0, min(left[3], right[3]) - max(left[1], right[1]))
+    intersection = intersection_width * intersection_height
+    left_area = max(0.0, left[2] - left[0]) * max(0.0, left[3] - left[1])
+    right_area = max(0.0, right[2] - right[0]) * max(0.0, right[3] - right[1])
+    union = left_area + right_area - intersection
+    return intersection / union if union > 0 else 0.0
 
 
 def _eyes_visible(face: dict[str, Any], face_box: list[float]) -> bool:
@@ -347,7 +369,7 @@ def _pose_matches(angle: str, yaw: float | None, pitch: float | None) -> bool:
     threshold = ENROLLMENT_VALIDATION_CONFIG.pose_thresholds.get(angle)
     if threshold is None:
         return False
-    if yaw is None or pitch is None:
+    if yaw is None or pitch is None or not np.isfinite([yaw, pitch]).all():
         return False
     return (
         threshold.yaw_min <= yaw <= threshold.yaw_max
@@ -480,26 +502,22 @@ def validate_enrollment_image(
     try:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur_score = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-        brightness_score = float(gray.mean())
+        full_frame_brightness_score = float(gray.mean())
         report["perceptual_hash"] = compute_phash(image)
     except cv2.error:
         _append_failure(report, "image_processing_failed")
         return _finalize_strict_enrollment_report(report)
 
     report["blur_score"] = blur_score
-    report["brightness_score"] = brightness_score
-    report["brightness"] = brightness_score
+    report["brightness_score"] = full_frame_brightness_score
+    report["brightness"] = full_frame_brightness_score
+    report["full_frame_brightness_score"] = full_frame_brightness_score
+    report["brightness_region"] = "full_frame"
     report["sharpness_level"] = classify_sharpness(blur_score, config.min_blur_variance)
     report["blur_ok"] = report["sharpness_level"] == "acceptable"
-    report["brightness_ok"] = config.min_brightness <= brightness_score <= config.max_brightness
+    report["brightness_ok"] = True
     if not report["blur_ok"]:
         _append_failure(report, f"image_blurry(score:{blur_score:.2f},min:{config.min_blur_variance:.2f})")
-    if not report["brightness_ok"]:
-        _append_failure(
-            report,
-            f"invalid_brightness(value:{brightness_score:.2f},range:{config.min_brightness:.2f}-{config.max_brightness:.2f})",
-        )
-
     try:
         faces = _detect_faces_for_enrollment(image)
     except cv2.error:
@@ -524,6 +542,8 @@ def validate_enrollment_image(
     x1, y1, x2, y2 = [float(v) for v in face["bbox"]]
     face_w = max(0.0, x2 - x1)
     face_h = max(0.0, y2 - y1)
+    face_gray = gray[int(y1) : max(int(y2), int(y1) + 1), int(x1) : max(int(x2), int(x1) + 1)]
+    brightness_score = float(face_gray.mean()) if face_gray.size else full_frame_brightness_score
     face_area_ratio = (face_w * face_h) / max(float(width * height), 1.0)
     center_offset = float(
         np.hypot(((x1 + x2) / 2.0 / max(width, 1)) - 0.5, ((y1 + y2) / 2.0 / max(height, 1)) - 0.5)
@@ -536,6 +556,10 @@ def validate_enrollment_image(
 
     report["face_box"] = {"x1": x1, "y1": y1, "x2": x2, "y2": y2}
     report["face_area_ratio"] = face_area_ratio
+    report["brightness_score"] = brightness_score
+    report["brightness"] = brightness_score
+    report["brightness_region"] = "face_box"
+    report["brightness_ok"] = config.min_brightness <= brightness_score <= config.max_brightness
     report["center_offset"] = center_offset
     report["max_center_offset"] = config.max_center_offset
     report["detection_score"] = det_score
@@ -558,6 +582,12 @@ def validate_enrollment_image(
     report["crop_alignment_success"] = bool(face_w > 0 and face_h > 0)
     report["eyes_visible"] = "passed" if _eyes_visible(face, [x1, y1, x2, y2]) else "failed"
 
+    if not report["brightness_ok"]:
+        _append_failure(
+            report,
+            f"invalid_brightness(value:{brightness_score:.2f},range:{config.min_brightness:.2f}-{config.max_brightness:.2f})",
+        )
+
     if det_score < config.min_detection_score:
         _append_failure(report, f"detection_score_too_low(score:{det_score:.2f},min:{config.min_detection_score:.2f})")
     if face_area_ratio < config.min_face_area_ratio:
@@ -570,7 +600,9 @@ def validate_enrollment_image(
         _append_failure(report, f"face_too_close_to_edge(margin:{edge_margin:.3f},min:{config.min_edge_margin_ratio:.3f})")
     if report["eyes_visible"] != "passed":
         _append_failure(report, "eyes_not_visible")
-    if not _pose_matches(angle, yaw, pitch):
+    if yaw is None or pitch is None or not np.isfinite([yaw, pitch]).all():
+        _append_failure(report, f"pose_estimation_failed(angle:{angle})")
+    elif not _pose_matches(angle, yaw, pitch):
         _append_failure(report, f"wrong_pose(angle:{angle},yaw:{yaw},pitch:{pitch})")
     if not report["crop_alignment_success"]:
         _append_failure(report, "crop_alignment_failed")

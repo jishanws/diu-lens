@@ -90,3 +90,28 @@ test('sharpness failure gives a readable angle-specific retake instruction', () 
   assert.equal(failures[0].measured, 34.5);
   assert.deepEqual(failures[0].required, { min: 35 });
 });
+
+test('camera export uses fresh standalone canvases without compositing overlays', () => {
+  const cameraSource = readFileSync(
+    new URL('../features/registration/verification/useCamera.ts', import.meta.url),
+    'utf8'
+  );
+  assert.match(cameraSource, /const sourceCanvas = document\.createElement\('canvas'\)/);
+  assert.match(cameraSource, /sourceContext\.drawImage\(\s*videoElement,/);
+  assert.match(cameraSource, /const exportCanvas = document\.createElement\('canvas'\)/);
+  assert.match(cameraSource, /exportContext\.drawImage\(sourceCanvas,/);
+});
+
+test('multipart upload uses named angle fields and replaces failed angle arrays', () => {
+  const apiSource = readFileSync(
+    new URL('../features/registration/api.ts', import.meta.url),
+    'utf8'
+  );
+  assert.match(apiSource, /formData\.append\(angle, fileToAppend, fileName\)/);
+
+  const captures = { front: ['f'], left: ['old'], right: ['r'], up: ['u'], down: ['d'] };
+  const cleared = clearFailedAngleValues(captures, ['left']);
+  assert.deepEqual({ ...cleared, left: ['replacement'] }, {
+    front: ['f'], left: ['replacement'], right: ['r'], up: ['u'], down: ['d'],
+  });
+});

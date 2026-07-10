@@ -510,7 +510,14 @@ function areEyesClosed(landmarks: LandmarkPoint[]) {
   return leftOpen < 0.12 && rightOpen < 0.12;
 }
 
-function analyzeVideoQuality(video: HTMLVideoElement): {
+type NormalizedFaceBox = {
+  minX: number;
+  minY: number;
+  maxX: number;
+  maxY: number;
+};
+
+function analyzeVideoQuality(video: HTMLVideoElement, faceBox?: NormalizedFaceBox): {
   blurVariance: number;
   brightness: number;
   resolutionOk: boolean;
@@ -540,11 +547,29 @@ function analyzeVideoQuality(video: HTMLVideoElement): {
   const data = context.getImageData(0, 0, width, height).data;
   const gray = new Float32Array(width * height);
   let brightnessTotal = 0;
+  let brightnessCount = 0;
+  const brightnessBounds = faceBox
+    ? {
+        minX: Math.max(0, Math.floor(faceBox.minX * width)),
+        minY: Math.max(0, Math.floor(faceBox.minY * height)),
+        maxX: Math.min(width, Math.ceil(faceBox.maxX * width)),
+        maxY: Math.min(height, Math.ceil(faceBox.maxY * height)),
+      }
+    : null;
 
   for (let index = 0, pixel = 0; index < data.length; index += 4, pixel += 1) {
     const value = data[index] * 0.299 + data[index + 1] * 0.587 + data[index + 2] * 0.114;
     gray[pixel] = value;
-    brightnessTotal += value;
+    const x = pixel % width;
+    const y = Math.floor(pixel / width);
+    if (
+      !brightnessBounds ||
+      (x >= brightnessBounds.minX && x < brightnessBounds.maxX &&
+        y >= brightnessBounds.minY && y < brightnessBounds.maxY)
+    ) {
+      brightnessTotal += value;
+      brightnessCount += 1;
+    }
   }
 
   let laplacianTotal = 0;
@@ -574,7 +599,7 @@ function analyzeVideoQuality(video: HTMLVideoElement): {
 
   return {
     blurVariance,
-    brightness: brightnessTotal / Math.max(1, width * height),
+    brightness: brightnessTotal / Math.max(1, brightnessCount),
     resolutionOk,
   };
 }
@@ -1098,7 +1123,7 @@ export function useFaceCapture({
           );
           centerOffset = Math.hypot((box.minX + box.maxX) / 2 - 0.5, (box.minY + box.maxY) / 2 - 0.5);
           const edgeMargin = Math.min(box.minX, box.minY, 1 - box.maxX, 1 - box.maxY);
-          const videoQuality = analyzeVideoQuality(videoElement);
+          const videoQuality = analyzeVideoQuality(videoElement, box);
           blurVariance = videoQuality.blurVariance;
           brightness = videoQuality.brightness;
           qualityOk =
@@ -1529,7 +1554,7 @@ export function useFaceCapture({
       const edgeOk = edgeMargin >= enrollmentValidationConfig.minEdgeMarginRatio;
       
       const eyesVisible = areEyesVisible(landmarks);
-      const videoQuality = analyzeVideoQuality(videoElement);
+      const videoQuality = analyzeVideoQuality(videoElement, box);
       const resolutionOk = videoQuality.resolutionOk;
       const sharpEnough =
         videoQuality.blurVariance >= enrollmentValidationConfig.minBlurVariance;

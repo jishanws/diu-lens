@@ -4,6 +4,7 @@ import json
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import cv2
 import numpy as np
@@ -31,7 +32,7 @@ def _jpeg_bytes(
         for y in range(0, 480, 16):
             color = 255 if (y // 16) % 2 == 0 else 40
             image[y : y + 8, :, :] = color
-        cv2.rectangle(image, (220, 120), (420, 360), (230, 230, 230), -1)
+        cv2.rectangle(image, (220, 120), (420, 360), (160, 160, 160), -1)
         cv2.circle(image, (280, 210), 12, (20, 20, 20), -1)
         cv2.circle(image, (360, 210), 12, (20, 20, 20), -1)
     if blur_kernel is not None:
@@ -304,6 +305,175 @@ def test_no_face_rejected(monkeypatch) -> None:
 
     assert report["passed"] is False
     assert report["blocker"] == "face_not_detected"
+
+
+def test_enrollment_detector_reuses_shared_insightface_analyzer(monkeypatch) -> None:
+    from app.core import face_pipeline
+
+    analyzer = object()
+    monkeypatch.setattr(image_validation, "_INSIGHTFACE_ANALYZER", None)
+    monkeypatch.setattr(image_validation, "_INSIGHTFACE_INIT_FAILED", False)
+    monkeypatch.setattr(face_pipeline, "_load_analyzer", lambda: analyzer)
+
+    assert image_validation._try_load_insightface_analyzer() is analyzer
+
+
+def test_low_confidence_false_positive_is_ignored(monkeypatch) -> None:
+    faces = [
+        SimpleNamespace(
+            bbox=np.array([220, 120, 420, 360]),
+            det_score=0.92,
+            pose=np.array([0.0, 0.0, 0.0]),
+            kps=np.array([[280, 210], [360, 210]]),
+        ),
+        SimpleNamespace(
+            bbox=np.array([20, 20, 100, 100]),
+            det_score=0.30,
+            pose=np.array([0.0, 0.0, 0.0]),
+            kps=np.array([[40, 40], [70, 40]]),
+        ),
+    ]
+    monkeypatch.setattr(
+        image_validation,
+        "_try_load_insightface_analyzer",
+        lambda: SimpleNamespace(get=lambda _image: faces),
+    )
+
+    detected = image_validation._detect_faces_for_enrollment(
+        np.zeros((480, 640, 3), dtype=np.uint8)
+    )
+
+    assert len(detected) == 1
+    assert detected[0]["det_score"] == pytest.approx(0.92)
+
+
+def test_detector_box_iou_is_calculated_without_suppressing_faces() -> None:
+    assert image_validation._bbox_iou(
+        [100.0, 100.0, 300.0, 300.0],
+        [110.0, 110.0, 290.0, 290.0],
+    ) == pytest.approx(0.81)
+    assert image_validation._bbox_iou(
+        [10.0, 10.0, 100.0, 100.0],
+        [200.0, 200.0, 300.0, 300.0],
+    ) == 0.0
+
+
+def test_two_distinct_high_confidence_faces_still_fail(monkeypatch) -> None:
+    monkeypatch.setattr(
+        image_validation,
+        "_detect_faces_for_enrollment",
+        lambda _image: [
+            _face(),
+            {**_face(score=0.88), "bbox": [30.0, 100.0, 180.0, 300.0]},
+        ],
+    )
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "front.jpg", "front")
+
+    assert report["passed"] is False
+    assert report["face_count"] == 2
+    assert report["blocker"] == "multiple_faces_detected"
+
+
+def test_pose_estimation_failure_is_not_reported_as_neutral_pose(monkeypatch) -> None:
+    monkeypatch.setattr(
+        image_validation,
+        "_detect_faces_for_enrollment",
+        lambda _image: [{**_face(), "yaw": None, "pitch": None, "roll": None}],
+    )
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "up.jpg", "up")
+
+    assert report["yaw"] is None
+    assert report["pitch"] is None
+    assert "pose_estimation_failed(angle:up)" in report["failure_reasons"]
+    assert not any(str(reason).startswith("wrong_pose") for reason in report["failure_reasons"])
+
+
+@pytest.mark.parametrize(
+    ("width", "height", "bbox"),
+    [
+        (640, 480, [160.0, 120.0, 352.0, 264.0]),
+        (480, 640, [120.0, 160.0, 264.0, 352.0]),
+    ],
+)
+def test_face_coverage_uses_decoded_image_coordinates(
+    monkeypatch, width: int, height: int, bbox: list[float]
+) -> None:
+    image = np.full((height, width, 3), 128, dtype=np.uint8)
+    for y in range(0, height, 16):
+        image[y : y + 8] = 220 if (y // 16) % 2 == 0 else 40
+    ok, encoded = cv2.imencode(".jpg", image)
+    assert ok
+    monkeypatch.setattr(
+        image_validation,
+        "_detect_faces_for_enrollment",
+        lambda _image: [{**_face(), "bbox": bbox}],
+    )
+
+    report = image_validation.validate_enrollment_image(
+        encoded.tobytes(), "front.jpg", "front"
+    )
+
+    assert report["decoded_shape"][:2] == [height, width]
+    assert report["face_area_ratio"] == pytest.approx(0.09)
+
+
+def test_reported_small_face_ratio_uses_box_area_over_full_image(monkeypatch) -> None:
+    monkeypatch.setattr(
+        image_validation,
+        "_detect_faces_for_enrollment",
+        lambda _image: [{**_face(), "bbox": [200.0, 120.0, 296.0, 264.0]}],
+    )
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "right.jpg", "right")
+
+    assert report["face_area_ratio"] == pytest.approx(0.045)
+    assert "face_too_small(ratio:0.045,min:0.090)" in report["failure_reasons"]
+
+
+def test_face_region_brightness_ignores_dark_background(monkeypatch) -> None:
+    image = np.full((480, 640, 3), 20, dtype=np.uint8)
+    for y in range(120, 360, 12):
+        image[y : y + 6, 220:420] = 180
+        image[y + 6 : y + 12, 220:420] = 90
+    ok, encoded = cv2.imencode(".jpg", image)
+    assert ok
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda _image: [_face()])
+
+    report = image_validation.validate_enrollment_image(
+        encoded.tobytes(), "front.jpg", "front"
+    )
+
+    assert report["full_frame_brightness_score"] < 70
+    assert 70 <= report["brightness_score"] <= 200
+    assert report["brightness_region"] == "face_box"
+    assert report["brightness_ok"] is True
+
+
+def test_overexposed_face_region_fails_brightness(monkeypatch) -> None:
+    image = np.full((480, 640, 3), 128, dtype=np.uint8)
+    image[120:360, 220:420] = 250
+    cv2.circle(image, (280, 210), 6, (230, 230, 230), -1)
+    cv2.circle(image, (360, 210), 6, (230, 230, 230), -1)
+    ok, encoded = cv2.imencode(".jpg", image)
+    assert ok
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda _image: [_face()])
+
+    report = image_validation.validate_enrollment_image(
+        encoded.tobytes(), "front.jpg", "front"
+    )
+
+    assert report["brightness_score"] > 200
+    assert report["brightness_ok"] is False
+    assert any(str(reason).startswith("invalid_brightness") for reason in report["failure_reasons"])
+
+
+def test_backend_pose_signs_map_left_and_right_without_mirroring() -> None:
+    assert image_validation._pose_matches("left", 12.0, 0.0) is True
+    assert image_validation._pose_matches("right", -12.0, 0.0) is True
+    assert image_validation._pose_matches("left", -12.0, 0.0) is False
+    assert image_validation._pose_matches("right", 12.0, 0.0) is False
 
 
 def test_valid_capture_structure_requires_exactly_10_samples() -> None:
