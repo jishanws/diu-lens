@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   clearFailedAngleValues,
   failedCaptureAngles,
+  formatFailedCaptures,
   parseFailedCaptures,
 } from '../features/registration/verification/failedCaptures.ts';
 import { enrollmentValidationConfig } from '../features/registration/capture/enrollmentValidationConfig.ts';
@@ -64,8 +65,28 @@ test('frontend framing thresholds match backend defaults', () => {
   );
   const centerOffset = backendConfig.match(/ENROLLMENT_MAX_CENTER_OFFSET", "([0-9.]+)"/);
   const edgeMargin = backendConfig.match(/ENROLLMENT_MIN_EDGE_MARGIN_RATIO", "([0-9.]+)"/);
+  const blurVariance = backendConfig.match(/ENROLLMENT_MIN_BLUR_VARIANCE", "([0-9.]+)"/);
   assert.ok(centerOffset);
   assert.ok(edgeMargin);
+  assert.ok(blurVariance);
   assert.equal(enrollmentValidationConfig.maxCenterOffset, Number(centerOffset[1]));
   assert.equal(enrollmentValidationConfig.minEdgeMarginRatio, Number(edgeMargin[1]));
+  assert.equal(enrollmentValidationConfig.minBlurVariance, Number(blurVariance[1]));
+});
+
+test('sharpness failure gives a readable angle-specific retake instruction', () => {
+  const failures = parseFailedCaptures({
+    error: 'BACKEND_IMAGE_VALIDATION_FAILED',
+    details: [{
+      angle: 'front',
+      reason: 'image_blurry(score:34.5,min:35.0)',
+      error_code: 'image_blurry',
+    }],
+  });
+  assert.equal(
+    formatFailedCaptures(failures),
+    'The front photo is slightly blurry. Hold the device steady, clean the camera lens, and retake it in better lighting.'
+  );
+  assert.equal(failures[0].measured, 34.5);
+  assert.deepEqual(failures[0].required, { min: 35 });
 });

@@ -96,7 +96,15 @@ function readableReason(errorCode: string): string {
 export function formatFailedCaptures(failures: FailedCapture[]): string {
   if (failures.length === 0) return 'Some captures failed backend validation. Please retake the affected angle.';
 
-  return failures.map((failure) => {
+  const blurryAngles = failedCaptureAngles(
+    failures.filter((failure) => failure.errorCode === 'image_blurry')
+  );
+  const blurMessages = blurryAngles.map(
+    (angle) => `The ${angle} photo is slightly blurry. Hold the device steady, clean the camera lens, and retake it in better lighting.`
+  );
+  const otherFailures = failures.filter((failure) => failure.errorCode !== 'image_blurry');
+
+  const otherMessages = otherFailures.map((failure) => {
     const measured = typeof failure.measured === 'number'
       ? `; measured ${failure.measured}`
       : failure.measured
@@ -106,7 +114,8 @@ export function formatFailedCaptures(failures: FailedCapture[]): string {
       ? `; required ${'min' in failure.required && failure.required.min !== undefined ? `min ${failure.required.min}` : ''}${'min' in failure.required && 'max' in failure.required ? ', ' : ''}${'max' in failure.required && failure.required.max !== undefined ? `max ${failure.required.max}` : ''}`
       : '';
     return `${failure.angle}: ${readableReason(failure.errorCode)}${measured}${required}`;
-  }).join('. ');
+  });
+  return [...blurMessages, ...otherMessages].join(' ');
 }
 
 export function clearFailedAngleValues<T>(

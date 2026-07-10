@@ -15,7 +15,7 @@ EyesVisibleStatus = Literal["passed", "failed", "not_yet_implemented"]
 
 @dataclass(frozen=True)
 class ImageValidationConfig:
-    min_blur_variance: float = 45.0
+    min_blur_variance: float = 35.0
     min_brightness: float = 70.0
     max_brightness: float = 200.0
     min_width: int = 224
@@ -36,6 +36,7 @@ _FACE_CASCADE = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 logger = logging.getLogger("diu_lens.opencv")
+SEVERELY_BLURRY_VARIANCE = 28.0
 _STRICT_FACE_DETECTION_ANGLES: set[str] = {"front"}
 _INSIGHTFACE_ANALYZER: Any = None
 _INSIGHTFACE_INIT_FAILED = False
@@ -82,6 +83,14 @@ def _append_reason(
         target_reasons = []
     target_reasons.append(reason)
     report[target_key] = target_reasons
+
+
+def classify_sharpness(blur_score: float, minimum: float) -> str:
+    if blur_score >= minimum:
+        return "acceptable"
+    if blur_score >= SEVERELY_BLURRY_VARIANCE:
+        return "blurry"
+    return "severely_blurry"
 
 
 def _dimensions_from_shape(decoded_shape: object) -> str:
@@ -480,7 +489,8 @@ def validate_enrollment_image(
     report["blur_score"] = blur_score
     report["brightness_score"] = brightness_score
     report["brightness"] = brightness_score
-    report["blur_ok"] = blur_score >= config.min_blur_variance
+    report["sharpness_level"] = classify_sharpness(blur_score, config.min_blur_variance)
+    report["blur_ok"] = report["sharpness_level"] == "acceptable"
     report["brightness_ok"] = config.min_brightness <= brightness_score <= config.max_brightness
     if not report["blur_ok"]:
         _append_failure(report, f"image_blurry(score:{blur_score:.2f},min:{config.min_blur_variance:.2f})")

@@ -26,7 +26,7 @@ export const enrollmentValidationConfig = {
   maxFaceAreaRatio: 0.35,
   maxCenterOffset: 0.24,
   minEdgeMarginRatio: 0.03,
-  minBlurVariance: 45,
+  minBlurVariance: 35,
   brightnessRange: { min: 70, max: 200 },
   minResolution: { width: 320, height: 240 },
   stabilityDurationMs: 350,

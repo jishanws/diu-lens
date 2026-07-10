@@ -54,7 +54,7 @@ def _audit_image_quality(
     *,
     angle_label: str,
     strict_face_checks: bool = True,
-    min_blur: float = 45.0,
+    min_blur: float = settings.enrollment_min_blur_variance,
     min_brightness: float = 70.0,
     max_brightness: float = 200.0,
     min_face_area_ratio: float = 0.09,

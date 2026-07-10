@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 
 import cv2
 import numpy as np
@@ -16,7 +19,13 @@ from app.db.models import Enrollment
 REQUIRED_ANGLES = ("front", "left", "right", "up", "down")
 
 
-def _jpeg_bytes(*, brightness: int = 128, pattern: bool = True) -> bytes:
+def _jpeg_bytes(
+    *,
+    brightness: int = 128,
+    pattern: bool = True,
+    blur_kernel: int | None = None,
+    jpeg_quality: int = 95,
+) -> bytes:
     image = np.full((480, 640, 3), brightness, dtype=np.uint8)
     if pattern:
         for y in range(0, 480, 16):
@@ -25,7 +34,9 @@ def _jpeg_bytes(*, brightness: int = 128, pattern: bool = True) -> bytes:
         cv2.rectangle(image, (220, 120), (420, 360), (230, 230, 230), -1)
         cv2.circle(image, (280, 210), 12, (20, 20, 20), -1)
         cv2.circle(image, (360, 210), 12, (20, 20, 20), -1)
-    ok, encoded = cv2.imencode(".jpg", image)
+    if blur_kernel is not None:
+        image = cv2.GaussianBlur(image, (blur_kernel, blur_kernel), 0)
+    ok, encoded = cv2.imencode(".jpg", image, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
     assert ok
     return encoded.tobytes()
 
@@ -190,6 +201,74 @@ def test_blurry_image_rejected(monkeypatch) -> None:
 
     assert report["passed"] is False
     assert report["blocker"] == "image_blurry"
+
+
+@pytest.mark.parametrize("score", [45.0, 42.0, 35.0])
+def test_recalibrated_sharpness_scores_pass(score: float) -> None:
+    assert image_validation.classify_sharpness(score, 35.0) == "acceptable"
+
+
+def test_score_just_below_sharpness_threshold_fails() -> None:
+    assert image_validation.classify_sharpness(34.99, 35.0) == "blurry"
+
+
+def test_real_encoded_ordinary_device_image_passes(monkeypatch) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
+
+    report = image_validation.validate_enrollment_image(
+        _jpeg_bytes(blur_kernel=9, jpeg_quality=75),
+        "front.jpg",
+        "front",
+    )
+
+    assert 35.0 <= float(report["blur_score"]) < 60.0
+    assert report["blur_ok"] is True
+    assert report["sharpness_level"] == "acceptable"
+
+
+@pytest.mark.parametrize(
+    ("kernel", "expected_level"),
+    [(11, "blurry"), (21, "severely_blurry")],
+)
+def test_real_encoded_blurry_images_fail(monkeypatch, kernel: int, expected_level: str) -> None:
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
+
+    report = image_validation.validate_enrollment_image(
+        _jpeg_bytes(blur_kernel=kernel, jpeg_quality=75),
+        "front.jpg",
+        "front",
+    )
+
+    assert report["passed"] is False
+    assert report["blocker"] == "image_blurry"
+    assert report["sharpness_level"] == expected_level
+
+
+def test_sharpness_failure_preserves_exact_measurement(monkeypatch) -> None:
+    class FixedLaplacian:
+        def var(self) -> float:
+            return 34.99
+
+    monkeypatch.setattr(cv2, "Laplacian", lambda *_args, **_kwargs: FixedLaplacian())
+    monkeypatch.setattr(image_validation, "_detect_faces_for_enrollment", lambda image: [_face()])
+
+    report = image_validation.validate_enrollment_image(_jpeg_bytes(), "front.jpg", "front")
+
+    assert report["blur_score"] == 34.99
+    assert "image_blurry(score:34.99,min:35.00)" in report["failure_reasons"]
+
+
+def test_sharpness_environment_override_is_respected() -> None:
+    environment = {**os.environ, "ENROLLMENT_MIN_BLUR_VARIANCE": "39.5"}
+    result = subprocess.run(
+        [sys.executable, "-c", "from app.core.config import settings; print(settings.enrollment_min_blur_variance)"],
+        check=True,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+
+    assert result.stdout.strip() == "39.5"
 
 
 def test_dark_image_rejected(monkeypatch) -> None:
