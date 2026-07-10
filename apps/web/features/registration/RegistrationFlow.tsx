@@ -29,6 +29,7 @@ import type {
   VerificationCompletionSummary,
 } from '@/features/registration/verification/types';
 import { formatFailedCaptures } from '@/features/registration/verification/failedCaptures';
+import { validateDiuEmail } from '@/features/registration/verification/emailValidation';
 import type { FailedCapture } from '@/features/registration/verification/failedCaptures';
 import type {
   RegistrationFlowProps,
@@ -332,12 +333,19 @@ export function RegistrationFlow({
 
     const fullName = values.fullName.trim();
     const phoneNumber = values.phoneNumber.trim();
-    const universityEmail = values.universityEmail.trim();
+    const universityEmailInput = values.universityEmail.trim();
 
-    if (!fullName || !phoneNumber || !universityEmail) {
+    if (!fullName || !phoneNumber || !universityEmailInput) {
       setBasicInfoError(GENERIC_ENROLLMENT_ERROR);
       return;
     }
+
+    const emailValidation = validateDiuEmail(values.universityEmail);
+    if (!emailValidation.valid) {
+      setBasicInfoError('Use your official DIU email address.');
+      return;
+    }
+    const universityEmail = emailValidation.email;
 
     setBasicInfoError(null);
     setIsSubmittingBasicInfo(true);

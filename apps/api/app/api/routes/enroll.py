@@ -13,7 +13,7 @@ from typing import Literal, cast
 
 from fastapi import APIRouter, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, Response
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from app.core.enrollment_db import (
     EnrollmentNotFoundError,
@@ -124,6 +124,24 @@ class EnrollmentRequest(BaseModel):
     total_accepted_shots: int = Field(default=0, ge=0)
     angles: list[AngleCaptureSummary] = Field(default_factory=list)
     frame_metadata_by_angle: list[AngleFrameMetadata] = Field(default_factory=list)
+
+    @field_validator("university_email", mode="before")
+    @classmethod
+    def validate_university_email(cls, v: str) -> str:
+        if not isinstance(v, str):
+            raise ValueError("Use your official DIU email address.")
+        email = v.strip()
+        parts = email.split("@")
+        if len(parts) != 2:
+            raise ValueError("Use your official DIU email address.")
+        local, domain = parts
+        if not local:
+            raise ValueError("Use your official DIU email address.")
+        if domain.lower() not in ("diu.edu.bd", "s.diu.edu.bd"):
+            raise ValueError("Use your official DIU email address.")
+        if not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+            raise ValueError("Use your official DIU email address.")
+        return f"{local}@{domain.lower()}"
 
 
 class EnrollmentResponse(BaseModel):
@@ -1535,7 +1553,7 @@ async def enroll(request: Request) -> JSONResponse:
                 status_code=422,
                 success=False,
                 message="Invalid enrollment payload.",
-                errors=exc.errors(),
+                errors=exc.errors(include_context=False),
             )
 
 
