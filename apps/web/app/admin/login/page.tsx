@@ -49,13 +49,13 @@ export default function AdminLoginPage() {
       {/* Grid Pattern with tight central mask */}
       <div 
         aria-hidden="true" 
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.012)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.012)_1px,transparent_1px)] bg-[size:48px_48px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,black_20%,transparent_100%)]" 
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.004)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.004)_1px,transparent_1px)] bg-[size:48px_48px] opacity-40 [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,black_20%,transparent_100%)]" 
       />
 
       {/* Subtle Layered Radial Glow */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.85]">
-        <div className="absolute h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.06)_0%,transparent_70%)] blur-[60px]" />
-        <div className="absolute h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.03)_0%,transparent_100%)] blur-[100px]" />
+        <div className="absolute h-[700px] w-[700px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.05)_0%,transparent_70%)] blur-[60px]" />
+        <div className="absolute h-[1000px] w-[1000px] rounded-full bg-[radial-gradient(circle_at_center,rgba(100,147,181,0.02)_0%,transparent_100%)] blur-[100px]" />
       </div>
 
       {/* Darker Outer Edge Falloff (Controlled Vignette) */}
@@ -67,75 +67,65 @@ export default function AdminLoginPage() {
 
       {/* ── Main Access Card ────────────────────────────────────────────── */}
       <motion.div
-        className="relative z-10 flex w-full max-w-[24rem] sm:max-w-[26rem] flex-col items-center"
+        className="relative z-10 flex w-full max-w-[25rem] sm:max-w-[28rem] flex-col items-center"
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         {/* Refined Access Card */}
-        <div className="admin-surface relative w-full overflow-hidden p-7 sm:p-9">
+        <div className="relative w-full overflow-hidden rounded-[1.25rem] border border-white/[0.045] bg-[#0d1728]/80 backdrop-blur-xl p-9 sm:p-11 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.85),inset_0_1px_0_rgba(255,255,255,0.035)]">
           
           {/* Subtle interior edge highlight */}
-          <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-xl border border-white/[0.02] shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]" />
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-[1.25rem] border border-white/[0.02] shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]" />
 
           {/* Header */}
-          <div className="mb-7 flex flex-col items-center text-center">
-            <h1 className="text-2xl font-medium tracking-tight text-[var(--landing-text-primary)]">
+          <div className="mb-8 flex flex-col items-center text-center">
+            <h1 className="text-[1.6rem] font-semibold tracking-tight text-slate-100">
               Admin Console
             </h1>
-            <p className="mt-2 text-sm text-[var(--landing-text-secondary)]">
-              Authorized access for DIU Lens operations.
+            <p className="mt-2 text-[0.82rem] text-slate-400">
+              Authorized personnel only
             </p>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Email Input */}
-            <div className="space-y-2">
-              <label htmlFor="admin-email" className="block text-[0.75rem] font-medium text-[var(--landing-text-secondary)] pl-1">
-                Email Address
-              </label>
-              <div className="relative text-slate-500 transition-colors duration-300 focus-within:text-slate-300">
-                <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 transition-colors" />
-                <input
-                  id="admin-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  placeholder="admin@diulens.app"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="admin-input pl-10 pr-4"
-                />
-              </div>
+            <div className="relative text-slate-500/70 transition-colors duration-300 focus-within:text-slate-300">
+              <Mail className="pointer-events-none absolute left-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 transition-colors" />
+              <input
+                id="admin-email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="admin@diulens.app"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="h-12 w-full rounded-xl border border-white/[0.06] bg-[#08111f]/60 pl-10 pr-4 text-[0.875rem] text-slate-200 placeholder-slate-500/70 outline-none transition-all duration-200 focus:border-slate-500/40 focus:bg-[#08111f]/90 focus:ring-2 focus:ring-slate-500/10"
+              />
             </div>
 
             {/* Password Input */}
-            <div className="space-y-2">
-              <label htmlFor="admin-password" className="block text-[0.75rem] font-medium text-[var(--landing-text-secondary)] pl-1">
-                Password
-              </label>
-              <div className="relative text-slate-500 transition-colors duration-300 focus-within:text-slate-300">
-                <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 transition-colors" />
-                <input
-                  id="admin-password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  autoComplete="current-password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="admin-input pl-10 pr-11"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-1.5 my-auto inline-flex size-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/10 hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#6493b5]/50"
-                  onClick={() => setShowPassword((p) => !p)}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
+            <div className="relative text-slate-500/70 transition-colors duration-300 focus-within:text-slate-300">
+              <Lock className="pointer-events-none absolute left-3.5 top-1/2 size-[1.125rem] -translate-y-1/2 transition-colors" />
+              <input
+                id="admin-password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete="current-password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-12 w-full rounded-xl border border-white/[0.06] bg-[#08111f]/60 pl-10 pr-11 text-[0.875rem] text-slate-200 placeholder-slate-500/70 outline-none transition-all duration-200 focus:border-slate-500/40 focus:bg-[#08111f]/90 focus:ring-2 focus:ring-slate-500/10"
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-2 my-auto inline-flex size-8 items-center justify-center rounded-lg text-slate-500/80 transition-colors hover:bg-white/5 hover:text-slate-300 focus:outline-none focus:ring-2 focus:ring-slate-500/20"
+                onClick={() => setShowPassword((p) => !p)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
             </div>
 
             {/* Error Message */}
@@ -156,27 +146,27 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="admin-btn-primary mt-4 w-full"
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-slate-100 font-semibold text-slate-900 transition-all duration-200 hover:bg-white hover:scale-[1.01] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50"
             >
               {isLoggingIn ? (
                 <>
-                  <Loader2 className="size-4 animate-spin opacity-80" />
-                  Authenticating…
+                  <Loader2 className="size-4 animate-spin text-slate-900" />
+                  Signing In…
                 </>
               ) : (
-                'Authenticate'
+                'Sign In'
               )}
             </button>
           </form>
         </div>
 
         {/* Back Link */}
-        <div className="mt-6 flex w-full justify-start">
+        <div className="mt-5 flex w-full justify-center">
           <Link 
             href="/" 
-            className="flex items-center gap-1.5 text-sm font-medium text-slate-500 transition-colors hover:text-slate-300"
+            className="flex items-center gap-1.5 text-xs text-slate-500 transition-colors hover:text-slate-400"
           >
-            <ArrowLeft className="size-3.5" />
+            <ArrowLeft className="size-3" />
             Back to Homepage
           </Link>
         </div>
