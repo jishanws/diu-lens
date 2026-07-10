@@ -1,6 +1,7 @@
 'use client';
 
 import { Camera, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import {
   captureAngles,
   guidedAngles,
   getRequiredFramesForAngle,
-  perAngleHint,
   perAngleInstruction,
 } from '@/features/registration/capture/constants';
 import { CameraPreview } from '@/features/registration/capture/CameraPreview';
@@ -51,26 +51,26 @@ function getLivenessChallengeLabel(challenge: string | null) {
   return 'Liveness';
 }
 
-function getLivenessChallengeHelper(challenge: string | null) {
-  if (challenge === 'left') return 'Turn your head left.';
-  if (challenge === 'right') return 'Turn your head right.';
-  if (challenge === 'center') return 'Face the camera.';
-  if (challenge === 'blink') return 'Keep your face centered while blinking.';
-  return 'Keep your face centered.';
-}
-
-function HealthBadge({ label, active }: { label: string; active: boolean }) {
-  return (
-    <div className={cn(
-      "flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[0.65rem] font-medium border transition-colors",
-      active 
-        ? "bg-[#6493b5]/10 border-[#6493b5]/20 text-[#6493b5]" 
-        : "bg-white/5 border-white/10 text-slate-500"
-    )}>
-      <div className={cn("h-1.5 w-1.5 rounded-full", active ? "bg-[#6493b5]" : "bg-slate-600")} />
-      {label}
-    </div>
-  );
+/** Returns a single short feedback line that requires user action. Returns null when everything is good. */
+function getActionableFeedback(readiness: {
+  faceDetected: boolean;
+  singleFace: boolean;
+  centered: boolean;
+  faceLargeEnough: boolean;
+  eyesVisible: boolean;
+  brightnessOk: boolean;
+  livenessPassed: boolean;
+  angleMatch: boolean;
+}): string | null {
+  if (!readiness.faceDetected) return 'No face detected';
+  if (!readiness.singleFace) return 'One face only';
+  if (!readiness.faceLargeEnough) return 'Move closer';
+  if (!readiness.centered) return 'Center your face';
+  if (!readiness.eyesVisible) return 'Open your eyes';
+  if (!readiness.brightnessOk) return 'Find better lighting';
+  if (!readiness.livenessPassed) return null; // handled by liveness challenge
+  if (!readiness.angleMatch) return null;      // handled by direction instruction
+  return null; // all clear
 }
 
 function debugValue(value: string | number | boolean | null) {
@@ -509,9 +509,6 @@ export function GuidedEnrollmentCapture({
   const captureTitle = state.liveness.completed
     ? perAngleInstruction[state.currentAngle]
     : getLivenessChallengeLabel(state.liveness.currentChallenge);
-  const captureHelper = state.liveness.completed
-    ? perAngleHint[state.currentAngle]
-    : getLivenessChallengeHelper(state.liveness.currentChallenge);
   const showCompletionState = state.canSubmit;
   const guidePoseState =
     state.feedback.guidanceState === 'ready' ||
@@ -527,41 +524,53 @@ export function GuidedEnrollmentCapture({
     count: capturesByAngle[angle]?.length ?? 0,
     required: getRequiredFramesForAngle(angle),
   }));
-  const currentAngleAccepted = capturesByAngle[state.currentAngle]?.length ?? 0;
   const currentAngleRequired = getRequiredFramesForAngle(state.currentAngle);
 
+  // Single-line actionable feedback (only shown when camera is live)
+  const actionableFeedback = useMemo(() => {
+    if (!streamActive || permissionBlocked || showCompletionState) return null;
+    return getActionableFeedback(state.feedback.readiness);
+  }, [streamActive, permissionBlocked, showCompletionState, state.feedback.readiness]);
+
+  // Capture flash — triggered whenever capturedCount increases
+  const [captureFlash, setCaptureFlash] = useState(false);
+  const prevCapturedCount = useRef(state.capturedCount);
+  useEffect(() => {
+    if (state.capturedCount > prevCapturedCount.current) {
+      setCaptureFlash(true);
+      const t = setTimeout(() => setCaptureFlash(false), 350);
+      prevCapturedCount.current = state.capturedCount;
+      return () => clearTimeout(t);
+    }
+    prevCapturedCount.current = state.capturedCount;
+  }, [state.capturedCount]);
+
   return (
+    <MotionConfig reducedMotion="user">
     <section className="space-y-3">
       {/* ── Main scan card ──────────────────────────────────────── */}
       <div className="rounded-[1.15rem] border border-white/[0.07] bg-[#0d1728]/95 px-4 py-5 shadow-[0_24px_56px_-16px_rgba(0,0,0,0.8),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl sm:rounded-[1.2rem] sm:px-5 sm:py-6">
         <div className="space-y-5">
 
-          {/* STATUS HEADER */}
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p
-                className="mb-[0.2rem] text-[0.63rem] font-semibold tracking-[0.12em] uppercase"
-                style={{ color: 'rgba(100, 147, 181, 0.7)' }}
+          {/* ── DIRECTION HEADER ──────────────────────────────── */}
+          <div className="flex items-center justify-between gap-3">
+            {/* Primary instruction — one short label, nothing else */}
+            <AnimatePresence mode="wait">
+              <motion.h3
+                key={showCompletionState ? '__done__' : captureTitle}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="landing-text-primary text-[1.15rem] font-semibold tracking-tight sm:text-[1.22rem]"
               >
-                {showCompletionState
-                  ? 'Ready To Submit'
-                  : state.liveness.completed
-                    ? 'Face Verification'
-                    : 'Liveness Check'}
-              </p>
-              <h3 className="landing-text-primary text-[1.08rem] font-semibold tracking-tight sm:text-[1.15rem]">
                 {showCompletionState ? 'Ready to Submit' : captureTitle}
-              </h3>
-              <p className="mt-1 max-w-[15rem] text-[0.72rem] leading-snug text-slate-400">
-                {showCompletionState
-                  ? 'All enrollment captures are complete.'
-                  : captureHelper}
-              </p>
-            </div>
+              </motion.h3>
+            </AnimatePresence>
 
-            {/* Step dot progress */}
+            {/* Step dot progress — liveness dot + one dot per capture angle */}
             <div
-              className="flex items-center gap-[0.28rem] pt-1"
+              className="flex items-center gap-[0.28rem]"
               aria-label={`Step ${captureAngles.indexOf(state.currentAngle) + 1} of ${captureAngles.length}`}
             >
               <span
@@ -635,21 +644,21 @@ export function GuidedEnrollmentCapture({
               style={{ boxShadow: 'inset 0 0 20px rgba(0,0,0,0.35)' }}
             />
 
-            {/* Animated scan line — only when camera is live */}
-            {streamActive && !permissionBlocked && !showCompletionState && (
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
-              >
-                <div
-                  className="biometric-scan-line absolute left-[10%] right-[10%] h-px"
-                  style={{
-                    background:
-                      'linear-gradient(90deg, transparent 0%, rgba(100, 147, 181,0.4) 35%, rgba(160,195,215,0.65) 50%, rgba(100, 147, 181,0.4) 65%, transparent 100%)',
-                  }}
+            {/* Capture flash — white pulse when a frame is accepted */}
+            <AnimatePresence>
+              {captureFlash && (
+                <motion.div
+                  key="capture-flash"
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 rounded-full"
+                  initial={{ opacity: 0.55 }}
+                  animate={{ opacity: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: 'easeOut' }}
+                  style={{ background: 'rgba(255,255,255,0.18)' }}
                 />
-              </div>
-            )}
+              )}
+            </AnimatePresence>
 
             {/*
               Biometric progress ring — LAST child so it renders ON TOP of the camera.
@@ -823,47 +832,73 @@ export function GuidedEnrollmentCapture({
             </div>
           ) : null}
 
-          {!showCompletionState && state.liveness.completed ? (
-            <div className="rounded-lg border border-white/[0.06] bg-white/[0.04] px-3 py-2 text-center">
-              <p className="text-[0.78rem] font-semibold text-slate-100">
-                {angleSummaryLabel[state.currentAngle]} {currentAngleAccepted}/
-                {currentAngleRequired}
-              </p>
-              <p className="mt-0.5 text-[0.68rem] text-slate-400">
-                Two images are captured for better recognition accuracy.
-              </p>
-            </div>
-          ) : null}
-
-          {/* STATUS MESSAGE */}
-          <div className="min-h-[2.2rem] px-1 text-center" aria-hidden="true">
-            <p
-              className="text-[0.85rem] leading-[1.5] font-medium transition-colors duration-300"
-              style={{ color: state.feedback.guidanceState === 'hold_steady' ? 'rgba(100, 147, 181, 0.9)' : 'rgba(148,163,184,0.9)' }}
-            >
-              {showCompletionState ? 'All enrollment captures are complete.' : statusText}
-            </p>
+          {/* ── SINGLE SMART FEEDBACK LINE ────────────────────── */}
+          <div className="min-h-[1.8rem] px-1 text-center" aria-hidden="true">
+            <AnimatePresence mode="wait">
+              {showCompletionState ? (
+                <motion.p
+                  key="done"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-[0.82rem] font-medium text-emerald-300/80"
+                >
+                  All captures complete
+                </motion.p>
+              ) : actionableFeedback ? (
+                <motion.p
+                  key={actionableFeedback}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="text-[0.82rem] font-medium"
+                  style={{ color: 'rgba(251,191,36,0.85)' }}
+                >
+                  {actionableFeedback}
+                </motion.p>
+              ) : streamActive && !permissionBlocked ? (
+                <motion.p
+                  key={state.feedback.guidanceState}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.22, ease: 'easeOut' }}
+                  className="text-[0.82rem] font-medium"
+                  style={{
+                    color:
+                      state.feedback.guidanceState === 'hold_steady' ||
+                      state.feedback.guidanceState === 'ready'
+                        ? 'rgba(100, 147, 181, 0.9)'
+                        : 'rgba(148,163,184,0.75)',
+                  }}
+                >
+                  {state.feedback.guidanceState === 'hold_steady' || state.feedback.guidanceState === 'ready'
+                    ? 'Hold still'
+                    : state.feedback.guidanceState === 'cooldown'
+                    ? ''
+                    : statusText}
+                </motion.p>
+              ) : !streamActive && !showCompletionState ? (
+                <motion.p
+                  key="no-stream"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="text-[0.82rem] font-medium text-slate-400"
+                >
+                  {statusText}
+                </motion.p>
+              ) : null}
+            </AnimatePresence>
           </div>
-          
+
           {/* SCREEN READER DEBOUNCED STATUS */}
           <div className="sr-only" aria-live="polite" aria-atomic="true">
             {debouncedStatusText}
           </div>
-
-          {/* LIVE HEALTH INDICATORS */}
-          {streamActive && !permissionBlocked && !state.canSubmit && (
-            <div className="flex justify-center flex-wrap gap-2 mt-2 px-2">
-              <HealthBadge label="Visibility" active={state.feedback.readiness.faceDetected && state.feedback.readiness.singleFace} />
-              <HealthBadge label="Eyes" active={state.feedback.readiness.eyesVisible} />
-              <HealthBadge label="Framing" active={state.feedback.readiness.faceLargeEnough && state.feedback.readiness.centered} />
-              <HealthBadge label="Lighting" active={state.feedback.readiness.brightnessOk} />
-              <HealthBadge label="Liveness" active={state.feedback.readiness.livenessPassed} />
-              <HealthBadge
-                label={state.liveness.completed ? 'Angle' : 'Movement'}
-                active={state.feedback.readiness.angleMatch}
-              />
-            </div>
-          )}
 
           {/* CAMERA PERMISSION BUTTON */}
           {permissionBlocked ? (
@@ -951,5 +986,6 @@ export function GuidedEnrollmentCapture({
       </div>
       ) : null}
     </section>
+    </MotionConfig>
   );
 }

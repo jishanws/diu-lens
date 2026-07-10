@@ -11,6 +11,7 @@ type CircularProgressGuideProps = {
   requiredCount: number;
 };
 
+/** Maps each direction to the centre-angle of its arc (SVG 0° = 3 o'clock). */
 const DIRECTION_SEGMENT_ANGLES = {
   up: -90,
   right: 0,
@@ -20,6 +21,9 @@ const DIRECTION_SEGMENT_ANGLES = {
 
 type DirectionalAngle = keyof typeof DIRECTION_SEGMENT_ANGLES;
 const DIRECTIONAL_ANGLES = Object.keys(DIRECTION_SEGMENT_ANGLES) as DirectionalAngle[];
+
+/** Sweep of each directional arc in degrees — wide enough to feel deliberate, tight enough to be distinct. */
+const ARC_SWEEP_DEG = 70;
 
 export function CircularProgressGuide({
   activeDirection,
@@ -31,17 +35,15 @@ export function CircularProgressGuide({
   const cx = size / 2;
   const cy = size / 2;
 
-  const segmentR = 150;
-  const orbitR = 161;
+  // ── Geometry ────────────────────────────────────────────────
+  const trackR  = 148; // quiet background track ring
+  const arcR    = 148; // directional arcs sit on the same radius
+  const bloomR  = 148;
 
-  const drawAngle = 62;
-  
-  // Circumference
-  const circumference = 2 * Math.PI * segmentR;
-  // Arc length for one segment
-  const segmentLength = (drawAngle / 360) * circumference;
-  // Stroke dasharray pattern: [segmentLength, circumference - segmentLength]
-  const dashArray = `${segmentLength} ${circumference - segmentLength}`;
+  const circumference = 2 * Math.PI * arcR;
+  const arcLength     = (ARC_SWEEP_DEG / 360) * circumference;
+  const gap           = circumference - arcLength;
+  const dashArray     = `${arcLength} ${gap}`;
 
   return (
     <svg
@@ -50,150 +52,120 @@ export function CircularProgressGuide({
       aria-hidden="true"
     >
       <defs>
-        <filter id="cpg-active-bloom" x="-70%" y="-70%" width="240%" height="240%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="8" />
+        {/* Soft glow filter for the active arc bloom */}
+        <filter id="cpg-bloom" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
+        </filter>
+        {/* Sharper inner glow so the arc itself glows */}
+        <filter id="cpg-glow-sm" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
       </defs>
 
-      {/* Counter-rotating dashed orbit decoration */}
-      <g>
-        <animateTransform
-          attributeName="transform"
-          type="rotate"
-          from={`0 ${cx} ${cy}`}
-          to={`-360 ${cx} ${cy}`}
-          dur="22s"
-          repeatCount="indefinite"
-        />
-        <circle
-          cx={cx}
-          cy={cy}
-          r={orbitR}
-          fill="none"
-          stroke="rgba(160, 185, 210, 0.09)"
-          strokeWidth="1.5"
-          strokeDasharray="4 22"
-          strokeLinecap="round"
-        />
-      </g>
-
-      {/* Static outermost ghost ring */}
+      {/* ── Quiet background track ring ─────────────────────── */}
       <circle
         cx={cx}
         cy={cy}
-        r={orbitR + 6}
+        r={trackR}
         fill="none"
-        stroke="rgba(160, 185, 210, 0.03)"
-        strokeWidth="1"
+        stroke="rgba(255,255,255,0.055)"
+        strokeWidth="1.5"
       />
 
-      {/* Front is the neutral/default state and does not displace a direction. */}
-      {(() => {
-        const count = captureCounts.front ?? 0;
+      {/* ── Directional arc segments ─────────────────────────── */}
+      {DIRECTIONAL_ANGLES.map((dir) => {
+        const count      = captureCounts[dir] ?? 0;
         const isComplete = count >= requiredCount;
-        const isActive = activeDirection === 'front' && !isComplete;
-        const stroke = isComplete
-          ? '#86efac'
-          : isActive && poseState === 'valid'
-            ? '#86efac'
-            : isActive && poseState === 'near_valid'
-              ? '#fbbf24'
-              : isActive
-                ? '#7BA8C0'
-                : 'rgba(160, 185, 210, 0.10)';
+        const isActive   = activeDirection === dir && !isComplete;
+
+        // Rotation so the arc's midpoint faces the correct cardinal direction
+        const rotation = DIRECTION_SEGMENT_ANGLES[dir] - ARC_SWEEP_DEG / 2;
+
+        // ── Color logic ─────────────────────────────────────
+        let arcColor  = 'rgba(255,255,255,0.10)'; // idle/upcoming
+        let arcWidth  = 3;
+        let bloomColor: string | null = null;
+
+        if (isComplete) {
+          arcColor = 'rgba(134,239,172,0.75)'; // soft green — completed
+          arcWidth = 4;
+        } else if (isActive) {
+          arcWidth = 6;
+          if (poseState === 'valid') {
+            arcColor  = '#86efac';
+            bloomColor = 'rgba(134,239,172,0.30)';
+          } else if (poseState === 'near_valid') {
+            arcColor  = '#fbbf24';
+            bloomColor = 'rgba(251,191,36,0.26)';
+          } else {
+            arcColor  = '#7BA8C0';
+            bloomColor = 'rgba(100,147,181,0.22)';
+          }
+        }
 
         return (
-          <motion.circle
-            cx={cx}
-            cy={cy}
-            r={segmentR - 11}
-            fill="none"
-            stroke={stroke}
-            strokeWidth={isActive ? 5 : isComplete ? 4 : 2}
-            strokeDasharray="3 8"
-            strokeLinecap="round"
-            animate={{ opacity: isActive ? [0.58, 1, 0.58] : isComplete ? 0.78 : 0.42 }}
-            transition={isActive
-              ? { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }
-              : { duration: 0.5, ease: 'easeOut' }}
-          />
-        );
-      })()}
-
-      {/* Cardinal positions are fixed and never depend on capture-array order. */}
-      <g>
-        {DIRECTIONAL_ANGLES.map((angle) => {
-          const count = captureCounts[angle] ?? 0;
-          const isComplete = count >= requiredCount;
-          const isActive = activeDirection === angle && !isComplete;
-          const rotation = DIRECTION_SEGMENT_ANGLES[angle] - drawAngle / 2;
-
-          let strokeColor = 'rgba(160, 185, 210, 0.15)'; // base muted blue/gray
-          let strokeWidth = 5;
-          let bloom = 'transparent';
-
-          if (isComplete) {
-            strokeColor = '#86efac'; // green
-            strokeWidth = 6;
-          } else if (isActive) {
-            strokeWidth = 8;
-            if (count > 0) {
-              // partially brighter
-              strokeColor = '#a0c3d7'; // brighter blue
-              bloom = 'rgba(160, 195, 215, 0.25)';
-            } else {
-              // base active blue
-              strokeColor = '#7BA8C0';
-              bloom = 'rgba(123, 168, 192, 0.22)';
-            }
-            
-            // if pose is valid and it's active, maybe glow green briefly?
-            if (poseState === 'valid') {
-              strokeColor = '#86efac';
-              bloom = 'rgba(134, 239, 172, 0.3)';
-            } else if (poseState === 'near_valid') {
-              strokeColor = '#fbbf24';
-              bloom = 'rgba(251, 191, 36, 0.26)';
-            }
-          }
-
-          return (
-            <g key={angle} style={{ transformOrigin: 'center', transform: `rotate(${rotation}deg)` }}>
-              {/* Base Segment */}
-              <circle
+          <g
+            key={dir}
+            style={{
+              transformOrigin: `${cx}px ${cy}px`,
+              transform: `rotate(${rotation}deg)`,
+            }}
+          >
+            {/* ── Bloom layer (behind, blurred) ── */}
+            {isActive && bloomColor && (
+              <motion.circle
                 cx={cx}
                 cy={cy}
-                r={segmentR}
+                r={bloomR}
                 fill="none"
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
+                stroke={bloomColor}
+                strokeWidth={22}
                 strokeDasharray={dashArray}
                 strokeDashoffset={0}
                 strokeLinecap="round"
-                style={{ transition: 'all 0.5s ease-out' }}
+                filter="url(#cpg-bloom)"
+                animate={{
+                  opacity: poseState === 'invalid' ? [0.3, 0.85, 0.3] : [0.7, 1, 0.7],
+                }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
               />
-              
-              {/* Active Bloom */}
-              {isActive && (
-                <motion.circle
-                  cx={cx}
-                  cy={cy}
-                  r={segmentR}
-                  fill="none"
-                  stroke={bloom}
-                  strokeWidth={18}
-                  strokeDasharray={dashArray}
-                  strokeDashoffset={0}
-                  strokeLinecap="round"
-                  filter="url(#cpg-active-bloom)"
-                  animate={{ opacity: poseState === 'invalid' ? [0.35, 0.9, 0.35] : 1 }}
-                  transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              )}
-            </g>
-          );
-        })}
-      </g>
+            )}
+
+            {/* ── Main arc stroke ── */}
+            <motion.circle
+              cx={cx}
+              cy={cy}
+              r={arcR}
+              fill="none"
+              stroke={arcColor}
+              strokeWidth={arcWidth}
+              strokeDasharray={dashArray}
+              strokeDashoffset={0}
+              strokeLinecap="round"
+              filter={isActive ? 'url(#cpg-glow-sm)' : undefined}
+              animate={
+                isActive
+                  ? {
+                      opacity:
+                        poseState === 'invalid'
+                          ? [0.55, 1, 0.55]
+                          : 1,
+                    }
+                  : { opacity: isComplete ? 0.80 : 0.30 }
+              }
+              transition={
+                isActive
+                  ? { duration: 1.6, repeat: Infinity, ease: 'easeInOut' }
+                  : { duration: 0.45, ease: 'easeOut' }
+              }
+            />
+          </g>
+        );
+      })}
     </svg>
   );
 }
