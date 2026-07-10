@@ -551,6 +551,28 @@
     animation: biometric-dot-glow 1.8s ease-in-out infinite;
   }
 
+  /* ── Completion success pulse ──────────────────────────────── */
+
+  @keyframes success-ring-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%       { opacity: 0.90; transform: scale(1.018); }
+  }
+
+  @keyframes success-bloom {
+    0%, 100% { opacity: 0.12; }
+    50%       { opacity: 0.26; }
+  }
+
+  .success-ring-pulse {
+    animation: success-ring-pulse 3s ease-in-out infinite;
+    @media (prefers-reduced-motion: reduce) { animation: none; }
+  }
+
+  .success-bloom {
+    animation: success-bloom 3s ease-in-out infinite;
+    @media (prefers-reduced-motion: reduce) { animation: none; }
+  }
+
   /* ────────────────────────────────────────────────────────── */
 
   .landing-input-surface {

@@ -36,6 +36,7 @@ export function CircularProgressGuide({
   const cy = size / 2;
 
   // ── Geometry ────────────────────────────────────────────────
+  const isFrontActive = activeDirection === 'front';
   const trackR  = 148; // quiet background track ring
   const arcR    = 148; // directional arcs sit on the same radius
   const bloomR  = 148;

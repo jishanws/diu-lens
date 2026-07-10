@@ -1,6 +1,6 @@
 'use client';
 
-import { Camera, CheckCircle2, Loader2, RotateCcw } from 'lucide-react';
+import { Camera, Loader2, RotateCcw } from 'lucide-react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -81,14 +81,7 @@ function debugValue(value: string | number | boolean | null) {
   return String(value);
 }
 
-const angleSummaryLabel = {
-  front: 'Front',
-  left: 'Left',
-  right: 'Right',
-  up: 'Up',
-  down: 'Down',
-  natural_front: 'Front',
-} as const;
+
 
 export function GuidedEnrollmentCapture({
   studentId,
@@ -518,12 +511,6 @@ export function GuidedEnrollmentCapture({
       : state.debug.angleState === 'near_valid'
         ? 'near_valid'
         : 'invalid';
-  const captureSummaryRows = captureAngles.map((angle) => ({
-    angle,
-    label: angleSummaryLabel[angle],
-    count: capturesByAngle[angle]?.length ?? 0,
-    required: getRequiredFramesForAngle(angle),
-  }));
   const currentAngleRequired = getRequiredFramesForAngle(state.currentAngle);
 
   // Single-line actionable feedback (only shown when camera is live)
@@ -608,25 +595,48 @@ export function GuidedEnrollmentCapture({
           {/* SCAN CIRCLE AREA */}
           <div className="relative mx-auto w-full max-w-[16rem] sm:max-w-[18rem]">
 
-            {/* Ambient bloom behind circle */}
+            {/* Ambient bloom behind circle — shifts colour on completion */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute -inset-8 rounded-full"
+              className="pointer-events-none absolute -inset-8 rounded-full transition-all duration-700"
               style={{
-                background:
-                  'radial-gradient(circle, rgba(100, 147, 181,0.09) 0%, transparent 65%)',
+                background: showCompletionState
+                  ? 'radial-gradient(circle, rgba(134,239,172,0.10) 0%, transparent 65%)'
+                  : 'radial-gradient(circle, rgba(100,147,181,0.09) 0%, transparent 65%)',
               }}
             />
 
             {showCompletionState ? (
-              <div className="relative flex aspect-square flex-col items-center justify-center rounded-full border border-emerald-300/20 bg-[#06130f] px-6 text-center shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),0_0_0_3px_rgba(16,185,129,0.08),inset_0_0_32px_rgba(0,0,0,0.55)]">
-                <CheckCircle2 className="mb-3 size-9 text-emerald-300" />
-                <p className="text-sm font-semibold text-emerald-100">
-                  All captures completed
-                </p>
-                <p className="mt-1 text-[0.72rem] leading-snug text-emerald-100/65">
-                  Ready for secure validation.
-                </p>
+              <div className="relative flex aspect-square flex-col items-center justify-center rounded-full bg-[#06130f] shadow-[0_0_0_1.5px_rgba(255,255,255,0.06),inset_0_0_32px_rgba(0,0,0,0.55)]">
+                {/* Ambient success bloom */}
+                <div
+                  aria-hidden="true"
+                  className="success-bloom pointer-events-none absolute inset-0 rounded-full"
+                  style={{ background: 'radial-gradient(circle, rgba(134,239,172,0.22) 0%, transparent 68%)' }}
+                />
+                {/* Checkmark */}
+                <motion.div
+                  initial={{ scale: 0.55, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.45, ease: [0.32, 0.72, 0, 1] }}
+                  className="success-ring-pulse flex items-center justify-center"
+                >
+                  <svg
+                    viewBox="0 0 48 48"
+                    className="size-12"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <circle cx="24" cy="24" r="22" stroke="rgba(134,239,172,0.18)" strokeWidth="1.5" />
+                    <polyline
+                      points="14,25 21,32 34,17"
+                      stroke="#86efac"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </motion.div>
               </div>
             ) : (
               <CameraPreview
@@ -774,62 +784,59 @@ export function GuidedEnrollmentCapture({
           </div>
 
           {showCompletionState ? (
-            <div className="space-y-3 px-1 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                <div className="rounded-lg border border-emerald-300/15 bg-emerald-300/5 px-2.5 py-2 text-[0.72rem] text-emerald-100">
-                  <span className="font-semibold">Liveness</span>: passed
-                </div>
-                {captureSummaryRows.map((row) => (
-                  <div
-                    key={row.angle}
-                    className="rounded-lg border border-white/[0.06] bg-white/[0.04] px-2.5 py-2 text-[0.72rem] text-slate-300"
-                  >
-                    <span className="font-semibold text-slate-100">
-                      {row.label}
-                    </span>
-                    : {row.count}/{row.required}
-                  </div>
-                ))}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, ease: [0.32, 0.72, 0, 1], delay: 0.12 }}
+              className="space-y-4 px-1 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]"
+            >
+              {/* Confirmation text */}
+              <div className="space-y-1 text-center">
+                <p className="text-[1.02rem] font-semibold tracking-tight text-slate-100">
+                  All photos captured
+                </p>
+                <p className="text-[0.82rem] text-slate-400">
+                  Ready to submit your enrollment.
+                </p>
               </div>
 
+              {/* Error message (only when retry is needed) */}
               {(completionErrorMessage || localErrorMessage) ? (
                 <p className="rounded-lg border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-center text-[0.75rem] text-rose-100">
                   {completionErrorMessage ?? localErrorMessage}
                 </p>
               ) : null}
 
-              <div className="space-y-2">
-                <Button
+              {/* Primary CTA */}
+              <Button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={isSubmittingCompletion || submitPhase === 'submitting'}
+                size="cta"
+                className="w-full"
+              >
+                {isSubmittingCompletion || submitPhase === 'submitting' ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  submitPhase === 'error' ? 'Retry Submit' : 'Complete Enrollment'
+                )}
+              </Button>
+
+              {/* Ghost retake link */}
+              <div className="flex justify-center">
+                <button
                   type="button"
-                  onClick={() => void handleSubmit()}
+                  onClick={restartCapture}
                   disabled={isSubmittingCompletion || submitPhase === 'submitting'}
-                  size="cta"
-                  className="w-full"
+                  className="text-[0.78rem] text-slate-500 transition-colors hover:text-slate-300 disabled:pointer-events-none disabled:opacity-40"
                 >
-                  {isSubmittingCompletion || submitPhase === 'submitting' ? (
-                    <>
-                      <Loader2 className="size-4 animate-spin" />
-                      Submitting enrollment...
-                    </>
-                  ) : (
-                    submitPhase === 'error' ? 'Retry Submit' : 'Submit Enrollment'
-                  )}
-                </Button>
-                <div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={restartCapture}
-                    disabled={isSubmittingCompletion || submitPhase === 'submitting'}
-                    className="text-slate-300 hover:bg-white/5"
-                  >
-                    <RotateCcw className="size-3.5" />
-                    Restart Capture
-                  </Button>
-                </div>
+                  Retake Photos
+                </button>
               </div>
-            </div>
+            </motion.div>
           ) : null}
 
           {/* ── SINGLE SMART FEEDBACK LINE ────────────────────── */}
@@ -933,7 +940,7 @@ export function GuidedEnrollmentCapture({
         </div>
       </div>
 
-      {/* ── Submit button row ────────────────────────────────────── */}
+      {/* ── Bottom bar (capture in progress / error / retake) ────── */}
       {!showCompletionState ? (
       <div className="flex flex-wrap items-center justify-end gap-2 rounded-xl border border-white/[0.06] bg-[#0b1422]/80 px-4 py-3">
         {completionErrorMessage || localErrorMessage ? (
@@ -946,10 +953,10 @@ export function GuidedEnrollmentCapture({
             className="text-slate-300 hover:bg-white/5"
           >
             <RotateCcw className="size-3.5" />
-            Retake current angle
+            Retake angle
           </Button>
         ) : null}
-        {(completionErrorMessage || localErrorMessage || showCompletionState) ? (
+        {(completionErrorMessage || localErrorMessage) ? (
           <Button
             type="button"
             variant="ghost"
@@ -959,7 +966,7 @@ export function GuidedEnrollmentCapture({
             className="text-slate-300 hover:bg-white/5"
           >
             <RotateCcw className="size-3.5" />
-            Restart capture
+            Restart
           </Button>
         ) : null}
         <Button
